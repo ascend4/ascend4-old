@@ -1,7 +1,7 @@
 #include <math.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/mem.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/mem.h>
 #include "mtx.h"
 #ifdef ASC_WITH_MMIO
 # include <mmio.h>
@@ -15,7 +15,7 @@
 #include "mtx_csparse.h"
 
 #include <ascend/utilities/error.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascPanic.h>
 
 #ifdef ASC_WITH_UFSPARSE
 

@@ -14,7 +14,8 @@
 	See the GNU General Public License for more details.
 	
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with the program; if not, write to the Free Software
+	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139 USA.
  *)
 PROVIDE "measures.a4l";
 (*
@@ -106,8 +107,6 @@ yard = {yd};
 feet = {ft};
 foot = {ft};
 in = {inch};
-rod = {5.5*yard};
-chain = {4*rod};
 
 (* mass *)
 
@@ -141,13 +140,12 @@ slug = {14.5939*kilogram};
 (*  time *)
 
 second = {s};
-sec = {s};
-min = {60*s};
-h = {3600*s};
+yr = {31557600*s};
+wk = {604800*s};
 d = {86400*s};
-yr = {365.25*d};
-mon = {yr/12};
-wk = {7*d};
+h = {3600*s};
+min = {60*s};
+sec = {s};
 ms = {s/1000};
 us = {s/1e6};
 ns = {s/1e9};
@@ -277,11 +275,10 @@ bar = {1e5*Pa};
 mbar = {1e2*Pa};
 MPa = {1e6*Pa};
 GPa = {1e9*Pa};
-uPa = {micro*Pa};
 
 atm = {Pa*101325.0};
-mmHg = {13.5951*g/cm^3*9.80665*m/s^2*1*mm};
-Torr = {atm/760.};
+mmHg = {133.322*Pa};
+torr = {133.322*Pa};
 psia = {6894.733*Pa};
 psi = {psia};
 ftH2O = {2989*Pa};
@@ -453,25 +450,21 @@ TeV = {1e12*eV};
 PeV = {1e15*eV};
 EeV = {1e18*eV};
 
-lyr = {LIGHT_C * yr}; (* Light-year *)
+lyr = {LIGHT_C * yr};               (*      Light-year *)
 
 oersted = {gauss/MU0};
 
-(* plane angle measures *)
+(* subtly dimensionless measures *)
 
 radian = {rad};
+
+steradian = {sr};
+srad = {sr};
 deg = {rad*1.74532925199433e-2};
 degrees = {deg};
 grad = {0.9*deg};
 arcmin = {deg/60.0};
 arcsec = {arcmin/60.0};
-rot = {2 * PI * rad};
-RPM = {rot/minute};
-
-(* solid angle measures *)
-
-steradian = {sr};
-srad = {sr};
 
 (* light quantities *)
 
@@ -484,11 +477,6 @@ lux= {lx};
 (* misc rates *)
 
 gpm = {gallon/min};
-
-(* conversion factor to US (Fisher-Rosemount) valve constants to SI unit
-equivalent. see Appendix 3 of P Thomas 'Simulation of Industrial Processes for
-Control Engineers, 1999, ISBN 0750641614 *)
-VALVE_COEFF_US = {2.3837e-5*m*m};
 
 (* time variant conversions *)
 

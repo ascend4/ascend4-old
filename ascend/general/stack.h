@@ -24,15 +24,10 @@
  *  See the GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check
+ *  the file named COPYING.
  */
-
-#ifndef __stack_h_seen__
-#define __stack_h_seen__
-
-/**	@addtogroup general_stack General Stack
-	@{
-*/
 
 /** @file
  *  Stack Module.
@@ -49,6 +44,9 @@
  *        #include "compiler/compiler.h"
  *  </pre>
  */
+
+#ifndef __stack_h_seen__
+#define __stack_h_seen__
 
 /** Stack data structure. */
 struct gs_stack_t {
@@ -174,8 +172,6 @@ ASC_DLLSPEC void gs_stack_apply(struct gs_stack_t *stack, void (*func) (VOIDPTR)
  *  @param stack The stack to apply func to (non-NULL).
  *  @param func The function to execute for each stack item.
  */
-
-/* @} */
 
 #endif /* __stack_h_seen__ */
 

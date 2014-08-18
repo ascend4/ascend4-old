@@ -12,8 +12,10 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @defgroup system_condconfig System Conditional configuration
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//* @file
 	Conditional Modeling Configuration
 *//*
 	by Vicente Rico-Ramirez, 04/97
@@ -24,15 +26,15 @@
 #define ASC_COND_CONFIG_H
 
 #include <ascend/utilities/config.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/compiler/instance_enum.h>
 
-#include "conditional.h"
+#include "conditional.h" 
 #include "rel.h"
 #include "logrel.h"
 
 
-/**	@addtogroup system_condconfig
+/**	@addtogroup analyse Analyse
 	@{
 */
 

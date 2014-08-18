@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	A C-language class for simple file-path manipulations alla python os.path.
@@ -26,7 +28,7 @@
 	Heavily modified version of C++ code from codeproject.com
 	originally written by Simon Parkinson-Bates.
 
-	Includes (fairly basic) support for environment variable expansion here for
+	Includes (fairly basic) support for environment variable expansion here for 
 	use in cases like "$ASCENDTK/bitmaps" or "ascend-$VERSION$EXESUFFIX".
 
 	@NOTE this library makes no allowance for fancy escape characters.
@@ -45,8 +47,8 @@
 # include "env.h"
 #else
 # include <ascend/utilities/config.h>
-# include "platform.h"
-# include "ascMalloc.h"
+# include <ascend/utilities/ascConfig.h>
+# include <ascend/utilities/ascMalloc.h>
 # include "env.h"
 #endif
 
@@ -62,24 +64,13 @@
 #  ifndef stat
 #   include <sys/stat.h>
 #  else
-#   error "STAT already defined..."
+#   error "STAT alreay defined..."
 #  endif
 # endif
 #endif
 
-/**	@addtogroup general_ospath General File Pathname Manipulation
-	@{
-*/
-
 #ifndef PATH_MAX
 # define PATH_MAX 1023
-#endif
-
-#ifdef __WIN32__
-# define WINPATHS
-# define OSPATH_DIV ";"
-#else
-# define OSPATH_DIV ":"
 #endif
 
 #ifdef _MSC_VER
@@ -134,7 +125,7 @@ ASC_DLLSPEC struct FilePath *ospath_new_expand_env(const char *path, GetEnvFn *g
 
 	3. Remove redundant /./ in middle of path
 
-	4. Remove redundant dir/.. in path
+	4. Remove reduncant dir/.. in path
 
 	5. Environment substitution??
 
@@ -145,21 +136,15 @@ ASC_DLLSPEC struct FilePath *ospath_new_expand_env(const char *path, GetEnvFn *g
 ASC_DLLSPEC void ospath_cleanup(struct FilePath *);
 
 /**
-	Create a copy of a FilePath. This allocated new memory, so you must
-	separately free both the original fp as well as the new copy, when the time comes.
-*/
-ASC_DLLSPEC struct FilePath *ospath_new_copy(const struct FilePath *);
-
-/**
 	Check that the created FilePath was valid (i.e. able
 	to be parsed. Doesn't check that the directory/file
 	actually exists.)
 */
-int ospath_isvalid(const struct FilePath *fp);
+int ospath_isvalid(struct FilePath *fp);
 
 /**
 	Return the FilePath in the form of a string.
-	You must ASC_FREE the allocated string when you don't need it any more.
+	You must FREE the allocated string when you don't need it any more.
 */
 ASC_DLLSPEC char *ospath_str(const struct FilePath *fp);
 
@@ -245,7 +230,7 @@ ASC_DLLSPEC struct FilePath *ospath_getdir(struct FilePath *fp);
 	the current path. This just means that if the path isn't already starting
 	with a slash, it will be concatenated with the current working directory.
 */
-ASC_DLLSPEC struct FilePath *ospath_getabs(const struct FilePath *fp);
+ASC_DLLSPEC struct FilePath *ospath_getabs(struct FilePath *fp);
 
 /**
 	Function returns true if the current path is the root directory, otherwise it returns false.
@@ -266,7 +251,7 @@ ASC_DLLSPEC struct FilePath *ospath_root(struct FilePath *fp);
 
 ASC_DLLSPEC int ospath_cmp(struct FilePath *fp1, struct FilePath *fp2);
 
-ASC_DLLSPEC struct FilePath *ospath_concat(const struct FilePath *fp1, const struct FilePath *fp2);
+ASC_DLLSPEC struct FilePath *ospath_concat(struct FilePath *fp1, struct FilePath *fp2);
 
 ASC_DLLSPEC void ospath_append(struct FilePath *fp, struct FilePath *fp1);
 
@@ -285,20 +270,6 @@ ASC_DLLSPEC FILE *ospath_fopen(struct FilePath *fp, const char *mode);
 	@return 0 on success
 */
 ASC_DLLSPEC int ospath_stat(struct FilePath *fp,ospath_stat_t *buf);
-
-/*
-	Get the current working directory from the operating system, and return
-	it in the form of a FilePath. You must free the FilePath object when you're
-	finished with it.
-*/
-ASC_DLLSPEC struct FilePath *ospath_getcwd(void);
-
-/*
-	Change the current working directory to that specified in fp. No checks
-	are made that the directory actually exists. The return status from the
-	system 'chdir' function is returned (should be 0 for no error)
-*/
-ASC_DLLSPEC int ospath_chdir(struct FilePath *fp);
 
 /*------------------------*/
 /* SEARCH PATH FUNCTIONS*/
@@ -322,7 +293,5 @@ ASC_DLLSPEC struct FilePath *ospath_searchpath_iterate(
 		, FilePathTestFn *testfn
 		, void *searchdata
 );
-
-/* @} */
 
 #endif

@@ -16,14 +16,15 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  */
 
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/hashpjw.h>
-
-#include "test/common.h"
+#include "CUnit/CUnit.h"
 #include "test/assertimpl.h"
 
 static void test_hashpjw(void)
@@ -126,8 +127,18 @@ static void test_hashpjw(void)
 /*===========================================================================*/
 /* Registration information */
 
-#define TESTS(T) \
-	T(hashpjw)
+static CU_TestInfo hashpjw_test_list[] = {
+  {"hashpjw", test_hashpjw},
+  CU_TEST_INFO_NULL
+};
 
-REGISTER_TESTS_SIMPLE(general_hashpjw, TESTS);
+static CU_SuiteInfo suites[] = {
+  {"general_hashpjw", NULL, NULL, hashpjw_test_list},
+  CU_SUITE_INFO_NULL
+};
 
+/*-------------------------------------------------------------------*/
+CU_ErrorCode test_register_general_hashpjw(void)
+{
+  return CU_register_suites(suites);
+}

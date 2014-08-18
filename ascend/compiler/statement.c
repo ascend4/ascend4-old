@@ -22,16 +22,19 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
  */
 
 #include <stdarg.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 
 #include "symtab.h"
 #include "braced.h"
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/list.h>
 
 
@@ -65,6 +68,10 @@
 #define TRUE 1
 #endif
 
+#ifndef lint
+static CONST char StatementID[] = "$Id: statement.c,v 1.32 1998/04/21 23:49:48 ballan Exp $";
+#endif
+
 static
 struct Statement *stmallocF()
 {
@@ -75,7 +82,7 @@ struct Statement *stmallocF()
 }
 
 /**
-  Create a statement of the specified type and assign the local context to it
+	Create a statement of the specified type and assign the local context to it
 */
 static struct Statement *
 create_statement_here(enum stat_t t){
@@ -116,8 +123,6 @@ void AddContext(struct StatementList *slist, unsigned int con)
     case WILLBE:
     case IRT:
     case AA:
-    case LNK:
-    case UNLNK:
     case ATS:
     case WBTS:
     case WNBTS:
@@ -130,9 +135,6 @@ void AddContext(struct StatementList *slist, unsigned int con)
     case REF:
     case FIX:
     case FREE:
-    case SOLVER:
-    case OPTION:
-    case SOLVE:
     case RUN:
     case FNAME:
     case FLOW:
@@ -149,9 +151,9 @@ void AddContext(struct StatementList *slist, unsigned int con)
         AddContext(sublist,con);
       }
       break;
-    case ASSERT:
+	case ASSERT:
       /* no sublists under a TEST statement */
-      break;
+	  break;
     case IF:
       sublist = IfStatThen(s);
       AddContext(sublist,con);
@@ -281,60 +283,6 @@ struct Statement *CreateAA(struct VariableList *vl)
   return result;
 }
 
-
-struct Statement *IgnoreLNK(symchar *key, struct Name *n_key, struct VariableList *vl)
-{
-  register struct Statement *result;
-  result=create_statement_here(LNK);
-
-  if(key != NULL){
-    result->v.lnk.key = key;
-    result->v.lnk.key_type = link_ignore; /**>> DS: this flag tells the compiler that it is a ignore LINK */
-    result->v.lnk.vl = vl;
-  }else if(n_key != NULL){
-    result->v.lnk.key = n_key->val.id;
-    result->v.lnk.key_type = link_ignore;
-    result->v.lnk.vl = vl;
-  }
-  return result;
-}
-
-struct Statement *CreateLNK(symchar *key, struct Name *n_key, struct VariableList *vl)
-{
-  register struct Statement *result;
-  result=create_statement_here(LNK);
-
-  if(key != NULL){
-    result->v.lnk.key = key;
-    result->v.lnk.key_type = link_symchar;
-    result->v.lnk.vl = vl;
-  }else if(n_key != NULL){
-    result->v.lnk.key = n_key->val.id; /**>>DS TODO: Not sure if this is fine, I however need a single datatype to store the keys in the appropriate datastructures */
-    result->v.lnk.key_type = link_name;
-    result->v.lnk.vl = vl;
-  }
-  return result;
-}
-
-
-struct Statement *CreateUNLNK(symchar *key, struct Name *n_key, struct VariableList *vl)
-{
-  register struct Statement *result;
-  result=create_statement_here(UNLNK);
-
-  if(key != NULL){
-    result->v.lnk.key = key;
-    result->v.lnk.key_type = 0;
-    result->v.lnk.vl = vl;
-  }else if(n_key != NULL){
-    result->v.lnk.key = n_key->val.id; /**>>DS: Not sure if this is fine, I however need a single datatype to store the keys in the appropriate datastructures */
-    result->v.lnk.key_type = 1;
-    result->v.lnk.vl = vl;
-  }
-return result;
-}
-
-
 struct Statement *CreateATS(struct VariableList *vl)
 {
   register struct Statement *result;
@@ -345,10 +293,9 @@ struct Statement *CreateATS(struct VariableList *vl)
 
 struct Statement *CreateFIX(struct VariableList *vars){
 	register struct Statement *result;
-	/*CONSOLE_DEBUG("CREATING FIX STMT");*/
+	/* CONSOLE_DEBUG("CREATING FIX STMT"); */
 	result=create_statement_here(FIX);
 	result->v.fx.vars = vars;
-	/*WriteVariableList(ASCERR,result->v.fx.vars);*/
 	return result;
 }
 
@@ -358,28 +305,6 @@ struct Statement *CreateFREE(struct VariableList *vars){
   result=create_statement_here(FREE);
   result->v.fx.vars = vars;
   return result;
-}
-
-struct Statement *CreateSOLVER(CONST char *solvername){
-	register struct Statement *result;
-	result=create_statement_here(SOLVER);
-	result->v.solver.name = solvername;
-	/*CONSOLE_DEBUG("CREATED SOLVER STATEMENT");*/
-	return result;
-}
-
-struct Statement *CreateOPTION(CONST char *optname, struct Expr *rhs){
-	register struct Statement *result;
-	result=create_statement_here(OPTION);
-	result->v.option.name = optname;
-	result->v.option.rhs = rhs;
-	return result;
-}
-
-struct Statement *CreateSOLVE(){
-	register struct Statement *result;
-	result=create_statement_here(SOLVE);
-	return result;
 }
 
 struct Statement *CreateWBTS(struct VariableList *vl)
@@ -443,12 +368,6 @@ unsigned int SlistHasWhat(struct StatementList *slist)
       break;
     case AA:
       what |= contains_AA;
-      break;
-    case LNK:
-      what |= contains_LNK;
-      break;
-    case UNLNK:
-      what |= contains_UNLNK;
       break;
     case CASGN:
       what |= contains_CAS;
@@ -576,8 +495,8 @@ struct Statement *CreateEXTERNGlassBox(
   result->v.ext.extcall = funcname;
   result->v.ext.u.glass.nptr = n;
   result->v.ext.u.glass.vl = vl;
-  result->v.ext.u.glass.data = data;   /* NULL is valid */
-  result->v.ext.u.glass.scope = scope; /* NULL is valid */
+  result->v.ext.u.glass.data = data; 	/* NULL is valid */
+  result->v.ext.u.glass.scope = scope;	/* NULL is valid */
   return result;
 }
 
@@ -603,14 +522,14 @@ struct Statement *CreateEXTERNBlackBox(
 	internal compiler usage pops up (likely) we like the informative name.
    */
   /* name of the bbox implicit int set */
-  bsuf = AddSymbol(BBOX_RESERVED_INDEX);
+  bsuf = AddSymbol(BBOX_RESERVED_INDEX); 
   bbsuffix = CreateReservedIndexName(bsuf); /* add a [?BBOX_OUTPUT] index */
   n = JoinNames(n, bbsuffix);
   result->v.ext.u.black.nptr = n;
   result->v.ext.u.black.vl = vl;
-  result->v.ext.u.black.data = data;          /* NULL is valid */
-  result->v.ext.u.black.n_inputs = n_inputs;  //number of inputs from parsed statement
-  result->v.ext.u.black.n_outputs = n_outputs;//number of outputs from parsed statement
+  result->v.ext.u.black.data = data; 	/* NULL is valid */
+  result->v.ext.u.black.n_inputs = n_inputs; //number of inputs from parsed statement
+  result->v.ext.u.black.n_outputs = n_outputs; //number of outputs from parsed statement
   return result;
 }
 
@@ -646,7 +565,7 @@ struct Statement *CreateRUN(struct Name *n,struct Name *type_access)
   register struct Statement *result;
   result=create_statement_here(RUN);
   result->v.r.proc_name = n;
-  result->v.r.type_name = type_access; /* NULL is valid */
+  result->v.r.type_name = type_access;	/* NULL is valid */
   return result;
 }
 
@@ -655,7 +574,7 @@ struct Statement *CreateCALL(symchar *sym,struct Set *args)
   register struct Statement *result;
   result=create_statement_here(CALL);
   result->v.call.id = sym;
-  result->v.call.args = args; /* NULL is valid */
+  result->v.call.args = args;	/* NULL is valid */
   return result;
 }
 
@@ -763,10 +682,10 @@ int CountStatementsInSelect(struct SelectList *sel)
       assert(s!=NULL);
       switch(StatementType(s)) {
         case SELECT:
-          tmp = CountStatementsInSelect(SelectStatCases(s));
-          break;
+	  tmp = CountStatementsInSelect(SelectStatCases(s));
+	  break;
         default:
-          break;
+	  break;
       }
       count = count + tmp;
     }
@@ -894,11 +813,6 @@ void DestroyStatement(struct Statement *s)
           s->v.i.typeargs = NULL;
         }
         break;
-      case LNK:
-      case UNLNK:
-        DestroyVariableList(s->v.lnk.vl);
-        s->v.lnk.vl = NULL;
-        break;
       case ATS:
       case AA:
       case WBTS:
@@ -930,8 +844,8 @@ void DestroyStatement(struct Statement *s)
         s->v.call.args = NULL;
         break;
       case EXT:
-        s->v.ext.extcall = NULL;
-        switch (s->v.ext.mode) {
+	s->v.ext.extcall = NULL;
+	switch (s->v.ext.mode) {
         case ek_method:
           DestroyVariableList(s->v.ext.u.method.vl);
           s->v.ext.u.method.vl = NULL;
@@ -945,7 +859,7 @@ void DestroyStatement(struct Statement *s)
           s->v.ext.u.glass.data = NULL;
           if (s->v.ext.u.glass.scope) DestroyName(s->v.ext.u.glass.scope);
           s->v.ext.u.glass.scope = NULL;
-          break;
+	  break;
         case ek_black:
           DestroyName(s->v.ext.u.black.nptr);
           s->v.ext.u.black.nptr = NULL;
@@ -975,26 +889,13 @@ void DestroyStatement(struct Statement *s)
         break;
 
       case FIX:
-      case FREE:
+	  case FREE:
         DestroyVariableList(s->v.fx.vars);
-        break;
+		break;
 
       case ASSERT:
         DestroyExprList(s->v.asserts.test);
         s->v.asserts.test = NULL;
-        break;
-
-      case SOLVER:
-        s->v.solver.name = NULL;
-        break;
-
-      case OPTION:
-        s->v.option.name = NULL;
-        DestroyExprList(s->v.option.rhs);
-        break;
-
-      case SOLVE:
-        /* currently there's no data stored in this command */
         break;
 
       case IF:
@@ -1100,11 +1001,6 @@ struct Statement *CopyToModify(struct Statement *s)
     result->v.i.checkvalue =  CopyExprList(s->v.i.checkvalue);
     /* is this complete for IS_A with args to type? */
     break;
-  case UNLNK:
-  case LNK:
-    result->v.lnk.key = s->v.lnk.key;
-    result->v.lnk.vl = CopyVariableList(s->v.lnk.vl);
-    break;
   case AA:
   case ATS:
   case WBTS:
@@ -1163,29 +1059,13 @@ struct Statement *CopyToModify(struct Statement *s)
     result->v.r.proc_name = CopyName(s->v.r.proc_name);
     result->v.r.type_name = CopyName(s->v.r.type_name);
     break;
-
   case ASSERT:
     result->v.asserts.test = CopyExprList(s->v.asserts.test);
     break;
-
   case FIX:
   case FREE:
     result->v.fx.vars = CopyVariableList(s->v.fx.vars);
-    break;
-
-  case SOLVER:
-    result->v.solver.name = s->v.solver.name;
-    break;
-
-  case OPTION:
-    result->v.option.name = s->v.option.name;
-    result->v.option.rhs = CopyExprList(s->v.option.rhs);
-    break;
-
-  case SOLVE:
-    /* no data to be copied for this command */
-    break;
-
+	break;
   case IF:
     result->v.ifs.test = CopyExprList(s->v.ifs.test);
     result->v.ifs.thenblock = CopyListToModify(s->v.ifs.thenblock);
@@ -1241,8 +1121,6 @@ unsigned int GetStatContextF(CONST struct Statement *s)
   case WILLBE:
   case IRT:
   case AA:
-  case LNK:
-  case UNLNK:
   case ATS:
   case WBTS:
   case WNBTS:
@@ -1257,9 +1135,6 @@ unsigned int GetStatContextF(CONST struct Statement *s)
   case RUN:
   case FIX:
   case FREE:
-  case SOLVER:
-  case OPTION:
-  case SOLVE:
   case ASSERT:
   case IF:
   case WHEN:
@@ -1271,7 +1146,7 @@ unsigned int GetStatContextF(CONST struct Statement *s)
   case FLOW:
     return s->context;
   default:
-    ERROR_REPORTER_STAT(ASC_PROG_ERR,s,"GetStatContext called on incorrect statement type.");
+	ERROR_REPORTER_STAT(ASC_PROG_ERR,s,"GetStatContext called on incorrect statement type.");
     return context_MODEL;
   }
 }
@@ -1286,8 +1161,6 @@ void SetStatContext(struct Statement *s, unsigned int c)
   case WILLBE:
   case IRT:
   case AA:
-  case LNK:
-  case UNLNK:
   case ATS:
   case WBTS:
   case WNBTS:
@@ -1302,9 +1175,6 @@ void SetStatContext(struct Statement *s, unsigned int c)
   case RUN:
   case FIX:
   case FREE:
-  case SOLVER:
-  case OPTION:
-  case SOLVE:
   case ASSERT:
   case IF:
   case WHEN:
@@ -1333,8 +1203,6 @@ void MarkStatContext(struct Statement *s, unsigned int c)
   case WILLBE:
   case IRT:
   case AA:
-  case LNK:
-  case UNLNK:
   case ATS:
   case WBTS:
   case WNBTS:
@@ -1349,9 +1217,6 @@ void MarkStatContext(struct Statement *s, unsigned int c)
   case RUN:
   case FIX:
   case FREE:
-  case SOLVER:
-  case OPTION:
-  case SOLVE:
   case ASSERT:
   case IF:
   case WHEN:
@@ -1378,9 +1243,7 @@ struct VariableList *GetStatVarList(CONST struct Statement *s)
 		(s->t==WILLBE) ||
 		(s->t==IRT) ||
 		(s->t==AA)  ||
-		(s->t==LNK)  ||
-		(s->t==UNLNK) ||
-		(s->t==ATS)  ||
+		(s->t==ATS) ||
 		(s->t==WBTS) ||
 		(s->t==WNBTS) ||
 		(s->t==ARR) ||
@@ -1391,9 +1254,6 @@ struct VariableList *GetStatVarList(CONST struct Statement *s)
   case WILLBE:
   case IRT:
     return (s)->v.i.vl;
-  case LNK:
-  case UNLNK:
-    return (s)->v.lnk.vl;
   case AA:
   case ATS:
   case WBTS:
@@ -1450,20 +1310,6 @@ CONST struct Expr *GetStatCheckValueF(CONST struct Statement *s)
   assert(s->ref_count);
   assert(s->t==WILLBE);
   return s->v.i.checkvalue;
-}
-
-symchar *LINKStatKeyF(CONST struct Statement *s)
-{
-  assert(s!=NULL);
-  assert(s->t==LNK || s->t==UNLNK);
-  return s->v.lnk.key;
-}
-
-struct VariableList *LINKStatVlistF(CONST struct Statement *s)
-{
-  assert(s!=NULL);
-  assert(s->t==LNK || s->t==UNLNK);
-  return s->v.lnk.vl;
 }
 
 CONST struct Name *AliasStatNameF(CONST struct Statement *s)
@@ -1615,20 +1461,6 @@ unsigned ForContainsAlikeF(CONST struct Statement *s)
   assert(s!=NULL);
   assert(s->t==FOR);
   return (s->v.f.contains & contains_AA);
-}
-
-unsigned ForContainsLinkF(CONST struct Statement *s)
-{
-  assert(s!=NULL);
-  assert(s->t==FOR);
-  return (s->v.f.contains & contains_LNK);
-}
-
-unsigned ForContainsUnlinkF(CONST struct Statement *s)
-{
-  assert(s!=NULL);
-  assert(s->t==FOR);
-  return (s->v.f.contains & contains_UNLNK);
 }
 
 unsigned ForContainsAliasF(CONST struct Statement *s)
@@ -2181,20 +2013,6 @@ unsigned SelectContainsAlikeF(CONST struct Statement *s)
   return (s->v.se.contains & contains_AA);
 }
 
-unsigned SelectContainsLinkF(CONST struct Statement *s)
-{
-  assert(s!=NULL);
-  assert(s->t==SELECT);
-  return (s->v.se.contains & contains_LNK);
-}
-
-unsigned SelectContainsUnlinkF(CONST struct Statement *s)
-{
-  assert(s!=NULL);
-  assert(s->t==SELECT);
-  return (s->v.se.contains & contains_UNLNK);
-}
-
 unsigned SelectContainsAliasF(CONST struct Statement *s)
 {
   assert(s!=NULL);
@@ -2369,7 +2187,7 @@ int CompareStatements(CONST struct Statement *s1, CONST struct Statement *s2)
         return CmpSymchar(GetBaseTypeName(integer_constant_type),
                           GetBaseTypeName(symbol_constant_type));
       } else {
-        /* ctmp == -1 */
+	/* ctmp == -1 */
         return CmpSymchar(GetBaseTypeName(symbol_constant_type) ,
                           GetBaseTypeName(integer_constant_type));
       }
@@ -2417,9 +2235,6 @@ int CompareStatements(CONST struct Statement *s1, CONST struct Statement *s2)
       return ctmp;
     }
     return CompareExprs(GetStatCheckValue(s1),GetStatCheckValue(s2));
-  case LNK: /* fallthru */ /* FIXME check this? */
-  case UNLNK: /* fallthru */
-    CONSOLE_DEBUG("CHECK HERE! don't we also need to check the TYPE of link?");
   case ATS: /* fallthru */
   case WBTS: /* fallthru */
   case WNBTS: /* fallthru */
@@ -2488,8 +2303,8 @@ int CompareStatements(CONST struct Statement *s1, CONST struct Statement *s2)
     return CompareStatementLists(WhileStatBlock(s1), WhileStatBlock(s2),&ltmp);
 
   case ASSERT:
-    ctmp = CompareExprs(AssertStatExpr(s1), AssertStatExpr(s2));
-    return ctmp;
+	ctmp = CompareExprs(AssertStatExpr(s1), AssertStatExpr(s2));
+	return ctmp;
 
   case IF:
     ctmp = CompareExprs(IfStatExpr(s1), IfStatExpr(s2));
@@ -2575,7 +2390,7 @@ int CompareStatements(CONST struct Statement *s1, CONST struct Statement *s2)
      * will not be fixed until the definitions are really known.
      */
     ASC_PANIC("Don't know how to compare REF statements\n");
-
+    
   case COND:
     return CompareStatementLists(CondStatList(s1),CondStatList(s2),&ltmp);
   case FLOW:
@@ -2585,13 +2400,13 @@ int CompareStatements(CONST struct Statement *s1, CONST struct Statement *s2)
     /* FlowStatMessage is considered comment info and so not compared */
     return 0;
   default:
-    ERROR_REPORTER_NOLINE(ASC_PROG_ERR,"CompareStatements called with unknown statement");
+	ERROR_REPORTER_NOLINE(ASC_PROG_ERR,"CompareStatements called with unknown statement");
     return 0;
   }
 }
 
 /* could we merge some of this with plain compare statements via some
- *static functions? baa. FIXME.
+ *static functions? baa. fix me.
  */
 int CompareISStatements(CONST struct Statement *s1, CONST struct Statement *s2)
 {
@@ -2701,8 +2516,6 @@ int CompareISStatements(CONST struct Statement *s1, CONST struct Statement *s2)
   case ARR:
   case ATS: /* fallthru */
   case AA:
-  case LNK:
-  case UNLNK:
   case ASGN:
   case CASGN:
   case RUN:
@@ -2718,13 +2531,11 @@ int CompareISStatements(CONST struct Statement *s1, CONST struct Statement *s2)
   case COND:
   case FLOW:
   case WHILE:
-    ERROR_REPORTER_STAT(ASC_PROG_ERR,s1,"CompareISStatements called with incorrect statement");
+	ERROR_REPORTER_STAT(ASC_PROG_ERR,s1,"CompareISStatements called with incorrect statement");
     return -1;
   default:
-    ERROR_REPORTER_STAT(ASC_PROG_ERR,s1,"CompareISStatements called with unknown statement");
+	ERROR_REPORTER_STAT(ASC_PROG_ERR,s1,"CompareISStatements called with unknown statement");
     return 1;
   }
 }
-
-/* vim: set ts=8: */
 

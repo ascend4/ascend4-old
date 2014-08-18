@@ -24,12 +24,15 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
  */
 #include <stdarg.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/panic.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
 
@@ -44,6 +47,10 @@
 #include "instance_types.h"
 #include "instmacro.h"
 #include "atomsize.h"
+
+#ifndef lint
+static CONST char AtomSizeModuleID[] = "$Id: atomsize.c,v 1.6 1997/07/18 12:28:01 mthomas Exp $";
+#endif
 
 static unsigned long ChildMemory(unsigned long int count,
                                  CONST struct ChildDesc *cdesc)
@@ -91,7 +98,7 @@ unsigned long ConstantByteLength(enum inst_t it)
     return sizeof(struct SymbolConstantInstance);
   default:
     ASC_PANIC("Bytelength of unknown constant type requested.");
-
+    
     break;
   }
   /* not reached */

@@ -15,7 +15,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//*
 	by Karl Michael Westerberg
 	Created: 2/6/90
@@ -24,7 +26,7 @@
 
 #include "system.h"
 
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
 #include <ascend/general/tm_time.h>
 
@@ -34,7 +36,6 @@
 #include <ascend/linear/mtx.h>
 
 #include "slv_client.h"
-#include "diffvars.h"
 
 #include "relman.h"
 #include "slv_server.h"
@@ -71,7 +72,7 @@ slv_system_t system_build(SlvBackendToken inst){
     system_destroy(sys);
     sys = NULL;
     if(stat==2) {
-      ERROR_REPORTER_START_NOLINE(ASC_USER_ERROR);
+	  ERROR_REPORTER_START_NOLINE(ASC_USER_ERROR);
       FPRINTF(ASCERR,"Models sent to solver: \n");
       FPRINTF(ASCERR,"1 cannot have any pending parts\n");
       FPRINTF(ASCERR,"2 cannot have NULL or unfinished relations.\n");
@@ -79,7 +80,7 @@ slv_system_t system_build(SlvBackendToken inst){
       FPRINTF(ASCERR,"4 must have at least one objective or relation.\n");
       FPRINTF(ASCERR,"5 must have at all WHEN-controlling values initialized.\n");
       FPRINTF(ASCERR,"Check pendings and problem structure.\n");
-      error_reporter_end_flush();
+	  error_reporter_end_flush();
     }
     return sys;
   }
@@ -87,12 +88,7 @@ slv_system_t system_build(SlvBackendToken inst){
   slv_set_instance(sys,inst);
 
 #if DOTIME
-  comptime = tm_cpu_time() - comptime;
-  if(comptime >= 1e-3){
-    CONSOLE_DEBUG("System built (time %5.3f s)",comptime);
-  }else{
-    CONSOLE_DEBUG("System built (time <1ms)");
-  }
+  FPRINTF(stderr,"Time to build system = %g\n", (tm_cpu_time() - comptime));
 #endif
   return(sys);
 }
@@ -114,8 +110,6 @@ void system_destroy(slv_system_t sys){
 #undef F
 #undef FN
 
-	system_diffvars_destroy(sys);
-
 	symbollist=slv_get_symbol_list(sys);
 	if(symbollist != NULL)DestroySymbolValuesList(symbollist);
 
@@ -124,7 +118,8 @@ void system_destroy(slv_system_t sys){
 	slv_destroy(sys); /* frees buf data */
 }
 
-void system_free_reused_mem(){
+void system_free_reused_mem()
+{
   mtx_free_reused_mem();
   linsolqr_free_reused_mem();
   analyze_free_reused_mem();

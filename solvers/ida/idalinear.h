@@ -1,5 +1,5 @@
 /*	ASCEND modelling environment
-	Copyright (C) 2006-2011 Carnegie Mellon University
+	Copyright (C) 2006 Carnegie Mellon University
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	This file presents a linear solver interface that can be utilised by the
 	IDA integrator from the SUNDIALS suite by LLNL. The linear solver uses the
@@ -21,7 +23,7 @@
 
 	EXPERIMENTAL -- INCOMPLETE -- UNDER DEVELOPMENT
 
-	This file and idalinear.c are modelled fairly closely on ida_dense.c from
+	This file and idalinear.c are modelled fairly closely on ida_dense.c from 
 	the SUNDIALS distribution, which maps out the expected use of ida_lmem
 	data structure, etc.
 
@@ -30,7 +32,20 @@
 #ifndef ASC_IDALINEAR_H
 #define ASC_IDALINEAR_H
 
-#include "ida.h"
+/**	@addtogroup integrator Integrator
+	@{
+*/
+
+#if SUNDIALS_VERSION_MAJOR==2 && SUNDIALS_VERSION_MINOR==2
+# include <sundials/sundials_config.h>
+# include <sundials/sundials_nvector.h>
+# include <ida.h>
+# include <ida/ida_spgmr.h>
+#else
+# include <sundials/sundials_config.h>
+# include <nvector/nvector_serial.h>
+# include <ida/ida.h>
+#endif
 
 #include <ascend/linear/mtx.h>
 
@@ -64,7 +79,7 @@ typedef int IntegratorSparseJacFn(long int Neq, realtype tt
 */
 int IDAASCEND(void *ida_mem, long size);
 
-/**
+/**	
 	Register a (sparse mtx) Jacobian evaluation function with the linear solver (required)
 */
 int IDAASCENDSetJacFn(void *ida_mem, IntegratorSparseJacFn *jacfn, void *jac_data);
@@ -79,5 +94,7 @@ int IDAASCENDGetLastFlag(void *ida_mem, int *flag);
 	You need to free the returned string here.
 */
 char *IDAASCENDGetReturnFlagName(int flag);
+
+/* @} */
 
 #endif

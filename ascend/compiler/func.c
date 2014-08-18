@@ -22,7 +22,10 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
  */
 
 #include "func.h"
@@ -285,7 +288,7 @@ double datan(register double d)
 
 double datan2(register double d)
 {
-  return -2*d/sqr(1+d*d);
+  return -ldexp(d/(1.0+d*d),1);
 }
 
 #ifdef HAVE_ERF

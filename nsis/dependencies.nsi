@@ -4,8 +4,9 @@
 Var CHECKPY
 Var CHECKGTK
 Var CHECKPYGTK
-Var CHECKPYCAIRO
 Var CHECKPYGOBJECT
+Var CHECKPYCAIRO
+Var CHECKTCL
 
 !macro setCheckboxChecked CB
 	SendMessage ${CB} ${BM_SETCHECK} 0x0001 0
@@ -14,12 +15,12 @@ Var CHECKPYGOBJECT
 
 Function dependenciesCreate
 	
-	${If} $HAVE_PYTHON == 'OK'
-	${AndIf} $HAVE_GTK == 'OK'
-	${AndIf} $HAVE_PYGTK == 'OK'
-	${AndIf} $HAVE_PYGOBJECT == 'OK'
-	${AndIf} $HAVE_PYCAIRO == 'OK'
-	;${AndIf} $TCLOK == 'OK'
+	${If} $PYOK == 'OK'
+	${AndIf} $GTKOK == 'OK'
+	${AndIf} $PYGTKOK == 'OK'
+	${AndIf} $PYGOBJECTOK == 'OK'
+	${AndIf} $PYCAIROOK == 'OK'
+	${AndIf} $TCLOK == 'OK'
 		; do nothing in this page
 	${Else}
 		nsDialogs::Create /NOUNLOAD 1018
@@ -28,35 +29,40 @@ Function dependenciesCreate
 		${NSD_CreateLabel} 0% 0 100% 48% "The following additional packages are required for ASCEND to function correctly. Checked items will be downloaded and installed (some of the installers may require you to click 'next' a few times). If you don't want additional components to be downloaded you can unckeck them. This installer will then install only the parts for which the prerequisites are already satisfied."
 		Pop $0
 
-		${If} $HAVE_PYTHON == 'NOK'
-			${NSD_CreateCheckbox} 10% 50% 100% 8u "Python ${PYVERSION} (${NNBIT})"
+		${If} $PYOK == 'NOK'
+			${NSD_CreateCheckbox} 10% 50% 100% 8u Python
 			Pop $CHECKPY
 			!insertmacro setCheckboxChecked $CHECKPY
 		${EndIf}
 
-		${If} $HAVE_GTK == 'NOK'
-			${NSD_CreateCheckbox} 10% 58% 100% 8u "GTK+ bundle ${GTK_VER} (${NNBIT})"
+		${If} $GTKOK == 'NOK'
+			${NSD_CreateCheckbox} 10% 58% 100% 8u GTK+
 			Pop $CHECKGTK
 			!insertmacro setCheckboxChecked $CHECKGTK
 		${EndIf}
 
-
-		${If} $HAVE_PYGTK == 'NOK'
-			${NSD_CreateCheckbox} 10% 64% 100% 8u "PyGTK"
-			Pop $CHECKPYGTK
-			!insertmacro setCheckboxChecked $CHECKPYGTK
+		${If} $PYGOBJECTOK == 'NOK'
+			${NSD_CreateCheckbox} 10% 66% 100% 8u PyGObject
+			Pop $CHECKPYGOBJECT
+			!insertmacro setCheckboxChecked $CHECKPYGOBJECT
 		${EndIf}
-		
-		${If} $HAVE_PYCAIRO == 'NOK'
-			${NSD_CreateCheckbox} 10% 72% 100% 8u "PyCairo"
+
+		${If} $PYCAIROOK == 'NOK'
+			${NSD_CreateCheckbox} 10% 74% 100% 8u PyCairo
 			Pop $CHECKPYCAIRO
 			!insertmacro setCheckboxChecked $CHECKPYCAIRO
 		${EndIf}
 
-		${If} $HAVE_PYGOBJECT == 'NOK'
-			${NSD_CreateCheckbox} 10% 80% 100% 8u "PyGObject"
-			Pop $CHECKPYGOBJECT
-			!insertmacro setCheckboxChecked $CHECKPYGOBJECT
+		${If} $PYGTKOK == 'NOK'
+			${NSD_CreateCheckbox} 10% 82% 100% 8u PyGTK
+			Pop $CHECKPYGTK
+			!insertmacro setCheckboxChecked $CHECKPYGTK			
+		${EndIf}
+		
+		${If} $TCLOK == 'NOK'
+			${NSD_CreateCheckbox} 10% 90% 100% 8u Tcl/Tk
+			Pop $CHECKTCL
+			!insertmacro setCheckboxChecked $CHECKTCL
 		${EndIf}
 
 		nsDialogs::Show
@@ -65,10 +71,11 @@ Function dependenciesCreate
 FunctionEnd
 
 Function DependenciesLeave
-	SendMessage $CHECKPY        ${BM_GETCHECK} 0 0 $NEED_PYTHON
-	SendMessage $CHECKGTK       ${BM_GETCHECK} 0 0 $NEED_GTK
-	SendMessage $CHECKPYGTK     ${BM_GETCHECK} 0 0 $NEED_PYGTK
-	SendMessage $CHECKPYCAIRO   ${BM_GETCHECK} 0 0 $NEED_PYCAIRO
-	SendMessage $CHECKPYGOBJECT ${BM_GETCHECK} 0 0 $NEED_PYGOBJECT
+	SendMessage $CHECKPY ${BM_GETCHECK} 0 0 $PYDOWNLOAD
+	SendMessage $CHECKGTK ${BM_GETCHECK} 0 0 $GTKDOWNLOAD
+	SendMessage $CHECKPYGTK ${BM_GETCHECK} 0 0 $PYGTKDOWNLOAD
+	SendMessage $CHECKPYGOBJECT ${BM_GETCHECK} 0 0 $PYGOBJECTDOWNLOAD
+	SendMessage $CHECKPYCAIRO ${BM_GETCHECK} 0 0 $PYCAIRODOWNLOAD
+	SendMessage $CHECKTCL ${BM_GETCHECK} 0 0 $TCLDOWNLOAD
 FunctionEnd
 	

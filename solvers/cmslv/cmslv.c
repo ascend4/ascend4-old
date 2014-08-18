@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Conditional Modeling Solver (CMSlv) module.
@@ -25,11 +27,11 @@
 #include <math.h>
 
 #include <ascend/utilities/config.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/utilities/ascSignal.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/tm_time.h>
-#include <ascend/general/mem.h>
+#include <ascend/utilities/mem.h>
 #include <ascend/general/list.h>
 #include <ascend/general/mathmacros.h>
 
@@ -585,7 +587,6 @@ static void restore_original_bool_values(struct gl_list_t *bollist,
 
 #endif /* if 0 */
 
-#if 0 /* unused function */
 /*
  * the first element of cur_cases is in position one. The result is
  * the same array, but ordered and starting in position zero
@@ -609,7 +610,6 @@ void cases_reorder(int32 *cur_cases, int32 *correct_cases, int32 ncases){
 
   return;
 }
-#endif
 
 #if 0 /** unused function eligible_set_for_neighboring_subregions */
 /* might appear if debug_consistency is true. */
@@ -686,7 +686,6 @@ static struct gl_list_t *get_list_of_booleans(slv_system_t server,
 
 #endif /* 0*/
 
-#if 0 /* unused functions */
 /*
  * Get the eligible var list for each alternative
  * Return:
@@ -799,9 +798,7 @@ int32 get_eligible_set(slv_system_t server,struct gl_list_t *disvars,
 
   return 1;
 }
-#endif
 
-#if 0 /* unused functions */
 /*
  * Get the eligible set of variables for each of the alternatives generated
  * by modifying the values of the boolean variables with the values stored
@@ -896,9 +893,8 @@ int32 do_search_alternatives(slv_system_t server, SlvClientToken asys,
 
   return 1;
 }
-#endif
 
-#if 0 /* unused functions */
+
 /*
  * Perform consistency analysis for the visited/current-previous subregions.
  * If all_subs is 1, the analysis takes in account all of the subregions
@@ -1031,7 +1027,6 @@ int32 consistency(slv_system_t server, SlvClientToken asys,
     return 0;
   }
 }
-#endif
 
 #if 0 /** unused function eligible_set_for_neighboring_subregions */
 /* might appear if debug_consistency is true. */
@@ -2215,15 +2210,11 @@ real64 return_to_first_boundary(slv_system_t server,
   int32 count,n_incidences,inc,conv_flag,still_crossed;
   int32 numbnds,numbndf,b,ind;
   int32 iter,n_iterations;
-#if SHOW_BOUNDARY_ANALYSIS_DETAILS
   FILE *lif;
-#endif
 
   sys = SLV9(asys);
   check_system(sys);
-#if SHOW_BOUNDARY_ANALYSIS_DETAILS
   lif = LIF(sys);
-#endif
 
   if(sys->blist == NULL ) {
     FPRINTF(ASCERR,"ERROR:  (slv9) return_to_first_boundary\n");

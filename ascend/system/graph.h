@@ -12,8 +12,10 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @defgroup system_graph System Graph output
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//** @file
 	System graph output
 
 	Use variable and relation filters to generate a graph between the selected
@@ -26,21 +28,15 @@
 #define ASC_SYS_GRAPH_H
 
 #include <ascend/utilities/config.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include "slv_types.h"
 #include "var.h"
 #include "rel.h"
-
-/**	@addtogroup system_graph
-	@{
-*/
 
 /**
 	Write graphviz output for the graph connecting the filter-selected relations
 	and variables. The idea is that this graph should be creatable even before
 	a solver has been selected, which is why it's prefixed with 'system_'.
-
-	@todo FIXME can we move this to a dlopenable optional component?
 
 	@return 0 on success, non-zero on error.
 */

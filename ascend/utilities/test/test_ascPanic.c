@@ -16,20 +16,21 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  */
 
 #include <stdio.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #ifdef __WIN32__
 #include <io.h>
 #endif
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
-
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 /* #include <compiler/redirectFile.h> */
-
-#include  <test/common.h>
+#include "CUnit/CUnit.h"
+#include "test_ascPanic.h"
 #include "test/assertimpl.h"
 #include "test/printutil.h"
 
@@ -190,8 +191,18 @@ static void test_ascPanic(void)
 /*===========================================================================*/
 /* Registration information */
 
-#define TESTS(T) \
-	T(ascPanic)
+static CU_TestInfo ascPanic_test_list[] = {
+  {"ascPanic", test_ascPanic},
+  CU_TEST_INFO_NULL
+};
 
-REGISTER_TESTS_SIMPLE(general_ascPanic, TESTS)
+static CU_SuiteInfo suites[] = {
+  {"utilities_ascPanic", NULL, NULL, ascPanic_test_list},
+  CU_SUITE_INFO_NULL
+};
 
+/*-------------------------------------------------------------------*/
+CU_ErrorCode test_register_utilities_ascPanic(void)
+{
+  return CU_register_suites(suites);
+}

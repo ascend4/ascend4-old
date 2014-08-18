@@ -12,21 +12,23 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Unit test functions for linear/linsolqr.c
 */
 #include <string.h>
+#include <CUnit/CUnit.h>
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/linear/linsolqr.h>
 
-#include <test/common.h>
 #include <test/assertimpl.h>
 
 /*
-	Test the rank of matrix
+	Test the rank of matrix 
 
 	[ 1 ]
 */
@@ -49,9 +51,7 @@ static void test_qr1x1(void){
 	G.row = R;
 	G.col = R;
 
-#ifdef ASC_WITH_MMIO
 	mtx_write_region_mmio(stderr,M,&G);
-#endif
 
 	L = linsolqr_create_default();
 	linsolqr_set_matrix(L,M);
@@ -65,7 +65,7 @@ static void test_qr1x1(void){
 }
 
 /*
-	Test the rank of matrix
+	Test the rank of matrix 
 
 	[ 1 0
 	  1 1 ]
@@ -91,9 +91,7 @@ static void test_qr2x2(void){
 	G.row = R;
 	G.col = R;
 
-#ifdef ASC_WITH_MMIO
 	mtx_write_region_mmio(stderr,M,&G);
-#endif
 
 	L = linsolqr_create_default();
 	linsolqr_set_matrix(L,M);
@@ -107,10 +105,10 @@ static void test_qr2x2(void){
 }
 
 /*
-	Test the rank of matrix
+	Test the rank of matrix 
 
 	[ 2 0 1
-	  1 1 1
+	  1 1 1 
 	  0 1 1 ]
 */
 static void test_qr3x3(void){
@@ -138,9 +136,7 @@ static void test_qr3x3(void){
 	G.row = R;
 	G.col = R;
 
-#ifdef ASC_WITH_MMIO
 	mtx_write_region_mmio(stderr,M,&G);
-#endif
 
 	L = linsolqr_create_default();
 	linsolqr_set_matrix(L,M);
@@ -156,10 +152,19 @@ static void test_qr3x3(void){
 /*===========================================================================*/
 /* Registration information */
 
-#define TESTS(T)\
-	T(qr1x1) \
-	T(qr2x2) \
-	T(qr3x3)
+static CU_TestInfo qr_test_list[] = {
+	{"qr1x1", test_qr1x1},
+	{"qr2x2", test_qr2x2},
+	{"qr3x3", test_qr3x3},
+	CU_TEST_INFO_NULL
+};
 
-REGISTER_TESTS_SIMPLE(linear_qrrank, TESTS)
+static CU_SuiteInfo suites[] = {
+	{"linear_qr", NULL, NULL, qr_test_list},
+	CU_SUITE_INFO_NULL
+};
 
+/*-------------------------------------------------------------------*/
+CU_ErrorCode test_register_linear_qr2x2(void){
+	return CU_register_suites(suites);
+}

@@ -1,5 +1,5 @@
 /*	ASCEND modelling environment
-	Copyright (C) 2006-2010 Carnegie Mellon University
+	Copyright (C) 2006 Carnegie Mellon University
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Platform-agnostic filesystem path manipulation functions.
@@ -30,11 +32,14 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <unistd.h>
+
+#ifndef __WIN32__
+# include <unistd.h>
+#endif
 
 #include "ospath.h"
 
-//#define OSPATH_DEBUG
+/* to test this code, 'gcc -DTEST ospath.c && ./a' */
 
 #ifndef __GNUC__
 # ifndef __FUNCTION__
@@ -42,9 +47,10 @@
 # endif
 #endif
 
-//#define VERBOSE
 
-#if !defined(VERBOSE)
+/* #define VERBOSE */
+
+#if !defined(TEST) && !defined(VERBOSE)
 #ifndef NDEBUG
 # define NDEBUG
 #endif
@@ -93,17 +99,6 @@
 # define STRTOKVAR(VAR) char *VAR
 # define GETCWD _getcwd
 # define GETENV(VAR) getenv(VAR)
-# define CHDIR chdir
-#elif defined(linux)
-# define STRCPY strcpy
-# define STRNCPY(dest,src,n) strncpy(dest,src,n)
-# define STRCAT strcat
-# define STRNCAT strncat
-# define STRTOK(STR,PAT,VAR) strtok_r(STR,PAT,&VAR)
-# define STRTOKVAR(VAR) char *VAR
-# define GETCWD getcwd
-# define GETENV(VAR) getenv(VAR)
-# define CHDIR chdir
 #else
 # define STRCPY strcpy
 # define STRNCPY(dest,src,n) strncpy(dest,src,n)
@@ -113,12 +108,15 @@
 # define STRTOKVAR(VAR) ((void)0)
 # define GETCWD getcwd
 # define GETENV(VAR) getenv(VAR)
-# define CHDIR chdir
 #endif
 
 /* PATH_MAX is in ospath.h */
 #define DRIVEMAX 3
 #define LISTMAX 256
+
+#ifdef __WIN32__ /* && !defined(__MINGW32__) */
+# define WINPATHS
+#endif
 
 struct FilePath{
     char path[PATH_MAX]; /** the string version of the represented POSIX path */
@@ -143,7 +141,7 @@ void ospath_fixslash(char *path);
 
 struct FilePath *ospath_getcwd();
 
-void ospath_copy(struct FilePath *dest, const struct FilePath *src);
+void ospath_copy(struct FilePath *dest, struct FilePath *src);
 
 
 #ifdef WINPATHS
@@ -219,7 +217,7 @@ struct FilePath *ospath_new_expand_env(const char *path, GetEnvFn *getenvptr){
 	return fp;
 }
 
-struct FilePath *ospath_new_copy(const struct FilePath *fp){
+struct FilePath *ospath_new_copy(struct FilePath *fp){
 	struct FilePath *fp1 = (struct FilePath *)MALLOC(sizeof(struct FilePath));
 	ospath_copy(fp1,fp);
 	return fp1;
@@ -339,10 +337,9 @@ void ospath_fixslash(char *path){
 struct FilePath *ospath_getcwd(void){
 	struct FilePath *fp;
 	char *cwd;
-	char temp[PATH_MAX];
 
 	/* get current working directory */
-	cwd = (char *)GETCWD(temp, PATH_MAX);
+	cwd = (char *)GETCWD(NULL, 0);
 
 	/* create new path with resolved working directory */
 	fp = ospath_new_noclean(cwd != NULL ? cwd : ".");
@@ -350,14 +347,6 @@ struct FilePath *ospath_getcwd(void){
 	D(fp);
 
 	return fp;
-}
-
-int ospath_chdir(struct FilePath *fp){
-	char *s = ospath_str(fp);
-	X(s);
-	int res = CHDIR(s);
-	FREE(s);
-	return res;
 }
 
 /**
@@ -543,8 +532,8 @@ void ospath_cleanup(struct FilePath *fp){
 }
 
 
-int ospath_isvalid(const struct FilePath *fp){
-	if(fp==NULL) return 0;
+int ospath_isvalid(struct FilePath *fp){
+	/*if(fp==NULL) return 0; */
 	return strlen(fp->path) > 0 ? 1 : 0;
 }
 
@@ -607,15 +596,10 @@ struct FilePath *ospath_getparent(struct FilePath *fp)
 	int offset;
 	char *pos;
 	ptrdiff_t len1;
-#ifdef OSPATH_DEBUG
 	int len2;
-#endif
 	char sub[PATH_MAX];
 	struct FilePath *fp1, *fp2;
 
-#ifdef OSPATH_DEBUG
-	fprintf(stderr,"finding parent of %s\n",fp->path);
-#endif
 	D(fp);
 
 	if(strlen(fp->path) == 0){
@@ -624,9 +608,6 @@ struct FilePath *ospath_getparent(struct FilePath *fp)
 		ospath_free(fp1);
 		return fp2;
 	}else if(ospath_isroot(fp)){
-#ifdef OSPATH_DEBUG
-		fprintf(stderr,"path is root\n");
-#endif
 		/* stay at root */
 		return ospath_new("/");
 	}
@@ -640,16 +621,13 @@ struct FilePath *ospath_getparent(struct FilePath *fp)
 		) ? length - 1 : length; /* then remove last char */
 
 	for(pos = fp->path + offset - 1; *pos!=PATH_SEPARATOR_CHAR && pos>=fp->path; --pos){
-#ifdef OSPATH_DEBUG
-		CONSOLE_DEBUG("CURRENT CHAR: %c\n",*pos);
+#if 0
+		fprintf(stderr,"CURRENT CHAR: %c\n",*pos);
 #endif
 	}
 
-	len1 = pos - (fp->path);
-#ifdef OSPATH_DEBUG
-	len2 = (int)len1;
+	len1 = pos - (fp->path); len2 = (int)len1;
 	V(len2);
-#endif
 	/*fprintf(stderr,"POS = %d\n",len2);*/
 
 	if(*pos==PATH_SEPARATOR_CHAR){
@@ -859,14 +837,12 @@ char *ospath_getfileext(struct FilePath *fp){
 
 int ospath_isroot(struct FilePath *fp)
 {
-	if(!ospath_isvalid(fp)){
-#ifdef OSPATH_DEBUG
-		fprintf(stderr,"path is invalid\n");
-#endif
+	if(!ospath_isvalid(fp))
+	{
 		return 0;
 	}
 
-	return strcmp(fp->path, PATH_SEPARATOR_STR) ? 0 : 1;
+	return fp->path == PATH_SEPARATOR_STR ? 1 : 0;
 }
 
 unsigned ospath_depth(struct FilePath *fp){
@@ -947,7 +923,7 @@ struct FilePath *ospath_getdir(struct FilePath *fp){
 	return ospath_new(s);
 }
 
-ASC_DLLSPEC struct FilePath *ospath_getabs(const struct FilePath *fp){
+ASC_DLLSPEC struct FilePath *ospath_getabs(struct FilePath *fp){
 	struct FilePath *fp1, *fp2;
 	if(fp->path[0]==PATH_SEPARATOR_CHAR){
 		fp1 = ospath_new_copy(fp);
@@ -1051,19 +1027,12 @@ int ospath_cmp(struct FilePath *fp1, struct FilePath *fp2){
 	return strcmp(temp[0],temp[1]);
 }
 
-struct FilePath *ospath_concat(const struct FilePath *fp1, const struct FilePath *fp2){
+struct FilePath *ospath_concat(struct FilePath *fp1, struct FilePath *fp2){
 
 	struct FilePath *fp;
 	char temp[2][PATH_MAX];
 	char temp2[PATH_MAX];
 	struct FilePath *r;
-
-	X(fp1->path);
-	X(fp2->path);
-#ifdef WINPATHS
-	X(fp1->drive);
-	X(fp2->drive);
-#endif
 
 	fp = (struct FilePath *)MALLOC(sizeof(struct FilePath));
 
@@ -1097,7 +1066,8 @@ struct FilePath *ospath_concat(const struct FilePath *fp1, const struct FilePath
 	STRNCPY(temp[1], fp2->path,PATH_MAX);
 
 	/* make sure temp has a / on the end. */
-	if(temp[0][strlen(temp[0]) - 1] != PATH_SEPARATOR_CHAR){
+	if(temp[0][strlen(temp[0]) - 1] != PATH_SEPARATOR_CHAR)
+	{
 		STRNCAT(temp[0],PATH_SEPARATOR_STR,PATH_MAX-strlen(temp[0]));
 	}
 
@@ -1106,7 +1076,7 @@ struct FilePath *ospath_concat(const struct FilePath *fp1, const struct FilePath
 	ospath_fixslash(temp[1]);
 #endif
 
-#if 1
+#if 0
 	V(strlen(temp[0]));
 	X(temp[0]);
 	V(strlen(temp[1]));
@@ -1121,7 +1091,7 @@ struct FilePath *ospath_concat(const struct FilePath *fp1, const struct FilePath
 	/* create a new path object with the two path strings appended together.*/
 	STRNCPY(temp2,temp[0],PATH_MAX);
 	STRNCAT(temp2,temp[1],PATH_MAX-strlen(temp2));
-#if 1
+#if 0
 	V(strlen(temp2));
 	X(temp2);
 #endif
@@ -1207,7 +1177,7 @@ void ospath_append(struct FilePath *fp, struct FilePath *fp1){
 	ospath_cleanup(fp);
 }
 
-void ospath_copy(struct FilePath *dest, const struct FilePath *src){
+void ospath_copy(struct FilePath *dest, struct FilePath *src){
 	STRCPY(dest->path,src->path);
 #ifdef WINPATHS
 	STRCPY(dest->drive,src->drive);
@@ -1257,23 +1227,11 @@ struct FilePath **ospath_searchpath_new(const char *path){
 	char *c;
 	unsigned i;
 	struct FilePath **pp;
-
-#if PATH_MAX < 4096
-# define SEARCHPATH_MAX 4096
-#else
-# define SEARCHPATH_MAX PATH_MAX
-#endif
-
-	if(strlen(path) > SEARCHPATH_MAX){
-		E("Search path is too long, increase SEARCHPATH_MAX in ospath code");
-		return NULL;
-	}
-
-	char path1[SEARCHPATH_MAX+1];
+	char path1[PATH_MAX];
 
 	STRTOKVAR(nexttok);
 
-	strncpy(path1,path,SEARCHPATH_MAX);
+	strncpy(path1,path,PATH_MAX);
 
 	X(path1);
 	X(PATH_LISTSEP_STR);
@@ -1292,7 +1250,6 @@ struct FilePath **ospath_searchpath_new(const char *path){
 	X(p);
 	for(; p!= NULL; p=STRTOK(NULL,PATH_LISTSEP_STR,nexttok)){
 		c = (char *)MALLOC(sizeof(char)*(strlen(p)+1));
-		/* XXX FIXME what if one path component is longer than PATH_MAX?*/
 		X(p);
 		STRCPY(c,p);
 		if(n>=LISTMAX){

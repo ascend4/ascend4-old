@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//*
 	by Kirk Abbott and Ben Allan
 	Created: 1/94
@@ -52,8 +54,8 @@
 #endif /* __WIN32__ */
 
 #include <ascend/utilities/config.h>
-#include <ascend/general/ascMalloc.h>    /* for ascshutdown */
-#include <ascend/general/panic.h>     /* for Asc_Panic */
+#include <ascend/utilities/ascMalloc.h>    /* for ascshutdown */
+#include <ascend/utilities/ascPanic.h>     /* for Asc_Panic */
 #include <ascend/utilities/ascEnvVar.h>
 #include <ascend/utilities/ascPrint.h>
 
@@ -76,8 +78,6 @@
 #include "ScriptProc.h"
 #include "SolverProc.h"
 #include "UnitsProc.h"
-
-//#define ASCTK_DEBUG
 
 /*
  *  EXPORTED VARIABLES
@@ -316,7 +316,7 @@ int AscDriver(int argc, CONST char **argv)
    *  initialized, print our startup banner.
    */
 
-  color_on(stderr,ASC_FG_BRIGHTBLUE );
+  color_on(stderr,"34;1");
   ASC_FPRINTF(stderr,"\nASCEND modelling environment\n");
   ASC_FPRINTF(stderr,"Copyright(C) 1997, 2006-2007 Carnegie Mellon University\n");
   ASC_FPRINTF(stderr,"Copyright(C) 1993-1996 Kirk Andre Abbott, Ben Allan\n");
@@ -492,9 +492,7 @@ static void printenv(){
 	int n;
 	const char **l;
 	l = Asc_EnvNames(&n);
-#ifdef ASCTK_DEBUG
 	CONSOLE_DEBUG("VARS = %d",n);
-#endif
 	ascfree(l);
 }
 
@@ -552,9 +550,7 @@ static void AscCheckEnvironVars(Tcl_Interp *interp,const char *progname){
 
 	/* import these into the environment */
 	err = env_import(ASC_ENV_DIST,getenv,PUTENV);
-#ifdef ASCTK_DEBUG
 	if(err)CONSOLE_DEBUG("No %s var imported (error %d)",ASC_ENV_DIST,err);
-#endif
 	env_import(ASC_ENV_TK,getenv,PUTENV);
 	env_import(ASC_ENV_BITMAPS,getenv,PUTENV);
 	env_import(ASC_ENV_LIBRARY,getenv,PUTENV);
@@ -563,9 +559,7 @@ static void AscCheckEnvironVars(Tcl_Interp *interp,const char *progname){
 	/* used for colour console output */
 	env_import("TERM",getenv,PUTENV);
 
-#ifdef ASCTK_DEBUG
-	CONSOLE_DEBUG("IMPORTING VARS");
-#endif
+	/* CONSOLE_DEBUG("IMPORTING VARS"); */
 
 	distdir = GETENV(ASC_ENV_DIST);
 	tkdir = GETENV(ASC_ENV_TK);
@@ -576,14 +570,10 @@ static void AscCheckEnvironVars(Tcl_Interp *interp,const char *progname){
 	/* Create an ASCENDDIST value if it's missing */
 
 	if(distdir == NULL){
-#ifdef ASCTK_DEBUG
 		CONSOLE_DEBUG("Note: No '" ASC_ENV_DIST "' var defined");
-#endif
 
 #if ASC_ABSOLUTE_PATHS
-#ifdef ASCTK_DEBUG
 		CONSOLE_DEBUG("ASC_ABSOLUTE_PATHS=%d",ASC_ABSOLUTE_PATHS);
-#endif
 		distfp = ospath_new(ASCENDDIST_DEFAULT);
 		(void)progname;
 #else
@@ -591,9 +581,7 @@ static void AscCheckEnvironVars(Tcl_Interp *interp,const char *progname){
         fp = ospath_new(progname);
 
         ospath_strncpy(fp,s1,PATH_MAX);
-#ifdef ASCTK_DEBUG
-        CONSOLE_DEBUG("PROGNAME = %s",s1);
-#endif
+        /* CONSOLE_DEBUG("PROGNAME = %s",s1); */
 
 		/* get the directory name from the exe path*/
         fp1 = ospath_getdir(fp);
@@ -613,11 +601,8 @@ static void AscCheckEnvironVars(Tcl_Interp *interp,const char *progname){
 #endif
 
 		distdir = ospath_str(distfp);
-
-#ifdef ASCTK_DEBUG
+		
 		CONSOLE_DEBUG("Setting distdir %s = %s",ASC_ENV_DIST,distdir);
-#endif
-
 		OSPATH_PUTENV(ASC_ENV_DIST,distfp);
 		distdir = GETENV(ASC_ENV_DIST);
 		/* CONSOLE_DEBUG("RETRIEVED %s = %s",ASC_ENV_DIST,distdir); */
@@ -632,9 +617,7 @@ static void AscCheckEnvironVars(Tcl_Interp *interp,const char *progname){
 		tkfp = ospath_new_expand_env(ASCENDTK_DEFAULT, &GETENV);
 #else
 		fp = ospath_new(ASC_TK_REL_DIST);
-		distfp = ospath_new(distdir);
-		tkfp = ospath_concat(distfp,fp);
-		ospath_free(distfp);
+		tkfp = ospath_concat(distdir,fp);
 		ospath_free(fp);
 		ospath_cleanup(tkfp);
 #endif
@@ -686,14 +669,13 @@ static void AscCheckEnvironVars(Tcl_Interp *interp,const char *progname){
 		ospath_free(solversfp);
 	}
 
-#ifdef ASCTK_DEBUG
 	CONSOLE_DEBUG("ASCENDDIST = %s",GETENV(ASC_ENV_DIST));
 	CONSOLE_DEBUG("ASCENDTK = %s",GETENV(ASC_ENV_TK));
 	CONSOLE_DEBUG("ASCENDLIBRARY = %s",GETENV(ASC_ENV_LIBRARY));
 	CONSOLE_DEBUG("ASCENDSOLVERS = %s",GETENV(ASC_ENV_SOLVERS));
 
+
     CONSOLE_DEBUG("CHECKING FOR AscendRC FILE");
-#endif
 
 	fp1 = ospath_new("AscendRC");
 	fp = ospath_concat(tkfp,fp1);
@@ -1066,7 +1048,7 @@ Asc_Prompt(Tcl_Interp *interp, int partial)
   Tcl_Channel outChannel, errChannel;
   CONST84 char *subPrompt;
 
-  color_on(stdout,ASC_FG_GREEN);
+  color_on(stdout,"0;32");
 
   errChannel = Tcl_GetChannel(interp, "stderr", NULL);
 
@@ -1116,16 +1098,8 @@ defaultPrompt:
   color_off(stdout);
 }
 
-#ifdef __WIN32__
-# define HAVE_TCLINT_H
-#endif
-
 /* include here to avoid contaminating everything above it. */
-#ifdef HAVE_TCLINT_H
-# include <tclInt.h>
-# define HAVE_TCLGETENV
-#endif
-
+//#include <tclInt.h>
 /**
 preserve key stuff in the launching environment where we can check it later.
 */
@@ -1135,35 +1109,23 @@ static void AscSaveOrgEnv(Tcl_Interp *interp,const char *progname) {
   int i;
   CONST char *value;
   const char *vars[ENVCOUNT] = {
-    ASC_ENV_DIST, ASC_ENV_TK, ASC_ENV_BITMAPS, ASC_ENV_LIBRARY, ASC_ENV_SOLVERS,
+    ASC_ENV_DIST, ASC_ENV_TK, ASC_ENV_BITMAPS, ASC_ENV_LIBRARY, ASC_ENV_SOLVERS, 
     "TK_LIBRARY", "TCL_LIBRARY", "PRINTER"
   };
   Tcl_DString buffer;
   Tcl_DString search;
-#ifdef ASCTK_DEBUG
-  CONSOLE_DEBUG("CACHING ENV Vars.");
-#endif
+  ASC_FPRINTF(stderr,"\nCACHING ENV Vars.\n");
 
   Tcl_DStringInit(&buffer);
   Tcl_DStringInit(&search);
   ASC_SEND_TO_TCL2(ascOrgEnv, "dummy", "0");
   for (i = 0; i < ENVCOUNT; i++) {
-#ifdef HAVE_TCLGETENV
     value = TclGetEnv(vars[i], &search);
-#else
-	value = getenv(vars[i]);
-#endif
-
     if (value != NULL) {
       ASC_SEND_TO_TCL2(ascOrgEnv, vars[i], value);
-#ifdef ASCTK_DEBUG
-      CONSOLE_DEBUG("CACHING %s.",vars[i]);
-#endif
+      ASC_FPRINTF(stderr,"\nCACHING %s.\n",vars[i]);
     }
-
-#ifdef HAVE_TCLGETENV
     Tcl_DStringFree(&search);
-#endif
   }
 }
 

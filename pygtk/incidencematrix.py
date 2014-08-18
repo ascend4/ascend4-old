@@ -62,7 +62,10 @@ class IncidenceMatrixWindow:
 		#pylab.connect('motion_notify_event',self.on_sparsity_motion_notify)
 		ax.format_coord = self.incidence_get_coord_str
 		pylab.ion()
-		pylab.show()
+		if platform.system()=="Windows":
+			pylab.show()
+		else:
+			pylab.show(False)
 
 	def incidence_get_coord_str(self,x,y):
 		

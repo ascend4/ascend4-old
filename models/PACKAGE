@@ -87,6 +87,7 @@ plotbvp.a4c
 
 # -- SAMPLE CONDITIONAL MODELS --
 heatex.a4c
+conopttest.a4c
 linmassbal.a4c
 phaseq.a4c
 phaseq_comp.a4c

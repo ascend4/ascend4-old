@@ -12,15 +12,18 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Unit test functions for compiler. Nothing here yet.
 */
 #include <string.h>
+#include <CUnit/CUnit.h>
 
 #include <ascend/general/env.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/utilities/ascEnvVar.h>
 #include <ascend/utilities/error.h>
 
@@ -33,11 +36,7 @@
 #include <ascend/compiler/instquery.h>
 #include <ascend/compiler/parentchild.h>
 #include <ascend/compiler/atomvalue.h>
-#include <ascend/compiler/childio.h>
 
-#include <ascend/compiler/initialize.h>
-
-#include <test/common.h>
 #include <test/assertimpl.h>
 
 static void test_init(void){
@@ -63,7 +62,7 @@ static void test_fund_types(void){
 }
 
 static void test_parse_string_module(void){
-
+	
 	const char *model = "\n\
 		DEFINITION relation\
 		    included IS_A boolean;\
@@ -77,32 +76,24 @@ static void test_parse_string_module(void){
 		END test1;";
 
 	Asc_CompilerInit(1);
-	CU_ASSERT(FindType(AddSymbol("boolean"))!=NULL);
 
 	struct module_t *m;
 	int status;
-
+	
 	m = Asc_OpenStringModule(model, &status, ""/* name prefix*/);
 
-#ifdef BASICS_DEBUG
 	CONSOLE_DEBUG("Asc_OpenStringModule returns status=%d",status);
-#endif
 	CU_ASSERT(status==0); /* if successfully created */
 
-#ifdef BASICS_DEBUG
 	CONSOLE_DEBUG("Beginning parse of %s",Asc_ModuleName(m));
-#endif
 	status = zz_parse();
 
-#ifdef BASICS_DEBUG
 	CONSOLE_DEBUG("zz_parse returns status=%d",status);
-#endif
+
 	CU_ASSERT(status==0);
 
 	struct gl_list_t *l = Asc_TypeByModule(m);
-#ifdef BASICS_DEBUG
 	CONSOLE_DEBUG("%lu library entries loaded from %s",gl_length(l),Asc_ModuleName(m));
-#endif
 
 	CU_ASSERT(gl_length(l)==2);
 	gl_destroy(l);
@@ -112,7 +103,7 @@ static void test_parse_string_module(void){
 }
 
 static void test_instantiate_string(void){
-
+	
 	const char *model = "(* silly little model *)\n\
 		DEFINITION relation\n\
 		    included IS_A boolean;\n\
@@ -129,16 +120,13 @@ static void test_instantiate_string(void){
 		END test1;\n";
 
 	Asc_CompilerInit(1);
-	CU_ASSERT(FindType(AddSymbol("boolean"))!=NULL);
-#ifdef BASICS_DEBUG
-	CONSOLE_DEBUG("Boolean type found OK");
-#endif
+
 	/* CONSOLE_DEBUG("MODEL TEXT:\n%s",model); */
 
-	//struct module_t *m;
+	struct module_t *m;
 	int status;
-
-	/*m =*/ Asc_OpenStringModule(model, &status, ""/* name prefix*/);
+	
+	m = Asc_OpenStringModule(model, &status, ""/* name prefix*/);
 	CU_ASSERT_FATAL(status==0); /* if successfully created */
 
 	status = zz_parse();
@@ -150,9 +138,7 @@ static void test_instantiate_string(void){
 	CU_ASSERT_FATAL(sim!=NULL);
 
 	/* check the simulation name */
-#ifdef BASICS_DEBUG
 	CONSOLE_DEBUG("Got simulation, name = %s",SCP(GetSimulationName(sim)));
-#endif
 	CU_ASSERT_FATAL(GetSimulationName(sim)==AddSymbol("sim1"));
 
 	/* check for the expected instances */
@@ -165,8 +151,8 @@ static void test_instantiate_string(void){
 
 	/* check instances are of expected types */
 	CU_ASSERT(InstanceKind(ChildByChar(root,AddSymbol("x_rel")))==REL_INST);
-	CU_ASSERT(InstanceKind(ChildByChar(root,AddSymbol("x")))==REAL_ATOM_INST);
-	CU_ASSERT(InstanceKind(ChildByChar(root,AddSymbol("x")))!=REAL_INST);
+	CU_ASSERT(InstanceKind(ChildByChar(root,AddSymbol("x")))==REAL_ATOM_INST); 
+	CU_ASSERT(InstanceKind(ChildByChar(root,AddSymbol("x")))!=REAL_INST); 
 
 	/* check attributes on relation */
 	struct Instance *xrel;
@@ -188,24 +174,18 @@ static void test_parse_basemodel(void){
 
 	Asc_CompilerInit(1);
 	Asc_PutEnv(ASC_ENV_LIBRARY "=models");
-
+	
 	m = Asc_OpenModule("basemodel.a4l",&status);
 	CU_ASSERT(status==0);
 
-#ifdef BASICS_DEBUG
 	CONSOLE_DEBUG("Beginning parse of %s",Asc_ModuleName(m));
-#endif
 	status = zz_parse();
 
-#ifdef BASICS_DEBUG
 	CONSOLE_DEBUG("zz_parse returns status=%d",status);
-#endif
 	CU_ASSERT(status==0);
 
 	struct gl_list_t *l = Asc_TypeByModule(m);
-#ifdef BASICS_DEBUG
 	CONSOLE_DEBUG("%lu library entries loaded from %s",gl_length(l),Asc_ModuleName(m));
-#endif
 	gl_destroy(l);
 
 	/* there are only 8 things declared in system.a4l: */
@@ -224,24 +204,18 @@ static void test_parse_file(void){
 
 	Asc_CompilerInit(1);
 	Asc_PutEnv(ASC_ENV_LIBRARY "=models");
-
+	
 	m = Asc_OpenModule("system.a4l",&status);
 	CU_ASSERT(status==0);
 
-#ifdef BASICS_DEBUG
 	CONSOLE_DEBUG("Beginning parse of %s",Asc_ModuleName(m));
-#endif
 	status = zz_parse();
 
-#ifdef BASICS_DEBUG
 	CONSOLE_DEBUG("zz_parse returns status=%d",status);
-#endif
 	CU_ASSERT(status==0);
 
 	struct gl_list_t *l = Asc_TypeByModule(m);
-#ifdef BASICS_DEBUG
 	CONSOLE_DEBUG("%lu library entries loaded from %s",gl_length(l),Asc_ModuleName(m));
-#endif
 	gl_destroy(l);
 
 	/* there are only 8 things declared in system.a4l: */
@@ -265,20 +239,20 @@ static void test_parse_file(void){
 
 static void test_instantiate_file(void){
 
-	/*struct module_t *m;*/
+	struct module_t *m;
 	int status;
 
 	Asc_CompilerInit(1);
 	Asc_PutEnv(ASC_ENV_LIBRARY "=models");
-
+	
 	/* load the file */
-	/*m = */Asc_OpenModule("johnpye/testlog10.a4c",&status);
+	m = Asc_OpenModule("johnpye/testlog10.a4c",&status);
 	CU_ASSERT(status == 0);
 
 	/* parse it */
 	CU_ASSERT(0 == zz_parse());
 
-	/* find the model */
+	/* find the model */	
 	CU_ASSERT(FindType(AddSymbol("testlog10"))!=NULL);
 
 	/* instantiate it */
@@ -290,8 +264,8 @@ static void test_instantiate_file(void){
 	struct Instance *inst;
 
 	CU_ASSERT(NumberChildren(root)==5);
-	CU_ASSERT((inst = ChildByChar(root,AddSymbol("x"))) && InstanceKind(inst)==REAL_ATOM_INST);
-	CU_ASSERT((inst = ChildByChar(root,AddSymbol("y"))) && InstanceKind(inst)==REAL_ATOM_INST);
+	CU_ASSERT((inst = ChildByChar(root,AddSymbol("x"))) && InstanceKind(inst)==REAL_ATOM_INST); 
+	CU_ASSERT((inst = ChildByChar(root,AddSymbol("y"))) && InstanceKind(inst)==REAL_ATOM_INST); 
 	CU_ASSERT((inst = ChildByChar(root,AddSymbol("z"))) && InstanceKind(inst)==REAL_ATOM_INST);
 
 	CU_ASSERT((inst = ChildByChar(root,AddSymbol("log_10_expr"))) && InstanceKind(inst)==REL_INST);
@@ -301,210 +275,37 @@ static void test_instantiate_file(void){
 	Asc_CompilerDestroy();
 }
 
-static void test_initialize(void){
-	/*struct module_t *m;*/
-	int status;
-
-	Asc_CompilerInit(1);
-	Asc_PutEnv(ASC_ENV_LIBRARY "=models");
-
-	/* load the file */
-#define TESTFILE "testinit"
-	/*m =*/ Asc_OpenModule("test/compiler/" TESTFILE ".a4c",&status);
-	CU_ASSERT(status == 0);
-
-	/* parse it */
-	CU_ASSERT(0 == zz_parse());
-
-	/* find the model */
-	CU_ASSERT(FindType(AddSymbol(TESTFILE))!=NULL);
-
-	/* instantiate it */
-	struct Instance *sim = SimsCreateInstance(AddSymbol(TESTFILE), AddSymbol("sim1"), e_normal, NULL);
-	CU_ASSERT_FATAL(sim!=NULL);
-
-	/* check for vars and rels */
-	struct Instance *root = GetSimulationRoot(sim);
-	struct Instance *inst;
-
-	CU_ASSERT(NumberChildren(root)==3);
-	CU_ASSERT((inst = ChildByChar(root,AddSymbol("x"))) && InstanceKind(inst)==REAL_ATOM_INST);
-	CU_ASSERT((inst = ChildByChar(root,AddSymbol("y"))) && InstanceKind(inst)==REAL_ATOM_INST);
-
-	CU_ASSERT((inst = ChildByChar(root,AddSymbol("expr1"))) && InstanceKind(inst)==REL_INST);
-
-
-	/** Call on_load */
-	struct Name *name = CreateIdName(AddSymbol("on_load"));
-    //CONSOLE_DEBUG("RUNNING ON_LOAD");
-	enum Proc_enum pe = Initialize(GetSimulationRoot(sim),name,"sim1", ASCERR, WP_STOPONERR, NULL, NULL);
-	CU_ASSERT(pe==Proc_all_ok);
-
-	sim_destroy(sim);
-	Asc_CompilerDestroy();
-#undef TESTFILE
-}
-
-static void test_stop(void){
-	/*struct module_t *m;*/
-	int status;
-
-	Asc_CompilerInit(1);
-	Asc_PutEnv(ASC_ENV_LIBRARY "=models");
-
-	/* load the file */
-#define TESTFILE "stop"
-	/*m =*/ Asc_OpenModule("test/compiler/" TESTFILE ".a4c",&status);
-	CU_ASSERT(status == 0);
-
-	/* parse it */
-	CU_ASSERT(0 == zz_parse());
-
-	/* find the model */
-	CU_ASSERT(FindType(AddSymbol(TESTFILE))!=NULL);
-
-	/* instantiate it */
-	struct Instance *sim = SimsCreateInstance(AddSymbol(TESTFILE), AddSymbol("sim1"), e_normal, NULL);
-	CU_ASSERT_FATAL(sim!=NULL);
-
-	/** Call on_load */
-	struct Name *name = CreateIdName(AddSymbol("on_load"));
-
-	enum Proc_enum pe = Initialize(GetSimulationRoot(sim),name,"sim1", ASCERR, WP_STOPONERR, NULL, NULL);
-	CU_ASSERT(pe!=Proc_all_ok);
-
-	struct Instance *inst;
-	CU_ASSERT((inst = ChildByChar(GetSimulationRoot(sim),AddSymbol("x"))) && InstanceKind(inst)==REAL_ATOM_INST);
-	CU_ASSERT(RealAtomValue(inst)==2.0);
-
-	sim_destroy(sim);
-	Asc_CompilerDestroy();
-#undef TESTFILE
-}
-
-
-static void test_stoponfailedassert(void){
-	/*struct module_t *m;*/
-	int status;
-
-	Asc_CompilerInit(1);
-	Asc_PutEnv(ASC_ENV_LIBRARY "=models");
-
-	/* load the file */
-#define TESTFILE "stoponerror"
-	/*m =*/ Asc_OpenModule("test/compiler/" TESTFILE ".a4c",&status);
-	CU_ASSERT(status == 0);
-
-	/* parse it */
-	CU_ASSERT(0 == zz_parse());
-
-	/* find the model */
-	CU_ASSERT(FindType(AddSymbol(TESTFILE))!=NULL);
-
-	/* instantiate it */
-	struct Instance *sim = SimsCreateInstance(AddSymbol(TESTFILE), AddSymbol("sim1"), e_normal, NULL);
-	CU_ASSERT_FATAL(sim!=NULL);
-
-	/** Call on_load */
-	struct Name *name = CreateIdName(AddSymbol("on_load"));
-
-	enum Proc_enum pe = Initialize(GetSimulationRoot(sim),name,"sim1", ASCERR, WP_STOPONERR, NULL, NULL);
-	CU_ASSERT(pe!=Proc_all_ok);
-
-	sim_destroy(sim);
-	Asc_CompilerDestroy();
-#undef TESTFILE
-}
-
-/*
-	This is a test to check ascend bug #87.
-*/
-static void test_badassign(void){
-	/*struct module_t *m;*/
-	int status;
-
-	Asc_CompilerInit(1);
-	Asc_PutEnv(ASC_ENV_LIBRARY "=models");
-
-	/* load the file */
-#define TESTFILE "badassign"
-	/*m =*/ Asc_OpenModule("test/compiler/" TESTFILE ".a4c",&status);
-	CU_ASSERT(status == 0);
-
-	/* parse it */
-	CU_ASSERT(0 == zz_parse());
-
-	/* find the model */
-	CU_ASSERT(FindType(AddSymbol(TESTFILE))!=NULL);
-
-	/* instantiate it */
-	struct Instance *sim = SimsCreateInstance(AddSymbol(TESTFILE), AddSymbol("sim1"), e_normal, NULL);
-	CU_ASSERT_FATAL(sim!=NULL);
-
-	/* Call on_load */
-	struct Name *name = CreateIdName(AddSymbol("on_load"));
-	enum Proc_enum pe = Initialize(GetSimulationRoot(sim),name,"sim1", ASCERR, WP_STOPONERR, NULL, NULL);
-	CU_ASSERT(pe!=Proc_all_ok); /* on_load should have returned error */
-
-	/* Check that x := 2 was NOT executed (after error statement) */
-	struct Instance *inst;
-	CU_ASSERT((inst = ChildByChar(GetSimulationRoot(sim),AddSymbol("x"))) && InstanceKind(inst)==REAL_ATOM_INST);
-	CU_ASSERT(RealAtomValue(inst)==1.0);
-
-	/* clean up */
-	sim_destroy(sim);
-	Asc_CompilerDestroy();
-#undef TESTFILE
-}
-
-
-static void test_type_info(void){
-	/*struct module_t *m;*/
-	int status;
-
-	Asc_CompilerInit(1);
-	Asc_PutEnv(ASC_ENV_LIBRARY "=models");
-
-	/* load the file */
-	/*m =*/ Asc_OpenModule("test/canvas/simple_recycle.a4c",&status);
-	CU_ASSERT(status == 0);
-
-	/* parse it */
-	CU_ASSERT(0 == zz_parse());
-
-	/* find the model */
-	struct TypeDescription *T;
-	T = FindType(AddSymbol("ammonia_flash"));
-
-	CU_ASSERT(T != NULL);
-
-	ChildListPtr CL;
-	CL = GetChildList(T);
-
-	WriteChildList(ASCERR,CL);
-
-	Asc_CompilerDestroy();
-}
-
-
 /*===========================================================================*/
 /* Registration information */
 
 /* the list of tests */
 
-#define TESTS(T) \
+#define TESTS(T,X) \
 	T(init) \
-	T(fund_types) \
-	T(parse_string_module) \
-	T(instantiate_string) \
-	T(parse_basemodel) \
-	T(parse_file) \
-	T(instantiate_file) \
-	T(initialize) \
-	T(stop) \
-	T(stoponfailedassert) \
-	T(badassign) \
-	T(type_info)
+	X T(fund_types) \
+	X T(parse_string_module) \
+	X T(instantiate_string) \
+	X T(parse_basemodel) \
+	X T(parse_file) \
+	X T(instantiate_file)
 
-REGISTER_TESTS_SIMPLE(compiler_basics, TESTS)
+/* you shouldn't need to change the following */
 
+#define TESTDECL(TESTFN) {#TESTFN,test_##TESTFN}
+
+#define X ,
+
+static CU_TestInfo basics_test_list[] = {
+	TESTS(TESTDECL,X)
+	X CU_TEST_INFO_NULL
+};
+
+static CU_SuiteInfo suites[] = {
+	{"compiler_basics", NULL, NULL, basics_test_list},
+	CU_SUITE_INFO_NULL
+};
+
+/*-------------------------------------------------------------------*/
+CU_ErrorCode test_register_compiler_basics(void){
+	return CU_register_suites(suites);
+}

@@ -21,8 +21,9 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  You should have received a copy of the GNU General Public License along
+ *  with the program; if not, write to the Free Software Foundation, Inc., 675
+ *  Mass Ave, Cambridge, MA 02139 USA.  Check the file named COPYING.
  */
 
 /** @file
@@ -39,12 +40,15 @@
 #ifndef ASC_SETINST_IO_H
 #define ASC_SETINST_IO_H
 
-/**	@addtogroup compiler_inst Compiler Instance Hierarchy
+/**	@addtogroup compiler Compiler
 	@{
 */
 
 extern void WriteInstSet(FILE *f, CONST struct set_t *s);
 /**<
+ *  <!--  void WriteInstSet(f,s)                                       -->
+ *  <!--  FILE *f;                                                     -->
+ *  <!--  const struct set_t *s;                                       -->
  *  Write set instance s to file f.
  */
 

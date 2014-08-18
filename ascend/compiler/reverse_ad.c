@@ -3,7 +3,7 @@
 	Copyright (C) 1993 Joseph James Zaher
 	Copyright (C) 1993, 1994 Benjamin Andrew Allan, Joseph James Zaher
 	Copyright (C) 1996 Benjamin Andrew Allan, Kenneth Tyner
-	Copyright (C) 2006, 2010 Carnegie Mellon University
+	Copyright (C) 2006 Carnegie Mellon University
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -16,7 +16,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Reverse Automatic Differentiation (AD) routines for ASCEND
@@ -35,12 +37,12 @@
 
 
 #include <math.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/mathmacros.h>
 #include <ascend/general/ltmatrix.h>
 #include <ascend/general/dstring.h>
-#include <ascend/general/panic.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/utilities/ascConfig.h>
 #include "reverse_ad.h"
 #include "fractions.h"
 #include "compiler.h"
@@ -57,8 +59,7 @@
 /*----------- static function declarations & defines --------------*/
 static void TapeList_set_current(TapeList *tapes, unsigned index);
 static Element *TapeList_get_active_tape(TapeList *tapes);
-
-
+static void TapeList_set_element(TapeList *tapes, Element *element);
 static Element *TapeList_current_tape_insert(TapeList *tapes);
 static Element *Element_insert(Element **element);
 static Redouble MakeIndepv(double value,unsigned long sindex,Element *tape,enum Expr_enum expr_type);
@@ -66,14 +67,9 @@ static int ReturnSweep(Element *trace,int both_sides);
 static int AccumulateAdjoints(Element *trace, double* gradients);
 static int ReturnSweepSafe(Element *trace, int both_sides,enum safe_err *serr);
 static int AccumulateAdjointsSafe(Element *trace,double *gradients,enum safe_err *serr);
-
-#ifdef INCLUDE_UNUSED_FUNCTIONS
-static void TapeList_set_element(TapeList *tapes, Element *element);
 static int check_inst_and_res(struct Instance *i, double *res);
 static void PrintTape(Element *trace);
 static Element* TapeRewind(Element *trace);
-#endif
-
 static Element* TapeRewindInitFwd(Element *trace,unsigned long var_index);
 static int ReturnSweep2ndDeriv(Element *trace);
 static int AccumulateDeriv2nd(Element *trace,double *deriv2nd,unsigned long num_var,int hessian_calc);
@@ -637,11 +633,9 @@ static Element *TapeList_get_active_tape(TapeList *tapes){
 	return tapes->tape[tapes->active];
 }
 
-#ifdef INCLUDE_UNUSED_FUNCTIONS
 static void TapeList_set_element(TapeList *tapes, Element *element){
 	tapes->tape[tapes->active] = element;
 }
-#endif
 
 /**
 	Insert a new element at start of stack, return the new element so that it
@@ -941,7 +935,6 @@ static int AccumulateAdjointsSafe(Element* trace,double* gradients,enum safe_err
 	return 0;
 }
 
-#ifdef INCLUDE_UNUSED_FUNCTIONS
 /**
 	Prints the contents of the tape for Debugging Purposes.
 	@param trace is the tape on which the trace has been logged.
@@ -969,7 +962,6 @@ static void PrintTape(Element *trace){
 		tracer = tracer->next;
 	}
 }
-#endif
 
 /**----------------------Second Derivative Routines -----------------------------*/
 
@@ -1461,7 +1453,6 @@ static int ReturnSweep2ndDerivSafe(Element *trace,enum safe_err *serr){
 }
 
 /**------------------------------------------------------------------------------- */
-#ifdef INCLUDE_UNUSED_FUNCTIONS
 /**
 	Rewinds the tape
 	@param trace is the tape on which trace information has been recorded
@@ -1474,7 +1465,6 @@ static Element* TapeRewind(Element* trace){
 	}
 	return head;
 }
-#endif
 
 /**
 	Rewinds the tape & prepares it for a forward sweep by clearing values for
@@ -1584,7 +1574,7 @@ int RelationEvaluateHessianMtx(CONST struct relation *r,
 		  						unsigned long dimension)
 {
 	Element* hess_tape;
-//	Element* temp_tape;
+	Element* temp_tape;
 	double residual;
 	double *row_pointer=NULL;
 	unsigned long i;
@@ -1624,7 +1614,7 @@ int RelationEvaluateHessianMtxSafe(CONST struct relation *r,
 	 								enum safe_err *serr)
 {
 	Element* hess_tape;
-//	Element* temp_tape;
+	Element* temp_tape;
 	double residual;
 	double *row_pointer;
 	unsigned long i;
@@ -1677,7 +1667,6 @@ int TapeFree(Element* head){
 
 /**---------------------------------------------------------------------------*/
 /* extra stuff from relation_util.c, just copied temporarily? -- JP */
-#ifdef INCLUDE_UNUSED_FUNCTIONS
 #ifndef NDEBUG
 /**
 	Utility function to perform debug checking of (input) instance and residual
@@ -1709,6 +1698,5 @@ static int check_inst_and_res(struct Instance *i, double *res){
   return 1;
 	return 1;
 }
-#endif
-#endif
 
+#endif

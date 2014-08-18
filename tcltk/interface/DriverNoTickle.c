@@ -22,7 +22,9 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.  COPYING is found in ../compiler.
  */
 
 #define WITH_TK 0
@@ -43,8 +45,8 @@
 #endif /* __WIN32__ */
 
 #include <ascend/utilities/config.h>
-#include <ascend/general/ascMalloc.h> /* for ascshutdown */
-#include <ascend/general/panic.h>  /* for Asc_Panic */
+#include <ascend/utilities/ascMalloc.h> /* for ascshutdown */
+#include <ascend/utilities/ascPanic.h>  /* for Asc_Panic */
 #include <ascend/utilities/ascEnvVar.h>
 #include <ascend/utilities/ascSignal.h>
 

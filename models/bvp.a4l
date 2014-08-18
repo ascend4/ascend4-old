@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 	
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *)
 REQUIRE "atoms.a4l";
 (*
@@ -28,7 +30,7 @@ REQUIRE "atoms.a4l";
 	'test_dynamics' and 'bvp_test'. Note also that the model 'plotbvp.a4c'
 	includes this test model and provides graphical output from the integration.
 
-	@NOTE some old comments were removed here as they confused the issue by
+	@NODE some old comments were removed here as they confused the issue by
 	referring to the LSODE integration engine.
 
 	@NOTE The LSODE integration engine is provided as part of ASCEND and
@@ -91,7 +93,7 @@ METHODS
 
 	METHOD specify;
 		(* The state variables are set
-	 	* FIXED, while their derivatives are FREE.
+	 	* TRUE, while their derivatives are FALSE.
 	 	*)
 		FIX x;
 		FIX y[1..n_eq];

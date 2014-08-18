@@ -23,16 +23,19 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
  */
 #include <math.h>
 #include <stdarg.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/list.h>
 #include <ascend/general/pool.h>
-#ifndef FIRSTCHOICE
+#ifndef FIRSTCHOICE 
 #include <ascend/general/hashpjw.h>
 #endif
 
@@ -48,6 +51,10 @@
 #include "expr_types.h"
 #include "find.h"
 #include "value_type.h"
+
+#ifndef lint
+static CONST char ValueTypeRCSid[] = "$Id: value_type.c,v 1.20 1998/02/05 22:23:36 ballan Exp $";
+#endif
 
 static pool_store_t g_value_pool = NULL;
 /* A pool_store for value_t elements.
@@ -812,7 +819,7 @@ struct value_t CardValues(struct value_t value)
   else return TypeConflict();
 }
 
-#ifndef FIRSTCHOICE
+#ifndef FIRSTCHOICE 
 /*
  * next two functions used only if firstchoice not defined
  */

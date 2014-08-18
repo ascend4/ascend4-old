@@ -14,7 +14,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//*
 	@file
 	Ascend Instantiator Implementation
@@ -28,8 +30,7 @@
 
 #include "instantiate.h"
 
-#include <ascend/utilities/bit.h>
-
+#include "bit.h"
 #include "vlist.h"
 #include "initialize.h"
 #include "watchpt.h"
@@ -65,7 +66,6 @@
 #include "case.h"
 #include "when_util.h"
 #include "select.h"
-#include "link.h"
 /* new headers */
 #include "atomvalue.h"
 #include "arrayinst.h"
@@ -93,15 +93,15 @@
 #include <errno.h>
 
 #include <ascend/utilities/config.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 
 #ifdef ASC_SIGNAL_TRAPS
 # include <ascend/utilities/ascSignal.h>
 #endif
 
 /*#include <stdlib.h>*/
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/utilities/error.h>
 #include <ascend/general/pool.h>
 #include <ascend/general/list.h>
@@ -128,10 +128,6 @@
 #define PASS4MAXNUMBER 1	/* maximum number of iterations allowed
                                  * without change executing WHEN. In
                                  * system where WHEN reference WHEN, > 1 */
-
-#define PASS5MAXNUMBER 1	/* maximum number of iterations allowed
-                                 * without change executing LINK. In
-                                 * system where LINK reference LINK, > 1 */
 
 #define AVG_CASES 2L		/* size to which all cases lists are */
                                 /* initialized (WHEN instance) */
@@ -231,6 +227,9 @@ static int DigestArguments(struct Instance *,
                     struct StatementList *, struct Statement *);
 static int DeriveSetType(CONST struct Set *, struct Instance *,CONST unsigned int);
 
+static struct gl_list_t *FindInsts(struct Instance *, CONST struct VariableList *,
+                            enum find_errors *);
+
 static void MissingInsts(struct Instance *, CONST struct VariableList *,int);
 static struct gl_list_t *FindArgInsts(struct Instance *, struct Set *,
                                enum find_errors *);
@@ -270,7 +269,6 @@ static void Pass3FORMarkCondLogRels(struct Instance *, struct Statement *);
 static int  Pass4CheckFOR(struct Instance *, struct Statement *);
 static int  Pass4ExecuteFOR(struct Instance *, struct Statement *);
 static int  Pass4RealCheckFOR(struct Instance *, struct Statement *);
-static int  Pass5ExecuteFOR(struct Instance *, struct Statement *);
 static int  ExecuteUnSelectedForStatements(struct Instance *,
                                            struct StatementList *);
 static void ExecuteDefault(struct Instance *, struct Statement *,
@@ -295,7 +293,6 @@ static void ExecuteUnSelectedWhenStatements(struct Instance *,
 static int ExecuteUnSelectedWHEN(struct Instance *, struct Statement *);
 static void ReEvaluateSELECT(struct Instance *, unsigned long *,
                              struct Statement *, int, int *);
-static int ExecuteLNK(struct Instance *inst, struct Statement *statement);
 
 /*-----------------------------------------------------------------------------
 	...
@@ -869,6 +866,7 @@ struct IndexType *MakeIndex(struct Instance *inst,
     default:
       STATEMENT_ERROR(stat, "Unknown result value type in MakeIndex.\n");
       ASC_PANIC("Unknown result value type in MakeIndex.\n");
+
     }
   }else{ /* checking subscripts on dense ALIASES/param'd IS_A statement */
     if (sptr==NULL) {
@@ -896,9 +894,9 @@ struct IndexType *MakeIndex(struct Instance *inst,
       DestroyValue(&value);
       STATEMENT_ERROR(stat, "Bad index to dense alias array");
       ASC_PANIC("Bad index to dense alias array");
+
     }
     /* return NULL; */  /* unreachable */
-    /* FIXME add GCC flags to tell compiler that we never get here? */
   }
 }
 
@@ -3559,38 +3557,38 @@ int DigestArguments(
   pp = pphead;
   while (pp!=NULL) {
     char *msg;
-    //CONST struct Statement *stat;
+    CONST struct Statement *stat;
     switch (pp->status) {
     case pp_ISA:
       msg = "Oddly unable to construct parameter scalar";
-      //stat = pp->s;
+      stat = pp->s;
       break;
     case pp_ISAARR:
       msg = "Unable to construct array parameter. Probably missing subscripts";
-      //stat = pp->s;
+      stat = pp->s;
       break;
     case pp_ARR:
       msg = "Unable to check parameter array subscripts.";
-      //stat = pp->s;
+      stat = pp->s;
       break;
     case pp_ASGN:
       msg = "Unable to execute assigment: LHS unmade or RHS not evaluatable";
-      //stat = pp->s;
+      stat = pp->s;
       break;
     case pp_ASSC:
       msg ="Unable to set scalar param: RHS not evaluatable or incorrect type";
-      //stat = pp->s;
+      stat = pp->s;
       break;
     case pp_ASAR:
       msg = "Parameters: Not all array elements assigned during refinement";
-      //stat = pp->s;
+      stat = pp->s;
       break;
     case pp_WV:
       msg = "Unable to verify parameter value: probably bad WITH_VALUE RHS";
-      //stat = pp->s;
+      stat = pp->s;
       break;
     case pp_ERR:
-      //stat = statement;
+      stat = statement;
       msg = "Unexpected pp_ERR pending in parameters";
       break;
     case pp_DONE:
@@ -4255,6 +4253,33 @@ struct gl_list_t *FindArgInsts(struct Instance *parent,
   return result;
 }
 
+/**
+	Find instances: Make sure at least one thing is found for each name item
+	on list (else returned list will be NULL) and return the collected instances.
+*/
+static
+struct gl_list_t *FindInsts(struct Instance *inst,
+                            CONST struct VariableList *list,
+                            enum find_errors *err)
+{
+  struct gl_list_t *result,*temp;
+  unsigned c,len;
+  result = gl_create(7L);
+  while(list!=NULL){
+    temp = FindInstances(inst,NamePointer(list),err);
+    if (temp==NULL){
+      gl_destroy(result);
+      return NULL;
+    }
+    len = gl_length(temp);
+    for(c=1;c<=len;c++) {
+      gl_append_ptr(result,gl_fetch(temp,c));
+    }
+    gl_destroy(temp);
+    list = NextVariableNode(list);
+  }
+  return result;
+}
 
 /**
    Missing instances: makes sure at least one thing is found for
@@ -4677,51 +4702,6 @@ int ExecuteAA(struct Instance *inst, struct Statement *statement)
   }
 }
 
-
-static
-int ExecuteLNK(struct Instance *inst, struct Statement *statement){
-	struct TypeDescription *def_inst;
-	enum find_errors err;
-	struct gl_list_t *instances;
-	symchar *key;
-
-	asc_assert(StatementType(statement)==LNK);
-
-	def_inst = InstanceTypeDesc(inst);
-	instances = FindInsts(inst,LINKStatVlist(statement),&err);
-	key = LINKStatKey(statement);
-
-	if((instances != NULL) && (key != NULL)){
-		switch (def_inst->t) {
-		case model_type:
-			if(statement->v.lnk.key_type == 2) {/* in case the LINK entry has the 'ignore' key */
-				CONSOLE_DEBUG("Ignore declarative link");
-				ignoreDeclLinkEntry(inst,key,LINKStatVlist(statement));
-			}else{
-				CONSOLE_DEBUG("Adding declarative link");
-				addLinkEntry(inst,key,instances,statement,1);
-			}
-			return 1;
-		default:
-			STATEMENT_ERROR(statement, "LINK is not called by a model");
-			return 1;
-		}
-	}else if(key == NULL){
-		STATEMENT_ERROR(statement, "declarative LINK contains impossible key");
-		return 1;
-	}else{
-		switch(err){
-		case impossible_instance:
-			MissingInsts(inst,LINKStatVlist(statement),1);
-			STATEMENT_ERROR(statement, "LINK contains impossible instance");
-			return 1;
-		default:
-			MissingInsts(inst,LINKStatVlist(statement),0);
-			WriteUnexecutedMessage(ASCERR,statement, "Could not execute LINK");
-			return 0;
-		}
-	}
-}
 /*------------------------------------------------------------------------------
 	RELATION PROCESSING
 */
@@ -5350,9 +5330,6 @@ static int ExecuteBlackBoxEXT(struct Instance *inst
     SetEvaluationForTable(SavedForTable);
   }
   if ( executeStatus ) {
-	/* don't report an error here, because return 1 is possible even with
-	eventual success at later compiler passes. */
-	//ERROR_REPORTER_HERE(ASC_USER_ERROR,"Failed to execute blackbox statement");
     return 1;
   }else{
     return 0;
@@ -5449,8 +5426,8 @@ int Pass2ExecuteBlackBoxEXTLoop(struct Instance *inst, struct Statement *stateme
  */
   //so lets see if getting i and o works better than commented code above
   n_input_args = statement->v.ext.u.black.n_inputs;
-  n_output_args = statement->v.ext.u.black.n_outputs;
-
+  n_output_args = statement->v.ext.u.black.n_outputs; 
+ 
   if ((len =gl_length(arglist)) != (n_input_args + n_output_args)) {
     instantiation_error(ASC_PROG_ERR,statement
 		,"Unable to create external expression structure."
@@ -5501,7 +5478,7 @@ int Pass2ExecuteBlackBoxEXTLoop(struct Instance *inst, struct Statement *stateme
   ex = CreateSetExpr(extrange);
   value = EvaluateExpr(ex,NULL,InstanceEvaluateName);
   SetEvaluationContext(NULL);
-
+  
   ASC_ASSERT_EQ(ValueKind(value),set_value);
   sptr = SetValue(value);
   ASC_ASSERT_EQ(SetKind(sptr),integer_set);
@@ -6668,12 +6645,6 @@ int CheckAA(struct Instance *inst, struct Statement *statement)
   return CheckVarList(inst,statement);
 }
 
-static
-int CheckLNK(struct Instance *inst, struct Statement *statement)
-{
-  return CheckVarList(inst,statement);
-}
-
 /**
 	Checks that the lhs of an assignment statement expands into
 	a complete set of instances.
@@ -7000,8 +6971,6 @@ int Pass3CheckCondStatements(struct Instance *inst,
     case IRT:
     case ATS:
     case AA:
-    case LNK:
-    case UNLNK:
     case CALL:
     case EXT:
     case ASGN:
@@ -7010,9 +6979,9 @@ int Pass3CheckCondStatements(struct Instance *inst,
     case WHEN:
     case FNAME:
     case SELECT:
-      STATEMENT_ERROR(statement,
-        "Statement not allowed inside a CONDITIONAL statement\n");
-      return 0;
+         STATEMENT_ERROR(statement,
+               "Statement not allowed inside a CONDITIONAL statement\n");
+         return 0;
     default:
       STATEMENT_ERROR(statement,"Inappropriate statement type");
 	  ERROR_REPORTER_HERE(ASC_PROG_ERR,"while running %s",__FUNCTION__);
@@ -7066,8 +7035,6 @@ int Pass2CheckCondStatements(struct Instance *inst,
     case IRT:
     case ATS:
     case AA:
-    case LNK:
-    case UNLNK:
     case CALL:
     case ASGN:
     case CASGN:
@@ -7370,8 +7337,6 @@ int CheckWhenStatements(struct Instance *inst, struct Statement *statement){
     case IRT:
     case ATS:
     case AA:
-    case LNK:
-    case UNLNK:
     case REL:
     case LOGREL:
     case EXT:
@@ -7577,8 +7542,6 @@ int CheckSelectStatements(struct Instance *inst, struct Statement *statement)
   case IRT:
   case ATS:
   case AA:
-  case LNK:
-  case UNLNK:
   case ARR:
     return 1;
   case FOR:
@@ -7880,10 +7843,6 @@ int Pass4CheckStatement(struct Instance *inst, struct Statement *stat)
     return CheckFNAME(inst,stat);
   case FOR:
     return Pass4CheckFOR(inst,stat);
-  case UNLNK:
-    STATEMENT_ERROR(stat,"Inappropriate UNLINK statement in the declarative part");
-    ERROR_REPORTER_HERE(ASC_PROG_ERR,"while running %s",__FUNCTION__);
-    return 0;
   case COND:
   case SELECT:
   case REL:
@@ -7895,7 +7854,6 @@ int Pass4CheckStatement(struct Instance *inst, struct Statement *stat)
   case IRT:
   case ATS:
   case AA:
-  case LNK:
   case CASGN:
   case ASGN:
   default:
@@ -7923,8 +7881,6 @@ int Pass3CheckStatement(struct Instance *inst, struct Statement *stat)
   case IRT:
   case ATS:
   case AA:
-  case LNK:
-  case UNLNK:
   case CASGN:
   case ASGN:
   case WHEN:
@@ -7956,8 +7912,6 @@ int Pass2CheckStatement(struct Instance *inst, struct Statement *stat)
   case IRT:
   case ATS:
   case AA:
-  case LNK:
-  case UNLNK:
   case CASGN:
   case ASGN:
   case WHEN:
@@ -7995,11 +7949,6 @@ int Pass1CheckStatement(struct Instance *inst, struct Statement *stat)
     return CheckATS(inst,stat);
   case AA:
     return CheckAA(inst,stat);
-  case LNK:
-    return CheckLNK(inst,stat);
-  case UNLNK:
-   	FPRINTF(ASCERR,"UNLINK are only allowed inside a non-declarative part.\n");
-   	return 0;
   case FOR:
     return Pass1CheckFOR(inst,stat);
   case REL:
@@ -8212,7 +8161,7 @@ int Pass3ExecuteCondStatements(struct Instance *inst,
     case LOGREL:
       return ExecuteLOGREL(inst,statement);
     case FOR:
-      if ( ForContainsLogRelations(statement) ) {
+      if ( ForContainsLogRelations(statement) ) { 
         return Pass3ExecuteFOR(inst,statement);
       }else{
         return 1;
@@ -9063,13 +9012,6 @@ void ExecuteSelectStatements(struct Instance *inst, unsigned long *count,
         return_value = ExecuteAA(inst,statement);
         if (return_value) ClearBit(blist,*count);
         break;
-      case LNK:
-        return_value = ExecuteLNK(inst,statement);
-        if (return_value) ClearBit(blist,*count);
-        break;
-      case UNLNK:
-        FPRINTF(ASCERR,"UNLINK are only allowed inside a non-declarative part of the \n");
-        break;
       case FOR:
         return_value = Pass1ExecuteFOR(inst,statement);
         if (return_value) ClearBit(blist,*count);
@@ -9131,8 +9073,6 @@ void ExecuteUnSelectedStatements(struct Instance *inst,unsigned long *count,
       case IRT:
       case ATS:
       case AA:
-      case LNK:
-      case UNLNK:
       case CALL:
       case CASGN:
       case ASGN:
@@ -9495,28 +9435,6 @@ void SetBitsOnOfSELECTStats(struct Instance *inst, unsigned long *count,
           default:
             break;
         }
-				case 5:			/**> DS: Added support for LINK statements inside SELECTs */
-        switch(StatementType(s)) {
-          case WHEN:
-            SetBit(blist,*count);
-            (*changed)++;
-            break;
-          case FOR:
-            if ( ForContainsLink(s) ) {
-              SetBit(blist,*count);
-              (*changed)++;
-            }
-            break;
-          case SELECT:
-            if (SelectContainsLink(s)) {
-              ReEvaluateSELECT(inst,count,s,pass,changed);
-            }else{
-              *count = *count + SelectStatNumberStats(s);
-            }
-            break;
-          default:
-            break;
-        }
         break;
       default:
         FPRINTF(ASCERR,"Wrong pass Number in SetBitsOnOfSELECTStats \n");
@@ -9591,9 +9509,9 @@ void ReEvaluateSELECT(struct Instance *inst, unsigned long *c,
                       struct Statement *statement, int pass, int *changed)
 {
   unsigned long tmp;
-  //struct BitList *blist;
+  struct BitList *blist;
 
-  //blist = InstanceBitList(inst);
+  blist = InstanceBitList(inst);
   if (CheckSELECT(inst,statement)){
     SetBitOfSELECTStat(inst,c,statement,pass,changed);
   }else{
@@ -9759,65 +9677,6 @@ void WriteForValueError(struct Statement *statement, struct value_t value)
 }
 
 static
-int Pass5ExecuteForStatements(struct Instance *inst,
-                              struct StatementList *sl)
-{
-  struct Statement *statement;
-  unsigned long c,len;
-  struct gl_list_t *list;
-  list = GetList(sl);
-  len = gl_length(list);
-  for(c=1;c<=len;c++){
-    statement = (struct Statement *)gl_fetch(list,c);
-    switch(StatementType(statement)){
-    case LNK:
-      if (!ExecuteLNK(inst,statement))return 0;
-      break;
-    case UNLNK:
-      STATEMENT_ERROR(statement,"Inappropriate statement type in declarative "
-        "section (UNLINK only possible in the METHODS section)"
-      );
-      Asc_Panic(2, NULL,"Inappropriate statement type in declarative section "
-      	"(UNLINK only possible in the METHODS section)"
-      );
-      break;
-    case FNAME:
-      if (!ExecuteFNAME(inst,statement)) return 0;
-      break;
-    case FOR:
-      if (!Pass5ExecuteFOR(inst,statement)) return 0;
-      break;
-    case SELECT:
-      STATEMENT_ERROR(statement,
-           "SELECT statements are not allowed inside a FOR Statement");
-      return 0;
-    case WHEN:
-    case ALIASES:
-    case ARR:
-    case ISA:
-    case IRT:
-    case ATS:
-    case AA:
-    case REF:
-    case ASGN:
-    case CASGN:
-    case REL:
-    case LOGREL:
-    case COND:
-    case CALL:
-    case EXT:  /* ignore'm */
-    break;
-    default:
-      STATEMENT_ERROR(statement,
-           "Inappropriate statement type in declarative section LINK");
-      Asc_Panic(2, NULL,
-                "Inappropriate statement type in declarative section LINK");
-    }
-  }
-  return 1;
-}
-
-static
 int Pass4ExecuteForStatements(struct Instance *inst,
                               struct StatementList *sl)
 {
@@ -9829,12 +9688,6 @@ int Pass4ExecuteForStatements(struct Instance *inst,
   for(c=1;c<=len;c++){
     statement = (struct Statement *)gl_fetch(list,c);
     switch(StatementType(statement)){
-    case LNK:
-      return 1; /* ignore'm until pass 5 */
-      break;
-    case UNLNK:
-      return 0;
-      break;
     case WHEN:
       if (!ExecuteWHEN(inst,statement)) return 0;
       break;
@@ -9900,8 +9753,6 @@ int Pass3ExecuteForStatements(struct Instance *inst,
     case IRT:
     case ATS:
     case AA:
-    case LNK:
-    case UNLNK:
     case REF:
     case ASGN:
     case REL:
@@ -9976,8 +9827,6 @@ void Pass2ExecuteForStatements(struct Instance *inst,
     case IRT:
     case ATS:
     case AA:
-    case LNK:
-    case UNLNK:
     case CALL:
     case REF:
     case ASGN: /* ignore'm */
@@ -10085,14 +9934,6 @@ void Pass1ExecuteForStatements(struct Instance *inst,
     case AA:
       return_value = ExecuteAA(inst,statement);
       break;
-    case LNK:
-      return_value = 1; /*DS: ignore'm until pass 5*/
-      break;
-    case UNLNK:
-      STATEMENT_ERROR(statement,
-        "UNLINK statements are not allowed in the declarative section");
-      return_value = 0;
-      break;
     case FOR:
       return_value = 1;
       Pass1RealExecuteFOR(inst,statement);
@@ -10155,8 +9996,6 @@ int ExecuteUnSelectedForStatements(struct Instance *inst,
       case IRT:
       case ATS:
       case AA:
-      case LNK:
-      case UNLNK:
       case CALL:
       case CASGN:
       case ASGN:
@@ -10203,85 +10042,9 @@ int ExecuteUnSelectedForStatements(struct Instance *inst,
                   " declarative section unSEL FOR");
     }
   }
-  /* FIXME this should be 'return_value', shouldn't it??? */
   return 1;
 }
 
-static
-int Pass5RealExecuteFOR(struct Instance *inst, struct Statement *statement)
-{
-	printf("\n Pass5RealExecuteFOR called \n");
-  symchar *name;
-  struct Expr *ex;
-  struct StatementList *sl;
-  unsigned long c,len;
-  struct value_t value;
-  struct set_t *sptr;
-  struct for_var_t *fv;
-  name = ForStatIndex(statement);
-  ex = ForStatExpr(statement);
-  sl = ForStatStmts(statement);
-  if (FindForVar(GetEvaluationForTable(),name)){ /* duplicated for variable */
-    STATEMENT_ERROR(statement, "FOR construct uses duplicate index variable");
-    return 0;
-  }
-  asc_assert(GetEvaluationContext()==NULL);
-  SetEvaluationContext(inst);
-  value = EvaluateExpr(ex,NULL,InstanceEvaluateName);
-  SetEvaluationContext(NULL);
-  switch(ValueKind(value)){
-  case error_value:
-    switch(ErrorValue(value)){
-    case name_unfound:
-    case undefined_value:
-      DestroyValue(&value);
-      STATEMENT_ERROR(statement, "Phase 5 FOR has undefined values");
-      return 0;
-    default:
-      WriteForValueError(statement,value);
-      DestroyValue(&value);
-      return 0;
-    }
-  case real_value:
-  case integer_value:
-  case symbol_value:
-  case boolean_value:
-  case list_value:
-    WriteStatement(ASCERR,statement,0);
-    FPRINTF(ASCERR,"FOR expression returns the wrong type.\n");
-    DestroyValue(&value);
-    return 0;
-  case set_value:
-    sptr = SetValue(value);
-    switch(SetKind(sptr)){
-    case empty_set: break;
-    case integer_set:
-      fv = CreateForVar(name);
-      SetForVarType(fv,f_integer);
-      AddLoopVariable(GetEvaluationForTable(),fv);
-      len = Cardinality(sptr);
-      for(c=1;c<=len;c++){
-        SetForInteger(fv,FetchIntMember(sptr,c));
-        if (!Pass5ExecuteForStatements(inst,sl)) return 0;
-      }
-      RemoveForVariable(GetEvaluationForTable());
-      break;
-    case string_set:
-      fv = CreateForVar(name);
-      SetForVarType(fv,f_symbol);
-      AddLoopVariable(GetEvaluationForTable(),fv);
-      len = Cardinality(sptr);
-      for(c=1;c<=len;c++){
-        SetForSymbol(fv,FetchStrMember(sptr,c));
-        if (!Pass5ExecuteForStatements(inst,sl)) return 0;
-      }
-      RemoveForVariable(GetEvaluationForTable());
-      break;
-    }
-    DestroyValue(&value);
-  }
-  return 1;
-}
 
 
 static
@@ -10806,7 +10569,6 @@ void Pass2FORMarkCond(struct Instance *inst, struct Statement *statement)
 static
 void Pass1RealExecuteFOR(struct Instance *inst, struct Statement *statement)
 {
-	/*printf("\n Pass1RealExecuteFOR called \n");*/
   symchar *name;
   struct Expr *ex;
   struct StatementList *sl;
@@ -11269,26 +11031,6 @@ int Pass1RealCheckFOR(struct Instance *inst, struct Statement *statement)
 #endif  /*  THIS_IS_AN_UNUSED_FUNCTION  */
 
 
-
-static
-int Pass5ExecuteFOR(struct Instance *inst, struct Statement *statement)
-{
-  struct for_table_t *SavedForTable;
-  SavedForTable = GetEvaluationForTable();
-  SetEvaluationForTable(CreateForTable());
-  if ( Pass5RealExecuteFOR(inst,statement) ) {
-    DestroyForTable(GetEvaluationForTable());
-    SetEvaluationForTable(SavedForTable);
-    return 1;
-  }else{
-    DestroyForTable(GetEvaluationForTable());
-    SetEvaluationForTable(SavedForTable);
-    return 0;
-  }
-}
-
-
-
 static
 int Pass4ExecuteFOR(struct Instance *inst, struct Statement *statement)
 {
@@ -11384,23 +11126,6 @@ int Pass1ExecuteFOR(struct Instance *inst, struct Statement *statement)
 */
 
 static
-int Pass5ExecuteStatement(struct Instance *inst,struct Statement *statement)
-{
-  switch(StatementType(statement)){ /* should be a LNK statement */
-  case LNK:
-    return ExecuteLNK(inst,statement);
-  case UNLNK:
-    STATEMENT_ERROR(statement," UNLINK statement not allowed in the declarative section");
-    return 0;
-  case FOR:
-    return Pass5ExecuteFOR(inst,statement);
-  default:
-    return 1;
-    /* For anything else but a LINK and FOR statement */
-  }
-}
-
-static
 int Pass4ExecuteStatement(struct Instance *inst,struct Statement *statement)
 {
   switch(StatementType(statement)){ /* should be a WHEN statement */
@@ -11408,10 +11133,6 @@ int Pass4ExecuteStatement(struct Instance *inst,struct Statement *statement)
     return ExecuteWHEN(inst,statement);
   case FOR:
     return Pass4ExecuteFOR(inst,statement);
-  case LNK:
-    return 1; /* automatically assume done */
-  case UNLNK:
-    return 1;
   default:
     return 1;
     /* For anything else but a WHEN and FOR statement */
@@ -11430,10 +11151,6 @@ int Pass3ExecuteStatement(struct Instance *inst,struct Statement *statement)
     return Pass3ExecuteCOND(inst,statement);
   case WHEN:
     return 1; /* assumed done  */
-  case LNK:
-    return 1; /* assumed done */
-  case UNLNK:
-    return 1;
   case FNAME:
     STATEMENT_ERROR(statement,"FNAME are allowed only inside a WHEN statement");
     return 0;
@@ -11468,13 +11185,8 @@ int Pass2ExecuteStatement(struct Instance *inst,struct Statement *statement)
   case COND:
     return Pass2ExecuteCOND(inst,statement);
   case LOGREL:
-		return 1; /* assumed done */
   case WHEN:
     return 1; /* assumed done  */
-  case LNK:
-    return 1; /* assumed done */
-  case UNLNK:
-    return 0; /* meaning what??? FIXME */
   case FNAME:
     STATEMENT_ERROR(statement,"FNAME are allowed only inside a WHEN statement");
     return 0;
@@ -11517,17 +11229,11 @@ int Pass1ExecuteStatement(struct Instance *inst, unsigned long *c,
   case LOGREL:
     return 1; /* automatically assume done */
   case COND:
-    return 1; /* automatically assume done */
+    return 1;/* automatically assume done */
   case WHEN:
     return 1; /* automatically assume done */
-  case LNK:
-    return 1; /* automatically assume done */
-  case UNLNK:
-    STATEMENT_ERROR(statement,"UNLINK is allowed only inside the declarative part of the model; statement not executed");
-    return 0;
   case FNAME:
     STATEMENT_ERROR(statement,"FNAME are allowed only inside a WHEN statement");
-		ERROR_REPORTER_HERE(ASC_PROG_ERR,"while running %s",__FUNCTION__);
     return 0;
   case SELECT:
     return ExecuteSELECT(inst,c,statement);
@@ -11555,36 +11261,6 @@ int ArraysExpanded(struct Instance *work)
   }
   return 1;
 }
-
-
-/**
-	Try to execute all the LINK statements in instance work.
-	It assumes that work is the top of the pending instance list.
-	Will skip all non-LINK statements.
-*/
-static
-void Pass5ExecuteLinkStatements(struct BitList *blist,
-                                struct Instance *work,
-                                int *changed
-){
-  unsigned long c;
-  struct TypeDescription *def;
-  struct gl_list_t *statements;
-  CONST struct StatementList *stats;
-  def = InstanceTypeDesc(work);
-  stats = GetStatementList(def);
-  statements = GetList(stats);
-  for(c=FirstNonZeroBit(blist);c<BLength(blist);c++){
-    if (ReadBit(blist,c)){
-      if ( Pass5ExecuteStatement(work,
-           (struct Statement *)gl_fetch(statements,c+1)) ) {
-        ClearBit(blist,c);
-        *changed = 1;
-      }
-    }
-  }
-}
-
 
 /**
 	Try to execute all the when statements in instance work.
@@ -11663,7 +11339,6 @@ void Pass2ExecuteRelationStatements(struct BitList *blist,
     if (ReadBit(blist,c)){
       if ( Pass2ExecuteStatement(work,
            (struct Statement *)gl_fetch(statements,c+1)) ) {
-        //CONSOLE_DEBUG("Got error code here, clearing bit in blist, setting '*changed' to 1");
         ClearBit(blist,c);
         *changed = 1;
       }
@@ -11704,66 +11379,6 @@ void Pass1ExecuteInstanceStatements(struct BitList *blist,
     }
     c++;
   }
-}
-
-
-static
-void Pass5ProcessPendingInstances(void)
-{
-  struct pending_t *work;
-  struct Instance *inst;
-  struct BitList *blist;
-  int changed = 0,count=0;
-  unsigned long c;
-  /*
-   * pending will have at least one instance, or while will fail
-   */
-  while((count < PASS5MAXNUMBER) && NumberPending()>0){
-    changed = 0;
-    c = 0;
-    while(c < NumberPending()){
-      work = TopEntry();
-      if (work!=NULL) {
-        inst = PendingInstance(work);
-        blist = InstanceBitList(inst);
-      }else{
-        blist = NULL;   /* this shouldn't be necessary, but is */
-		inst = NULL;
-      }
-      if ((blist!=NULL)&&!BitListEmpty(blist)){
-        /* only models get here */
-        Pass5ExecuteLinkStatements(blist,inst,&changed);
-        /* we do away with TryArrayExpansion because it doesn't do links either */
-        if (BitListEmpty(blist)) {
-          /*
-		   * delete PENDING model.
-		   */
-          RemoveInstance(PendingInstance(work));
-        }else{
-		  /*
-		   * bitlist is still unhappy, but there's nothing to do about it.
-           * Move the instance to the bottom and increase the counter
-		   * so that we do not visit it again.
-		   */
-          if (work == TopEntry()) {
-            MoveToBottom(work);
-          }
-          c++;
-        }
-      }else{
-        /* We do not attempt to expand non-link arrays in pass5. */
-      }
-    }
-#if (PASS5MAXNUMBER > 1)
-    if (!changed) {
-#endif
-      count++;
-      g_iteration++;   /* The global iteration counter */
-#if (PASS5MAXNUMBER > 1)
-    }
-#endif
-  }
-  /* done, or there were no pendings at all and while failed */
 }
 
 static
@@ -11911,7 +11526,7 @@ void Pass2ProcessPendingInstancesAnon(struct Instance *result)
 #if TIMECOMPILER
   clock_t start,classt;
 #endif
-  /*CONSOLE_DEBUG("...");*/
+  CONSOLE_DEBUG("...");
 
   /* pending will have at least one instance, or quick return. */
   asc_assert(PASS2MAXNUMBER==1);
@@ -12409,78 +12024,6 @@ void DefaultInstanceTree(struct Instance *i)
   VisitInstanceTree(i,DefaultInstance,0,0);
 }
 
-
-
-/**
-	This just handles instantiating LINKs,
-	ignoring anything else.
-	This works with Pass5ProcessPendingInstances.
-*/
-static
-struct Instance *Pass5InstantiateModel(struct Instance *result,
-                                       unsigned long *pcount)
-{
-  /* do we need a ForTable on the stack here? don't think so. np4ppi does it */
-  if (result!=NULL) {
-    /* pass5 pendings already set by visit */
-    Pass5ProcessPendingInstances();
-    if (NumberPending()!=0) {
-      FPRINTF(ASCERR,
-        "There are unexecuted Phase 5 (LINKs) in the instance.\n");
-      *pcount = NumberPending();
-    }
-    ClearList();
-  }
-  return result;
-}
-
-static
-void Pass5SetLinkBits(struct Instance *inst)
-{
-  struct Statement *stat;
-
-  if (inst != NULL && InstanceKind(inst)==MODEL_INST) {
-    struct BitList *blist;
-
-    blist = InstanceBitList(inst);
-    if (blist!=NULL){
-      unsigned long c;
-      struct gl_list_t *statements = NULL;
-      enum stat_t st;
-      int changed;
-
-      changed=0;
-      if (BLength(blist)) {
-        statements = GetList(GetStatementList(InstanceTypeDesc(inst)));
-      }
-      for(c=0;c<BLength(blist);c++){
-        stat = (struct Statement *)gl_fetch(statements,c+1);
-        st= StatementType(stat);
-        if (st == SELECT) {
-          if (SelectContainsLink(stat)) {
-            ReEvaluateSELECT(inst,&c,stat,5,&changed);
-          }else{
-            c = c + SelectStatNumberStats(stat);
-          }
-        }else{
-          if ( st == LNK || (st == FOR && ForContainsLink(stat)) ) {
-            SetBit(blist,c);
-            changed++;
-          }
-        }
-      }
-      /* if changed = 0 but bitlist not empty, we don't want to retry
-        thoroughly done insts. if whens, then we can't avoid.
-        if we did add any bits, then changed!= 0 is sufficient test. */
-      if ( changed ) {
-        AddBelow(NULL,inst);
-        /* add PENDING model */
-      }
-    }
-  }
-}
-
-
 /**
 	This just handles instantiating whens,
 	ignoring anything else.
@@ -12633,10 +12176,7 @@ void Pass3SetLogRelBits(struct Instance *inst)
 static struct Instance *Pass2InstantiateModel(struct Instance *result,
 		unsigned long *pcount
 ){
-#ifdef INST_DEBUG
   CONSOLE_DEBUG("starting...");
-#endif
-
   /* do we need a ForTable on the stack here? don't think so. np2ppi does it */
   if (result!=NULL) {
     /* CONSOLE_DEBUG("result!=NULL..."); */
@@ -12663,9 +12203,7 @@ static struct Instance *Pass2InstantiateModel(struct Instance *result,
     }
     ClearList();
   }
-#ifdef INST_DEBUG
-  CONSOLE_DEBUG("...done");
-#endif
+  /* CONSOLE_DEBUG("...done"); */
   return result;
 }
 
@@ -12810,8 +12348,8 @@ struct Instance *Pass1InstantiateModel(struct TypeDescription *def,
 /**
 	we have to introduce a new head to instantiatemodel to manage
 	the phases.
-	6 phases: model creation, relation creation,
-	logical relation creation, when creation, LINK creation
+	5 phases: model creation, relation creation,
+	logical relation creation, when creation,
 	defaulting.
 	BAA
 	each pass is responsible for clearing the pending list it leaves.
@@ -12820,30 +12358,25 @@ static
 struct Instance *NewInstantiateModel(struct TypeDescription *def)
 {
   struct Instance *result;
-  unsigned long pass1pendings,pass2pendings,pass3pendings,pass4pendings,pass5pendings;
+  unsigned long pass1pendings,pass2pendings,pass3pendings,pass4pendings;
 #if TIMECOMPILER
-  clock_t start, phase1t,phase2t,phase3t,phase4t,phase5t,phase6t;
+  clock_t start, phase1t,phase2t,phase3t,phase4t,phase5t;
 #endif
 
-#ifdef INST_DEBUG
   CONSOLE_DEBUG("starting...");
-#endif
 
   pass1pendings = 0L;
   pass2pendings = 0L;
   pass3pendings = 0L;
   pass4pendings = 0L;
-	pass5pendings = 0L;
 #if TIMECOMPILER
   start = clock();
 #endif
   result = Pass1InstantiateModel(def,&pass1pendings,NULL);
-
 #if TIMECOMPILER
   phase1t = clock();
   CONSOLE_DEBUG("Phase 1 models = %lu",(unsigned long)phase1t-start);
 #endif
-
   /* At this point, there may be unexecuted non-relation
    * statements, but they can never be executed. The
    * pending list is therefore empty. We know how many.
@@ -12868,12 +12401,10 @@ struct Instance *NewInstantiateModel(struct TypeDescription *def)
   }else{
     return result;
   }
-
 #if TIMECOMPILER
   phase2t = clock();
   CONSOLE_DEBUG("Phase 2 relations = %lu",(unsigned long)(phase2t-phase1t));
 #endif
-
   /* CONSOLE_DEBUG("Starting phase 3..."); */
   /* at this point, there may be unexecuted non-logical relation
    * statements, but they can never be executed. The
@@ -12891,12 +12422,10 @@ struct Instance *NewInstantiateModel(struct TypeDescription *def)
   }else{
     return result;
   }
-
 #if TIMECOMPILER
   phase3t = clock();
   CONSOLE_DEBUG("Phase 3 logicals = %lu",(unsigned long)(phase3t-phase2t));
 #endif
-
   if (result!=NULL) {
     /* now set the bits for when statements and add pending models */
     SilentVisitInstanceTree(result,Pass4SetWhenBits,0,0);
@@ -12907,44 +12436,27 @@ struct Instance *NewInstantiateModel(struct TypeDescription *def)
   }else{
     return result;
   }
-
 #if TIMECOMPILER
   phase4t = clock();
   CONSOLE_DEBUG("Phase 4 when-case = %lu",(unsigned long)(phase4t-phase3t));
 #endif
-
   if (result!=NULL) {
-		/* now set the bits for LINK statements and add pending models */
-	  SilentVisitInstanceTree(result,Pass5SetLinkBits,0,0);
-	  /* note, the order of the visit might be better 1 than 0. don't know */
-	  /* at present order 0, so we do lower models before those near root */
-		result = Pass5InstantiateModel(result,&pass5pendings);
-		/* result will not move as currently implemented <-DS: what do you really mean by this? */
-  }else{
-    return result;
-  }
-#if TIMECOMPILER
-  phase5t = clock();
-  CONSOLE_DEBUG("Phase 5 LINK-case = %lu",(unsigned long)(phase5t-phase4t));
-#endif
-  if (result!=NULL) {
-    if (!pass1pendings && !pass2pendings && !pass3pendings && !pass4pendings && !pass5pendings){
+    if (!pass1pendings && !pass2pendings && !pass3pendings && !pass4pendings){
       DefaultInstanceTree(result);
     }else{
       ERROR_REPORTER_NOLINE(ASC_USER_WARNING,"There are unexecuted statements "
 		"in the instance.\nDefault assignments not executed.");
     }
   }
-
 #if TIMECOMPILER
-  phase6t = clock();
-  CONSOLE_DEBUG("Phase 6 defaults = %lu",(unsigned long)(phase6t-phase5t));
-  if (pass1pendings || pass2pendings || pass3pendings || pass4pendings || pass5pendings) {
-# ifdef __WIN32__
+  phase5t = clock();
+  CONSOLE_DEBUG("Phase 5 defaults = %lu",(unsigned long)(phase5t-phase4t));
+  if (pass1pendings || pass2pendings || pass3pendings || pass4pendings) {
+#ifdef __WIN32__
     char *timeunit = "milliseconds";
-# else
+#else
     char *timeunit = "microseconds";
-# endif
+#endif
     CONSOLE_DEBUG("Compilation times (%s):\n",timeunit);
     CONSOLE_DEBUG("Phase 1 models \t\t%lu\n",
             (unsigned long)(phase1t-start));
@@ -12954,17 +12466,14 @@ struct Instance *NewInstantiateModel(struct TypeDescription *def)
             (unsigned long)(phase3t-phase2t));
     CONSOLE_DEBUG("Phase 4 when-case \t\t%lu\n",
             (unsigned long)(phase4t-phase3t));
-		CONSOLE_DEBUG("Phase 5 LINK-case \t\t%lu\n",
+    CONSOLE_DEBUG("Phase 5 defaults\t\t%lu\n",
             (unsigned long)(phase5t-phase4t));
-    CONSOLE_DEBUG("Phase 6 defaults\t\t%lu\n",
-            (unsigned long)(phase6t-phase5t));
   }
-  CONSOLE_DEBUG("Total = %lu",(unsigned long)(phase6t-start));
-# if 0 /* deep performance tuning */
+  CONSOLE_DEBUG("Total = %lu",(unsigned long)(phase5t-start));
+#if 0 /* deep performance tuning */
   gl_reportrecycler(ASCERR);
-# endif
 #endif
-
+#endif
   return result;
 }
 
@@ -13061,11 +12570,12 @@ struct Instance *NewRealInstantiate(struct TypeDescription *def,
 static
 void ExecDefMethod(struct Instance *root,symchar *simname, symchar *defmethod)
 {
-  //enum Proc_enum runstat;
+  enum Proc_enum runstat;
   struct Name *name;
   if (InstanceKind(root) == MODEL_INST && defmethod != NULL) {
     name = CreateIdName(defmethod);
-    Initialize(root,name,(char *)SCP(simname),ASCERR,(WP_BTUIFSTOP|WP_STOPONERR),NULL,NULL);
+    runstat = Initialize(root,name,(char *)SCP(simname),ASCERR,
+                         (WP_BTUIFSTOP|WP_STOPONERR),NULL,NULL);
     DestroyName(name);
   }
 }
@@ -13170,9 +12680,9 @@ void AddIncompleteInst(struct Instance *i)
 void NewReInstantiate(struct Instance *i)
 {
   struct Instance *result;
-  unsigned long pass1pendings,pass2pendings,pass3pendings,pass4pendings,pass5pendings;
+  unsigned long pass1pendings,pass2pendings,pass3pendings,pass4pendings;
 #if TIMECOMPILER
-  time_t start, phase1t,phase2t,phase3t,phase4t,phase5t,phase6t;
+  time_t start, phase1t,phase2t,phase3t,phase4t,phase5t;
 #endif
   ++g_compiler_counter;/*instance tree will change:increment compiler counter*/
   asc_assert(i!=NULL);
@@ -13183,7 +12693,6 @@ void NewReInstantiate(struct Instance *i)
   pass2pendings = 0L;
   pass3pendings = 0L;
   pass4pendings = 0L;
-  pass5pendings = 0L;
 #if TIMECOMPILER
   start = clock();
 #endif
@@ -13218,35 +12727,29 @@ void NewReInstantiate(struct Instance *i)
 #if TIMECOMPILER
   phase4t = clock();
 #endif
-	if (result!=NULL) {
-    SilentVisitInstanceTree(result,Pass5SetLinkBits,0,0);
-    result = Pass5InstantiateModel(result,&pass5pendings);
-  }else{
-    ASC_PANIC("Reinstantiation phase 5 went insane. Bye!\n");
-  }
-#if TIMECOMPILER
-  phase5t = clock();
-#endif
   if (result!=NULL) {
-    if (!pass1pendings && !pass2pendings && !pass3pendings && !pass4pendings && !pass5pendings){
+    if (!pass1pendings && !pass2pendings && !pass3pendings && !pass4pendings){
       DefaultInstanceTree(result);
     }else{
       FPRINTF(ASCERR,"There are unexecuted statements in the instance.\n");
       FPRINTF(ASCERR,"Default assignments not executed.\n");
     }
   }else{
-    ASC_PANIC("Reinstantiation phase 6 went insane. Bye!\n");
+    ASC_PANIC("Reinstantiation phase 5 went insane. Bye!\n");
   }
 #if TIMECOMPILER
-  phase6t = clock();
+  phase5t = clock();
   CONSOLE_DEBUG("Reinstantiation times (microseconds):\n");
   CONSOLE_DEBUG("Phase 1 models \t\t%lu\n",(unsigned long)(phase1t-start));
-  CONSOLE_DEBUG("Phase 2 relations \t\t%lu\n",(unsigned long)(phase2t-phase1t));
-  CONSOLE_DEBUG("Phase 3 logicals \t\t%lu\n",(unsigned long)(phase3t-phase2t));
-  CONSOLE_DEBUG("Phase 4 when-case \t\t%lu\n",(unsigned long)(phase4t-phase3t));
-  CONSOLE_DEBUG("Phase 5 LINKs \t\t%lu\n",(unsigned long)(phase5t-phase4t));
-  CONSOLE_DEBUG("Phase 6 defaults \t\t%lu\n",(unsigned long)(phase6t-phase5t));
-  CONSOLE_DEBUG("Total\t\t%lu\n",(unsigned long)(phase6t-start));
+  CONSOLE_DEBUG("Phase 2 relations \t\t%lu\n",
+          (unsigned long)(phase2t-phase1t));
+  CONSOLE_DEBUG(
+          "Phase 3 logicals \t\t%lu\n",(unsigned long)(phase3t-phase2t));
+  CONSOLE_DEBUG("Phase 4 when-case \t\t%lu\n",
+          (unsigned long)(phase4t-phase3t));
+  CONSOLE_DEBUG(
+          "Phase 5 defaults \t\t%lu\n",(unsigned long)(phase5t-phase4t));
+  CONSOLE_DEBUG("Total\t\t%lu\n",(unsigned long)(phase5t-start));
 #endif
   return;
 }

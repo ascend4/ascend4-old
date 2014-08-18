@@ -13,18 +13,20 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Unit test functions for ASCEND: general/dstring.c
 */
 #include <string.h>
+#include <CUnit/CUnit.h>
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/general/dstring.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 
-#include <test/common.h>
 #include <test/assertimpl.h>
 
 static void test_dstring(void)
@@ -388,8 +390,18 @@ static void test_dstring(void)
 /*===========================================================================*/
 /* Registration information */
 
-#define TESTS(T) \
-	T(dstring)
+static CU_TestInfo dstring_test_list[] = {
+  {"dstring", test_dstring},
+  CU_TEST_INFO_NULL
+};
 
-REGISTER_TESTS_SIMPLE(general_dstring, TESTS)
+static CU_SuiteInfo suites[] = {
+  {"general_dstring", NULL, NULL, dstring_test_list},
+  CU_SUITE_INFO_NULL
+};
 
+/*-------------------------------------------------------------------*/
+CU_ErrorCode test_register_general_dstring(void)
+{
+  return CU_register_suites(suites);
+}

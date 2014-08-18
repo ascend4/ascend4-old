@@ -13,8 +13,11 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @defgroup general_pairlist General Pointer-pair manager
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//** @file
+	Ascend pointer pair manager.
 
 	This module uses (internally) a pair of gl_list_t
 	to manage pointer pairs.
@@ -36,10 +39,6 @@
 
 #ifndef ASC_PAIRLIST_H
 #define ASC_PAIRLIST_H
-
-/**	@addtogroup general_pairlist General Pointer-pair Manager
-	@{
-*/
 
 struct pairlist_t;
 struct gl_list_t;
@@ -134,8 +133,6 @@ extern void pairlist_print(FILE *fp, struct pairlist_t * pl);
  *  @param fp     The open file stream on which to print the report.
  *  @param pl     The pairlist store on which to report.
  */
-
-/* @} */
 
 #endif /* ASC_PAIRLIST_H */
 

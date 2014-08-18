@@ -16,13 +16,15 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  */
 
 #include <stdio.h>
 #include <assert.h>
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 
 #ifdef __WIN32__
 # include <io.h>
@@ -32,7 +34,7 @@
 
 #include "redirectStdStreams.h"
 
-#if 0
+#if 0 
 
 static FILE *f_stdin_file = NULL;
 static int f_stdin_handle = -1;

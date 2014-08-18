@@ -11,8 +11,7 @@ SCONS_OPTIONS = CC="ccache gcc" \
 	WITH_DOC_INSTALL=1 \
 	F2C_LIB=gfortran \
 	FORTRAN=gfortran \
-	WITH_SOLVERS=CMSLV,CONOPT,DOPRI5,IDA,LRSLV,LSODE,QRSLV,IPOPT \
-	DEBUG=1
+	WITH_SOLVERS=CMSLV,CONOPT,DOPRI5,IDA,LRSLV,LSODE,QRSLV,IPOPT
 
 # 	F2C_LIBPATH=/usr/lib/gcc/i486-linux-gnu/4.2.1/ \
 
@@ -28,11 +27,6 @@ ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
 	INSTALL_PROGRAM += -s
 endif
 
-ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
-	NUMJOBS = $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
-	SCONS_OPTIONS += -j$(NUMJOBS)
-endif
-
 # shared library versions, option 1
 major=0
 
@@ -41,13 +35,11 @@ DATADIR=$(INSTALLROOT)/usr/share
 
 GTKSOURCEVIEW=gtksourceview-2.0
 GTKSOURCEVIEWLANGS=$(DATADIR)/$(GTKSOURCEVIEW)/language-specs
-GTKSOURCEVIEW3=gtksourceview-3.0
-GTKSOURCEVIEW3LANGS=$(DATADIR)/$(GTKSOURCEVIEW)/language-specs
 
 build: build-stamp
 build-stamp:
 	dh_testdir
-	cd $(CURDIR) && $(SCONS)
+	cd $(CURDIR) && $(SCONS) libascend tcltk pygtk models
 	touch build-stamp
 
 clean:
@@ -82,16 +74,27 @@ install: build
 	install -m 644 -D ascend-doc-48x48.png $(DATADIR)/icons/hicolor/48x48/mimetypes/text-x-ascend-model.png && \
 	install -m 644 -D ascend-doc-64x64.png $(DATADIR)/icons/hicolor/64x64/mimetypes/text-x-ascend-model.png
 #
-# syntax highlighting for gedit
-	cd $(CURDIR)/tools/$(GTKSOURCEVIEW3) && \
-	install -m 644 -D ascend.lang $(GTKSOURCEVIEW3LANGS)/ascend.lang
+# workaround for bug in Ubuntu Hardy -- to prevent generic icons from overriding ASCEND icon.
+	cd $(CURDIR)/pygtk/glade && \
+	install -m 644 -D ascend-doc-48x48.svg $(DATADIR)/icons/Human/scalable/mimetypes/text-x-ascend-model.svg && \
+	install -m 644 -D ascend-doc-16x16.png $(DATADIR)/icons/Human/16x16/mimetypes/text-x-ascend-model.png && \
+	install -m 644 -D ascend-doc-22x22.png $(DATADIR)/icons/Human/22x22/mimetypes/text-x-ascend-model.png && \
+	install -m 644 -D ascend-doc-24x24.png $(DATADIR)/icons/Human/24x24/mimetypes/text-x-ascend-model.png && \
+	install -m 644 -D ascend-doc-32x32.png $(DATADIR)/icons/Human/32x32/mimetypes/text-x-ascend-model.png && \
+	install -m 644 -D ascend-doc-48x48.png $(DATADIR)/icons/Human/48x48/mimetypes/text-x-ascend-model.png && \
+	install -m 644 -D ascend-doc-64x64.png $(DATADIR)/icons/Human/64x64/mimetypes/text-x-ascend-model.png
 #
-# syntax highlighting for internal use (view model code)
+# syntax highlighting for gedit
 	cd $(CURDIR)/tools/$(GTKSOURCEVIEW) && \
 	install -m 644 -D ascend.lang $(GTKSOURCEVIEWLANGS)/ascend.lang
-
+#
+# DESKTOP file for ASCEND Tcl/Tk
+	cd $(CURDIR)/tcltk/gnome && \
+	install -m 644 -D ascend4.desktop $(DATADIR)/applications/ascend4.desktop
+#
 	dh_install --fail-missing --sourcedir=$(INSTALLROOT)
 
+	dh_desktop
 	dh_installman
 
 # Build architecture-independent files here.
@@ -109,7 +112,7 @@ binary-arch: build install
 	dh_installexamples
 	dh_installman
 	dh_link
-	dh_strip --dbg-package=ascend-dbg
+	dh_strip
 	dh_compress
 	dh_fixperms
 	dh_makeshlibs

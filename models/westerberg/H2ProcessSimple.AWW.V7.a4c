@@ -1,4 +1,4 @@
-REQUIRE "westerberg/simpleUnits.AWW.a4c";
+REQUIRE "simpleUnits.AWW.a4c";
 
 
 (* this REQUIRE statement will lead to many different files

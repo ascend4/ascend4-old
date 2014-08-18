@@ -1,8 +1,7 @@
 Import('env')
 
 subdirs = [
-	'extfn','datareader','brent', 'fprops', 'grena', 'nrel'
-	,'planck'
+	'extfn','datareader','brent', 'fprops'
 ]
  
 for d in subdirs:

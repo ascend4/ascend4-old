@@ -1,5 +1,4 @@
 Import('env')
-import platform
 
 if env.get('WITH_IPOPT'):
 	solver_env = env.Clone()
@@ -12,11 +11,6 @@ if env.get('WITH_IPOPT'):
 		]
 		,CPPPATH = [solver_env.get('IPOPT_CPPPATH')]
 	)
-	
-	if platform.system()=="Windows":
-		solver_env.Append(
-			CFLAGS=["-static"]
-		)
 
 	lib = solver_env.SharedLibrary("ipopt",["asc_ipopt.c"]
 		,LIBS = ['ascend'] + solver_env.get('IPOPT_LIBS')

@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	File redirection for ascend.
 
@@ -41,11 +43,11 @@
 #ifndef ASC_REDIRECTFILE_H
 #define ASC_REDIRECTFILE_H
 
-#include <ascend/general/platform.h>
-
-/**	@addtogroup compiler_common Compiler Common
+/**	@addtogroup compiler Compiler
 	@{
 */
+
+#include <ascend/utilities/ascConfig.h>
 
 #ifdef REIMPLEMENT_STREAMS
 ASC_DLLSPEC FILE *g_ascend_errors;       /**< File for error messages.  Default is stderr. */

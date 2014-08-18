@@ -22,12 +22,12 @@
 #ifndef ASC_LOGRELATION_UTIL_H
 #define ASC_LOGRELATION_UTIL_H
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include "compiler.h"
 #include "logrelation.h"
 #include "instance_enum.h"
 
-/**	@addtogroup compiler_logrel Compiler Logical Relations
+/**	@addtogroup compiler Compiler
 	@{
 */
 

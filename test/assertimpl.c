@@ -13,8 +13,11 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @file
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//**
+	@file
 	Assert implementation override for ASCEND unit tests
 */
 
@@ -23,8 +26,8 @@
 #include <setjmp.h>
 #include <assert.h>
 
-#include <ascend/general/platform.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascPanic.h>
 
 #include "assertimpl.h"
 
@@ -40,7 +43,7 @@ void enable_assert_longjmp(int TRUE_or_FALSE)
 /* Override implementation of assert using the signature of the relevant compiler */
 #ifdef __WIN32__
 #  if defined(__GNUC__) || defined(__MINGW32_VERSION)
-_CRTIMP void __cdecl my_assert(const char *cond, const char *file, int line)
+_CRTIMP void __cdecl _assert(const char *cond, const char *file, int line)
 {
 
 #  elif defined(_MSC_VER)

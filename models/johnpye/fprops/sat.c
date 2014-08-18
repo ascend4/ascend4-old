@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Routines to calculate saturation properties using Helmholtz correlation
 	data. We first include some 'generic' saturation equations that make use
@@ -23,81 +25,30 @@
 	solver to converge to an accurate result.
 */
 
-#include "rundata.h"
 #include "sat.h"
-#include "fprops.h"
-#include "zeroin.h"
 
-// report lots of stuff
-//#define SAT_DEBUG
-#define SAT_ERRORS
-
-// assertions for NANs etc
-//#define SAT_ASSERT
-
-#ifdef SAT_ASSERT
+#include "helmholtz_impl.h"
 # include <assert.h>
-#else
-# define assert(ARGS...)
-#endif
 
 #include <math.h>
-#include <stdio.h>
+#ifdef TEST
+# include <stdio.h>
+# include <stdlib.h>
+#endif
+
+#include <gsl/gsl_multiroots.h>
 
 #define SQ(X) ((X)*(X))
-
-#define TCRIT(DATA) (DATA->data->T_c)
-#define PCRIT(DATA) (DATA->data->p_c)
-#define RHOCRIT(DATA) (DATA->data->rho_c)
-#define OMEGA(DATA) (DATA->data->omega)
-#define RGAS(DATA) (DATA->data->R)
-#define TTRIP(DATA) (DATA->data->T_t)
-
-#define THROW_FPE
-
-#ifdef THROW_FPE
-#define _GNU_SOURCE
-#include <fenv.h>
-int feenableexcept (int excepts);
-int fedisableexcept (int excepts);
-int fegetexcept (void);
-#endif
-
-# include "color.h"
-
-#ifdef SAT_DEBUG
-# define MSG(FMT, ...) \
-	color_on(stderr,ASC_FG_BRIGHTRED);\
-	fprintf(stderr,"%s:%d: ",__FILE__,__LINE__);\
-	color_on(stderr,ASC_FG_BRIGHTBLUE);\
-	fprintf(stderr,"%s: ",__func__);\
-	color_off(stderr);\
-	fprintf(stderr,FMT "\n",##__VA_ARGS__)
-#else
-# define MSG(ARGS...) ((void)0)
-#endif
-
-#ifdef SAT_ERRORS
-# define ERRMSG(STR,...) \
-	color_on(stderr,ASC_FG_BRIGHTRED);\
-	fprintf(stderr,"ERROR:");\
-	color_off(stderr);\
-	fprintf(stderr," %s:%d:" STR "\n", __func__, __LINE__ ,##__VA_ARGS__)
-#else
-# define ERRMSG(ARGS...) ((void)0)
-#endif
 
 /**
 	Estimate of saturation pressure using H W Xiang ''The new simple extended
 	corresponding-states principle: vapor pressure and second virial
 	coefficient'', Chemical Engineering Science,
 	57 (2002) pp 1439-1449.
-
-	This seems to be hopeless, or buggy. Tried with water at 373 K, gives
-	525 kPa...
 */
-double fprops_psat_T_xiang(double T, const FluidData *data){
-	double Zc = data->p_c / (8314. * data->rho_c * data->T_c);
+double fprops_psat_T_xiang(double T, const HelmholtzData *d){
+
+	double Zc = d->p_c / (8314. * d->rho_c * d->T_c);
 
 #ifdef TEST
 	fprintf(stderr,"Zc = %f\n",Zc);
@@ -114,11 +65,11 @@ double fprops_psat_T_xiang(double T, const FluidData *data){
 	            , 11.65859, 46.78273, -1672.179
 	};
 
-	double a0 = aa[0] + aa[1]*data->omega + aa[2]*theta;
-	double a1 = aa[3] + aa[4]*data->omega + aa[5]*theta;
-	double a2 = aa[6] + aa[7]*data->omega + aa[8]*theta;
+	double a0 = aa[0] + aa[1]*d->omega + aa[2]*theta;
+	double a1 = aa[3] + aa[4]*d->omega + aa[5]*theta;
+	double a2 = aa[6] + aa[7]*d->omega + aa[8]*theta;
 
-	double Tr = T / data->T_c;
+	double Tr = T / d->T_c;
 	double tau = 1 - Tr;
 
 	double taupow = pow(tau, 1.89);
@@ -136,65 +87,20 @@ double fprops_psat_T_xiang(double T, const FluidData *data){
 	fprintf(stderr,"p_r = %f\n", p_r);
 #endif
 
-	return p_r * data->p_c;
+	return p_r * d->p_c;
 }
-
-/**
-	Estimate saturation pressure using acentric factor. This algorithm
-	is used for first estimates for later refinement in the program REFPROP.
-
-	This is derived from the definition of the acentric factor,
-	omega = -log10(psat(T1) - 1 where T1/Tc = Tr = 0.7
-	
-	together with the saturation curve obtained if h_fg(T) is assumed constant:
-	ln(psat(T)) = A - B/(T + C)
-
-	See Sandler 5e, p 320.	
-
-s	Such a curve will pass through (pc,Tc) and (psat(Tr),Tr) where Tr = 0.7,
-	but will probably be inaccurate at Tt. Given additional data, such as the
-	normal boiling point, a better equation like the Antoine equation can be
-	fitted. But we don't use that here.
-
-*/
-double fprops_psat_T_acentric(double T, const FluidData *data){
-	/* first guess using acentric factor */
-	double p = data->p_c * pow(10, -7./3 * (1.+data->omega) * (data->T_c / T - 1.));
-	return p;
-}
-
 
 /**
 	Saturated liquid density correlation of Rackett, Spencer & Danner (1972)
 	see http://dx.doi.org/10.1002/aic.690250412
 */
-double fprops_rhof_T_rackett(double T, const FluidData *data){
-	//MSG("RHOCRIT=%f, RGAS=%f, TCRIT=%f, PCRIT=%f",data->rho_c,data->R,data->T_c,data->p_c);
-	double Zc = data->rho_c * data->R * data->T_c / data->p_c;
-	double Tau = 1. - T/data->T_c;
-	//MSG("Zc = %f, Tau = %f",Zc,Tau);
-	double vf = (data->R * data->T_c / data->p_c) * pow(Zc, -1 - pow(Tau, 2./7));
-	//MSG("got vf(T=%f) = %f",T,vf);
+double fprops_rhof_T_rackett(double T, const HelmholtzData *D){
+
+	double Zc = D->rho_c * D->R * D->T_c / D->p_c;
+	double Tau = 1. - T/D->T_c;
+	double vf = (D->R * D->T_c / D->p_c) * pow(Zc, -1 - pow(Tau, 2./7));
+
 	return 1./vf;
-}
-
-/*
-	TODO add Yamada & Gunn sat rhof equation eg from RPP5 eq 4-11.4a, should
-	be more accurate?
-
-	^Sean? I think you are referring to http://dx.doi.org/10.1002/aic.690170613,
-	is that correct? That equation requires extra data for V_SC according to
-	the paper. I don't have RPP5, only RPP4 unfortunately -- JP.
-*/
-
-/**
-	Inverse of fprops_rhof_T_rackett. TODO: this need checking.
-*/
-double fprops_T_rhof_rackett(double rhof, const FluidData *data){
-	double Zc = data->rho_c * data->R * data->T_c / data->p_c;
-	double f1 = data->p_c / data->R / data->T_c / rhof;
-	double f2 = -log(f1)/log(Zc);
-	return pow(f2 -1, 3./2);
 }
 
 
@@ -202,12 +108,12 @@ double fprops_T_rhof_rackett(double rhof, const FluidData *data){
 	Saturated vapour density correlation of Chouaieb, Ghazouani, Bellagi
 	see http://dx.doi.org/10.1016/j.tca.2004.05.017
 */
-double fprops_rhog_T_chouaieb(double T, const FluidData *data){
-	double Tau = 1. - T/data->T_c;
+double fprops_rhog_T_chouaieb(double T, const HelmholtzData *D){
+	double Zc = D->rho_c * D->R * D->T_c / D->p_c;
+	double Tau = 1. - T/D->T_c;
 #if 0
-	double Zc = RHOCRIT(d) * RGAS(d) * TCRIT(d) / PCRIT(d);
 # define N1 -0.1497547
-# define N2 0.6006565
+# define N2 0.6006565 
 # define P1 -19.348354
 # define P2 -41.060325
 # define P3 1.1878726
@@ -216,7 +122,7 @@ double fprops_rhog_T_chouaieb(double T, const FluidData *data){
 	double PPP = Zc / (P1 + P2*Zc*log(Zc) + P3/Zc);
 	fprintf(stderr,"PPP = %f\n",PPP);
 	//PPP = -0.6240188;
-	double NNN = PPP + 1./(N1*D->omega + N2);
+	double NNN = PPP + 1./(N1*D->omega + N2);	
 #else
 /* exact values from Chouaieb for CO2 */
 # define MMM 2.4686277
@@ -225,212 +131,425 @@ double fprops_rhog_T_chouaieb(double T, const FluidData *data){
 #endif
 
 	double alpha = exp(pow(Tau,1./3) + sqrt(Tau) + Tau + pow(Tau, MMM));
-	return data->rho_c * exp(PPP * (pow(alpha,NNN) - exp(1-alpha)));
-}
-
-void fprops_sat_T(double T, double *psat, double *rhof, double *rhog, const PureFluid *d, FpropsError *err){
-	*psat = d->sat_fn(T,rhof,rhog,d->data,err);
-}
-
-/**
-	Calculate the triple point pressure and densities using T_t from the FluidData.
-*/
-void fprops_triple_point(double *p_t_out, double *rhof_t_out, double *rhog_t_out, const PureFluid *d, FpropsError *err){
-	static const PureFluid *d_last = NULL;
-	static double p_t, rhof_t, rhog_t;
-	if(d == d_last){
-		*p_t_out = p_t;
-		*rhof_t_out = rhof_t;
-		*rhog_t_out = rhog_t;
-		return;
-	}
-
-	if(d->data->T_t == 0){
-		ERRMSG("Note: data for '%s' does not include a valid triple point temperature.",d->name);
-	}
-
-	MSG("Calculating for '%s' (type %d, T_t = %f, T_c = %f, p_c = %f)",d->name, d->type, d->data->T_t, d->data->T_c, d->data->p_c);
-	fprops_sat_T(d->data->T_t, &p_t, &rhof_t, &rhog_t,d,err);
-	if(*err)return;
-	d_last = d;
-	*p_t_out = p_t;
-	*rhof_t_out = rhof_t;
-	*rhog_t_out = rhog_t;
-	MSG("p_t = %f, rhof_t = %f, rhog_t = %f", p_t, rhof_t, rhog_t);
-}
-
-
-typedef struct{
-	const PureFluid *P;
-	double logp;
-	FpropsError *err;
-	double Terr;
-#ifdef SAT_DEBUG
-	int neval;
-#endif
-} SatPResidData;
-
-static ZeroInSubjectFunction sat_p_resid;
-static double sat_p_resid(double rT, void *user_data){
-#define D ((SatPResidData *)user_data)
-	double p, rhof, rhog, resid;
-	fprops_sat_T(1/rT, &p, &rhof, &rhog, D->P, D->err);
-	if(*(D->err))D->Terr = 1/rT;
-	resid = log(p) - D->logp;
-	MSG("T = %f --> p = %f, rhof = %f, rhog = %f, RESID %f", 1/rT, p, rhof, rhog, resid);
-	//if(*(D->err))MSG("Error: %s",fprops_error(*(D->err)));
-	//if(*(D->err))return -1;
-#ifdef SAT_DEBUG
-	D->neval++;
-#endif
-	return resid;
-#undef D
+	return D->rho_c * exp(PPP * (pow(alpha,NNN) - exp(1-alpha)));
 }
 
 
 /**
-	Solve saturation conditions as a function of pressure. 
-
-	Currently this is just a Brent solver. We've tried to improve it slightly
-	by solving for the residual of log(p)-log(p1) as a function of 1/T, which
-	should make the function a bit more linear.
-
-	TODO Shouldn't(?) be hard at all to improve this to use a Newton solver via
-	the Clapeyron equation?
-
-	dp/dT = h_fg/(T*v_fg)
-	
-	where
-
-	h_fg = h(T, rhog) - h(T, rhof)
-	v_fg = 1/rhog - 1/rhof
-	rhof, rhog are evaluated at T.
-
-	We guess T, calculate saturation conditions at T, then evaluate dp/dT,
-	use Newton solver to converge, while checking that we remain within 
-	Tt < T < Tc. It may be faster to iterate using 1/T as the free variable,
-	and log(p) as the residual variable.
-
-	TODO Better still would be to reexamine the EOS and find a strategy similar to
-	the Akasaka algorithm that works with with rhof, rhog as the free variables,
-	see helmholtz.c...? Method above uses nested iteration on T inside p, so is
-	going to be slooooooow, even if it's fairly reliable.
+	Maxwell phase criterion, first principles
 */
-void fprops_sat_p(double p, double *T_sat, double *rho_f, double *rho_g, const PureFluid *P, FpropsError *err){
-	if(*err){
-		MSG("ERROR FLAG ALREADY SET");
-	}
-	if(p == P->data->p_c){
-		MSG("Requested pressure is critical point pressure, returning CP conditions");
-		*T_sat = P->data->T_c;
-		*rho_f = P->data->rho_c;
-		*rho_g = P->data->rho_c;
-		return;
-	}
-	/* FIXME what about checking triple point pressure? */
-	
-
-	SatPResidData D = {
-		P, log(p), err, 0
-#ifdef SAT_DEBUG
-		,0
+void phase_criterion(double T, double rho_f, double rho_g, double p_sat, double *eq1, double *eq2, double *eq3, const HelmholtzData *D){
+#ifdef TEST
+	fprintf(stderr,"PHASE CRITERION: T = %f, rho_f = %f, rho_g = %f, p_sat = %f\n", T, rho_f, rho_g, p_sat);
 #endif
+	double delta_f, delta_g, tau;
+    tau = D->T_c / T;
+
+	delta_f = rho_f / D->rho_c;
+	delta_g = rho_g/ D->rho_c;
+
+#ifdef TEST
+	assert(!isnan(delta_f));
+	assert(!isnan(delta_g));
+	assert(!isnan(p_sat));		
+	assert(!isinf(delta_f));
+	assert(!isinf(delta_g));
+	assert(!isinf(p_sat));		
+#endif
+
+	*eq1 = (p_sat - helmholtz_p(T, rho_f, D));
+	*eq2 = (p_sat - helmholtz_p(T, rho_g, D));
+	*eq3 = helmholtz_g(T, rho_f, D) - helmholtz_g(T,rho_g, D);
+
+#ifdef TEST
+	fprintf(stderr,"eq1 = %e\t\teq2 = %e\t\teq3 = %e\n", *eq1, *eq2, *eq3);
+#endif
+}
+
+
+typedef struct PhaseSolve_struct{
+	double tau;
+	const HelmholtzData *D;
+	const double *scaling;
+} PhaseSolve;
+
+/**
+	Maxwell phase criterion, from equations from IAPWS-95.
+
+	We define here pi = p_sat / (R T rho_c)
+*/
+static int phase_resid(const gsl_vector *x, void *params, gsl_vector *f){
+	const double tau = ((PhaseSolve *)params)->tau;
+    const double pi = gsl_vector_get(x,0);
+    double delta_f = gsl_vector_get(x,1);
+	double delta_g = gsl_vector_get(x,2);
+	const HelmholtzData *D = ((PhaseSolve *)params)->D;
+	const double *scaling = ((PhaseSolve *)params)->scaling;
+
+	assert(!isinf(pi));
+	assert(!isinf(delta_f));
+	assert(!isinf(delta_g));
+
+	gsl_vector_set(f, 0, scaling[0] * (delta_f + delta_f * delta_f * helm_resid_del(tau, delta_f, D) - pi));
+	gsl_vector_set(f, 1, scaling[1] * (1 + delta_g * helm_resid_del(tau, delta_g, D) - pi/delta_g));
+	gsl_vector_set(f, 2, scaling[2] * (pi * (delta_f - delta_g) - delta_f * delta_g * (log(delta_f / delta_g)  + helm_resid(delta_g,tau,D) - helm_resid(delta_f,tau,D))));
+
+
+	if(isnan(gsl_vector_get(f,2)) || isnan(gsl_vector_get(f,2)) || isnan(gsl_vector_get(f,2))){
+		fprintf(stderr,"NaN encountered... ");
+	}
+
+	//gsl_vector_set(f, 2, pi * (delta_f - delta_g) * delta_f*delta_g* (log(delta_f/delta_g) + helm_resid(delta_g,tau,D) - helm_resid(delta_f,tau,D)));
+
+	return GSL_SUCCESS;
+}
+
+#if 0
+static int phase_deriv(const gsl_vector * x, void *params, gsl_matrix * J){
+	const double tau = ((PhaseSolve *)params)->tau;
+    const double pi = gsl_vector_get(x,0);
+    const double delta_f = gsl_vector_get(x,1);
+	const double delta_g = gsl_vector_get(x,2);
+	const HelmholtzData *D = ((PhaseSolve *)params)->D;
+
+	double dE1ddelf = helm_resid_del(tau, delta_f, D) + delta_f * helm_resid_deldel(tau, delta_f, D) - pi ;
+	double dE1ddelg = 0;
+	double dE1dpi = - 1./ delta_f;
+
+	double dE2ddelf = 0;
+	double dE2ddelg = helm_resid_del(tau, delta_g, D) + delta_g * helm_resid_deldel(tau, delta_g, D) - pi ;
+	double dE2dpi = - 1./ delta_g;
+
+	double dE3ddelf = pi - delta_g * (log(delta_f/delta_g) + helm_resid(delta_g, tau, D) - helm_resid(delta_f, tau, D) + 1 - delta_f * helm_resid_del(delta_f, tau, D));
+	double dE3ddelg = -pi - delta_f * (log(delta_f/delta_g) + helm_resid(delta_g, tau, D) - helm_resid(delta_f, tau, D) - 1 + delta_g * helm_resid_del(delta_g, tau, D));
+	double dE3dpi = delta_f - delta_g;
+
+	gsl_matrix_set (J, 0, 0, dE1ddelf);
+	gsl_matrix_set (J, 0, 1, dE1ddelg);
+	gsl_matrix_set (J, 0, 2, dE1dpi);
+	gsl_matrix_set (J, 1, 0, dE2ddelf);
+	gsl_matrix_set (J, 1, 1, dE2ddelg);
+	gsl_matrix_set (J, 1, 2, dE2dpi);
+	gsl_matrix_set (J, 2, 0, dE3ddelf);
+	gsl_matrix_set (J, 2, 1, dE3ddelg);
+	gsl_matrix_set (J, 2, 2, dE3dpi);
+
+	return GSL_SUCCESS;
+}
+
+static int phase_residderiv(
+	const gsl_vector * x, void *params, gsl_vector * f, gsl_matrix * J
+){
+	phase_resid(x, params, f);
+	phase_deriv(x, params, J);
+	return GSL_SUCCESS;
+}
+
+static int print_state_fdf(size_t iter, gsl_multiroot_fdfsolver * s){
+	fprintf(stderr,"iter = %3u: delf = %.3f delg = %.3f pi = %.3f "
+		"E = % .3e % .3e %.3e\n",
+		iter,
+		gsl_vector_get (s->x, 0),
+		gsl_vector_get (s->x, 1),
+		gsl_vector_get (s->x, 2),
+		gsl_vector_get (s->f, 0),
+		gsl_vector_get (s->f, 1),
+		gsl_vector_get (s->f, 2));
+}
+
+
+double phase_solve_fdf(double T, const HelmholtzData *D){
+	gsl_multiroot_fdfsolver *s;
+	int status;
+	const size_t n = 3;
+	double tau = D->T_c / T;
+	size_t i, iter = 0;
+	const gsl_multiroot_fdfsolver_type *fdftype;
+
+	PhaseSolve p = {tau, D};
+	gsl_multiroot_function_fdf f = {
+		&phase_resid,
+		&phase_deriv,
+		&phase_residderiv,
+		n, &p
 	};
-	MSG("Solving saturation conditions at p = %f", p);
-	double p1, rT, T, resid;
-	int errn;
-	double Tt = P->data->T_t;
-	if(Tt == 0)Tt = 0.2* P->data->T_c;
-	errn = zeroin_solve(&sat_p_resid, &D, 1./P->data->T_c, 1./Tt, 1e-10, &rT, &resid);
-	if(*err){
-		MSG("FPROPS error within zeroin_solve iteration ('%s', p = %f, p_c = %f): %s"
-			, P->name, p, P->data->p_c, fprops_error(*err)
-		);
-	}
-	if(errn){
-		ERRMSG("Failed to solve saturation at p = %f.",p);
-		*err = FPROPS_SAT_CVGC_ERROR;
-		return;
-	}else{
-		if(*err){
-			ERRMSG("Ignoring error inside zeroin_solve iteration at T = %f",D.Terr);
-		}
-		*err = FPROPS_NO_ERROR;
-	}
-	T = 1./rT;
-	fprops_sat_T(T, &p1, rho_f, rho_g, P, err);
-	if(!*err)*T_sat = T;
-	MSG("Got p1 = %f, p = %f in %d iterations", p1, p, D.neval);
+
+	double x_init[3] = {
+		/* first guesses, such as they are... */
+		fprops_psat_T_xiang(T, D) / D->R / T / D->rho_c
+		,fprops_rhof_T_rackett(T, D) / D->rho_c
+		,fprops_rhog_T_chouaieb(T, D) / D->rho_c
+	};
+
+	gsl_vector *x = gsl_vector_alloc (n);
+	for(i=0; i<3; ++i)gsl_vector_set(x, i, x_init[i]);
+	fdftype = gsl_multiroot_fdfsolver_hybridsj;
+	s = gsl_multiroot_fdfsolver_alloc (fdftype, n);
+	gsl_multiroot_fdfsolver_set (s, &f, x);
+
+	print_state_fdf(iter, s);
+
+	do{
+		iter++;
+		status = gsl_multiroot_fdfsolver_iterate (s);
+		print_state_fdf(iter, s);
+		if(status)break;
+		if(gsl_vector_get(s->x,2) > D->rho_c)gsl_vector_set(s->x,2,D->rho_c);
+		status = gsl_multiroot_test_residual(s->f, 1e-7);
+	}while(status == GSL_CONTINUE && iter < 1000);
+
+	fprintf(stderr,"status = %s\n", gsl_strerror (status));
+
+	fprintf(stderr,"SOLUTION: pi = %f\n", gsl_vector_get(s->f, 0));
+
+	double p_sat = gsl_vector_get(s->f, 0) * T * D->R * D->rho_c;
+
+	fprintf(stderr,"          p  = %f\n", p_sat);
+	gsl_multiroot_fdfsolver_free (s);
+	gsl_vector_free (x);
+
+	return 0;
+}
+#endif
+
+static int print_state(size_t iter, gsl_multiroot_fsolver * s){
+	fprintf(stderr,"iter = %3u: pi = %.3f delf = %.3f delg = %.3f  "
+		"E = % .3e % .3e %.3e\n",
+		iter,
+		gsl_vector_get(s->x, 0),
+		gsl_vector_get(s->x, 1),
+		gsl_vector_get(s->x, 2),
+		gsl_vector_get (s->f, 0),
+		gsl_vector_get (s->f, 1),
+		gsl_vector_get (s->f, 2));
 }
 
 
-/**
-	Calculate Tsat based on a value of hf. This value is useful in setting
-	first guess Temperatures when solving for the coordinates (p,h).
-	This function uses the secant method for the iterative solution.
-*/
-void fprops_sat_hf(double hf, double *Tsat_out, double *psat_out, double *rhof_out, double *rhog_out, const PureFluid *P, FpropsError *err){
-	double T1 = 0.4 * P->data->T_t + 0.6 * P->data->T_c;
-	double T2 = P->data->T_t;
-	double h1, h2, p, rhof, rhog;
-	fprops_sat_T(T2, &p, &rhof, &rhog, P, err);
-	if(*err){
-		ERRMSG("Failed to solve psat(T_t = %.12e) for %s",T2,P->name);
-		return;
-	}
-	double tol = 1e-6;
-	h2 = P->h_fn(T2,rhof,P->data, err);
-	if(*err){
-		ERRMSG("Unable to calculate h(T=%f K,rhof=%f kg/m3",T2,rhof);
-	}
-	if(hf < h2){
-		ERRMSG("Value given for hf = %.12e is below that calculated for triple point liquid hf_t = %.12e",hf,h2);
-		*err = FPROPS_RANGE_ERROR;
-		return;
+int phase_solve(double T, double *p_sat, double *rho_f, double *rho_g, const HelmholtzData *D){
+	gsl_multiroot_fsolver *s;
+	int status;
+	const size_t n = 3;
+	double tau = D->T_c / T;
+	size_t i, iter = 0;
+	const gsl_multiroot_fsolver_type *ftype;
+
+	const double scaling[3] = {1., 1., 0.01};
+
+	PhaseSolve p = {
+		tau
+		, D
+		, scaling
+	};
+
+	gsl_multiroot_function f = {
+		&phase_resid,
+		n, &p
+	};
+
+	/* TODO use the first guess 'provided' if psat, rho_f, rho_g less than zero? */
+
+	double x_init[3] = {
+		/* first guesses, such as they are... */
+		fprops_psat_T_xiang(T, D) / D->R / T / D->rho_c
+		,fprops_rhof_T_rackett(T, D) / D->rho_c
+		,fprops_rhog_T_chouaieb(T, D) / D->rho_c
+	};
+
+	gsl_vector *x = gsl_vector_alloc (n);
+	for(i=0; i<3; ++i)gsl_vector_set(x, i, x_init[i]);
+	ftype = gsl_multiroot_fsolver_broyden;
+	s = gsl_multiroot_fsolver_alloc(ftype, n);
+	gsl_multiroot_fsolver_set(s, &f, x);
+
+	//print_state(iter, s);
+
+	double pi_xiang = fprops_psat_T_xiang(T, D) / D->R / T / D->rho_c;
+	double delg_chouaieb = fprops_rhog_T_chouaieb(T, D) / D->rho_c;
+	double delf_rackett = fprops_rhof_T_rackett(T, D) / D->rho_c;
+
+	assert(!isnan(pi_xiang));
+	assert(!isnan(delg_chouaieb));
+	assert(!isnan(delf_rackett));
+
+	do{
+		iter++;
+
+		status = gsl_multiroot_fsolver_iterate(s);
+
+		print_state(iter, s);
+		if(status)break;
+
+		status = gsl_multiroot_test_residual(s->f, 1e-7);
+
+		double pi = gsl_vector_get(s->x,0);
+		double delf = gsl_vector_get(s->x,1);
+		double delg = gsl_vector_get(s->x,2);
+
+
+#define VAR_PI 0
+#define VAR_DELF 1
+#define VAR_DELG 2
+#define CHECK_RESET(COND, VAR, NEWVAL)\
+	if(COND){\
+		gsl_vector_set(s->x,VAR,NEWVAL);\
+		fprintf(stderr,"RESET %s to %s = %f (FAILED %s)\n", #VAR, #NEWVAL, NEWVAL, #COND);\
 	}
 
-	int i = 0;
-	while(i++ < 60){
-		assert(T1 >= P->data->T_t - 1e-4);
-		assert(T1 <= P->data->T_c);
-		MSG("T1 = %f\n",T1);
-		fprops_sat_T(T1, &p, &rhof, &rhog, P, err);
-		if(*err){
-			ERRMSG("Failed to solve psat(T = %.12e) for %s",T1,P->name);
-			return;
-		}
-		h1 = P->h_fn(T1,rhof, P->data, err);
-		if(*err){
-			ERRMSG("Unable to calculate h");
-			return;
-		}
-		if(fabs(h1 - hf) < tol){
-			*Tsat_out = T1;
-			*psat_out = p;
-			*rhof_out = rhof;
-			*rhog_out = rhog;
-			return; /* SUCCESS */
-		}
-		if(h1 == h2){
-			MSG("With %s, got h1 = h2 = %.12e, but hf = %.12e!",P->name,h1,hf);
-			*err = FPROPS_SAT_CVGC_ERROR;
-			return;
-		}
-
-		double delta_T = -(h1 - hf) * (T1 - T2) / (h1 - h2);
-		T2 = T1;
-		h2 = h1;
-		while(T1 + delta_T > P->data->T_c)delta_T *= 0.5;
-		T1 += delta_T;
-		if(T1 < P->data->T_t)T1 = P->data->T_t;
-		if(i==20 || i==30)tol*=100;
+#define CHECK_RESET_CONTINUE(COND, VAR, NEWVAL)\
+	if(COND){\
+		gsl_vector_set(s->x,VAR,NEWVAL);\
+		fprintf(stderr,"RESET %s to %s = %f (FAILED %s)\n", #VAR, #NEWVAL, NEWVAL, #COND);\
+		continue;\
 	}
-	fprintf(stderr,"Failed to solve Tsat for hf = %f (got to T = %f)\n",hf,T1);
-	*Tsat_out = T1;
-	*psat_out = p;
-	*rhof_out = rhof;
-	*rhog_out = rhog;
-	*err = FPROPS_SAT_CVGC_ERROR;
+
+		//CHECK_RESET_CONTINUE(pi < 0, VAR_PI, pi_xiang);
+		CHECK_RESET_CONTINUE(delg < 0, VAR_DELG, delg_chouaieb);
+		CHECK_RESET_CONTINUE(delf < 0, VAR_DELF, delf_rackett);
+
+#if 0
+		CHECK_RESET_CONTINUE(delf < 1, VAR_DELF, delf_rackett);
+		CHECK_RESET_CONTINUE(delg > 1, VAR_DELG, delg_chouaieb);
+
+		CHECK_RESET_CONTINUE(pi > 2. * pi_xiang, VAR_PI, pi_xiang)
+		else CHECK_RESET_CONTINUE(pi < 0.5 * pi_xiang, VAR_PI, pi_xiang)
+
+		CHECK_RESET_CONTINUE(delg < 0.8 * delg_chouaieb, VAR_DELG, delg_chouaieb)
+		else CHECK_RESET_CONTINUE(delg > 1.5 * delg_chouaieb, VAR_DELG, delg_chouaieb);
+
+		//if(gsl_vector_get(s->x,1) < D->rho_c)gsl_vector_set(s->x,1,2 * D->rho_c);
+		//if(gsl_vector_get(s->x,2) > D->rho_c)gsl_vector_set(s->x,2,0.5 * D->rho_c);
+
+#endif
+	}while(status == GSL_CONTINUE && iter < 20);
+
+	if(status!=GSL_SUCCESS)fprintf(stderr,"%s:%d: warning: (%d) status = %s\n", __FILE__,__LINE__, status, gsl_strerror (status));
+
+	//fprintf(stderr,"SOLUTION: pi = %f\n", gsl_vector_get(s->x, 0));
+
+
+	//fprintf(stderr,"          p  = %f\n", p_sat);
+
+	*p_sat = gsl_vector_get(s->x, 0) * T * D->R * D->rho_c;
+	*rho_f = gsl_vector_get(s->x, 1) * D->rho_c;
+	*rho_g = gsl_vector_get(s->x, 2) * D->rho_c;
+
+	gsl_multiroot_fsolver_free(s);
+	gsl_vector_free(x);
+
+	return status;
 }
 
 
+#if 0
+	
+
+#ifdef TEST
+	fprintf(stderr,"PHASE CRITERION: T = %f, rho_f = %f, rho_g = %f, p_sat = %f\n", T, rho_f, rho_g, p_sat);
+#endif
+	double delta_f, delta_g, tau;
+    tau = D->T_c / T;
+
+	delta_f = rho_f / D->rho_c;
+	delta_g = rho_g/ D->rho_c;
+
+#ifdef TEST
+	assert(!isnan(delta_f));
+	assert(!isnan(delta_g));
+	assert(!isnan(p_sat));		
+	assert(!isinf(delta_f));
+	assert(!isinf(delta_g));
+	assert(!isinf(p_sat));		
+#endif
+
+	*eq1 = (p_sat - helmholtz_p(T, rho_f, D));
+	*eq2 = (p_sat - helmholtz_p(T, rho_g, D));
+	*eq3 = helmholtz_g(T, rho_f, D) - helmholtz_g(T,rho_g, D);
+
+#ifdef TEST
+	fprintf(stderr,"eq1 = %e\t\teq2 = %e\t\teq3 = %e\n", *eq1, *eq2, *eq3);
+#endif
+}
+
+
+
+
+void solve_saturation(double T, const HelmholtzData *D){
+	double rho_f, rho_g, p_sat;
+
+	/* first guesses, such as they are... */
+	p_sat = fprops_psat_T_xiang(T, D);
+	rho_f = fprops_rhof_T_rackett(T, D);
+	rho_g = fprops_rhog_T_chouaieb(T, D);
+
+	
+
+#ifdef TEST
+	fprintf(stderr,"Rackett liquid density: %f\n", rho_f);	
+	fprintf(stderr,"Chouaieb vapour density: %f\n", rho_g);
+#endif
+
+	double delta_f, delta_g, eq1, eq2, eq3, tau;
+		
+	int i = 40;
+	while(--i > 0){
+		delta_f = rho_f / D->rho_c;
+		delta_g = rho_g/ D->rho_c;
+
+#ifdef TEST
+		assert(!isnan(delta_f));
+		assert(!isnan(delta_g));
+		assert(!isnan(p_sat));		
+		assert(!isinf(delta_f));
+		assert(!isinf(delta_g));
+		assert(!isinf(p_sat));		
+#endif
+		
+		phase_criterion(T, rho_f, rho_g, p_sat, &eq1, &eq2, &eq3, D);
+			
+#ifdef TEST    
+		fprintf(stderr,"p_sat = %f\trho_f = %f\trho_g = %f\teq1 = %e\t\teq2 = %e\t\teq3 = %e\n",p_sat, rho_f, rho_g, eq1, eq2, eq3);
+		assert(!isnan(eq1));
+		assert(!isnan(eq2));
+		assert(!isnan(eq3));
+		assert(!isinf(eq1));		
+		assert(!isinf(eq2));		
+		assert(!isinf(eq3));		
+#endif
+
+		double p1 = D->R * T * D->rho_c * delta_f * delta_g / (delta_f - delta_g) * (helm_resid(delta_f,tau,D) - helm_resid(delta_g,tau,D) + log(delta_f/delta_g));
+		if(p1/p_sat > 1.5){
+			p1 = p_sat * 1.5;
+		}else if(p1/p_sat < 0.7){
+			p1 = p_sat * 0.7;
+		}
+		p_sat = p1;
+		if(p_sat < D->p_t) p_sat = D->p_t;
+		if(p_sat > D->p_c) p_sat = D->p_c;
+
+		double rho_f1 = rho_f - (helmholtz_p(T, rho_f, D) - p_sat) / helmholtz_dpdrho_T(T, rho_f, D);
+		double rho_g1 = rho_g - (helmholtz_p(T, rho_g, D) - p_sat) / helmholtz_dpdrho_T(T, rho_g, D);
+
+		if(rho_g1 > 0){
+			rho_g = rho_g1;
+		}
+		if(rho_f1 > 0){
+			rho_f = rho_f1;
+		}
+		if(fabs(rho_f - rho_g) < 1e-5){
+#ifdef TEST
+			fprintf(stderr,"%s:%d: rho_f = rho_g\n", __FILE__, __LINE__);
+			exit(1);
+#else
+			break;
+#endif
+		}
+
+
+
+	}
+
+	//return eq3;
+}
+
+
+#endif

@@ -12,32 +12,27 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 */
 #include <stdlib.h>
 #include <errno.h>
 #include <math.h>
 
 #include "dr.h"
-#include "tmy2.h"
-#include "tmy3.h"
+#include "tmy.h"
 #include "acdb.h"
 #include "csv.h"
-#include "ee.h"
 
 #include <ascend/utilities/config.h>
 #include <ascend/general/ospath.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/utilities/error.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/utilities/ascEnvVar.h>
 
-//#define DR_DEBUG
-#ifdef DR_DEBUG
-# define MSG CONSOLE_DEBUG
-#else
-# define MSG(ARGS...) ((void)0)
-#endif
+#define DR_DEBUG 0
 
 /*------------------------------------------------------------------------------
   FORWARD DECLARATIONS
@@ -48,7 +43,7 @@
 	DATA instance of the external relation
 */
 
-#define FMTS(D,X) D(TMY2) X D(TMY3) X D(ACDB) X D(CSV) X D(EE) X D(TDV)
+#define FMTS(D,X) D(TMY2) X D(ACDB) X D(CSV) X D(TDV)
 
 #define ENUM(F_) DATAREADER_FORMAT_##F_
 #define COMMA ,
@@ -94,7 +89,7 @@ DataReader *datareader_new(const char *fn, int noutputs) {
     d->headerfn = NULL;
     d->eoffn = NULL;
 
-    MSG("Datareader created...");
+    CONSOLE_DEBUG("Datareader created...");
     return d;
 }
 /**read the parameter token and return an interpolation type.
@@ -103,33 +98,41 @@ DataReader *datareader_new(const char *fn, int noutputs) {
 **/
 
 interp_t datareader_int_type(const char *interpToken) {
+    interp_t type = default_interp; //set default interpolation, fallback case
     if (strcmp(interpToken,"default")==0) {
-        return default_interp; //user has declared default interpolation
+        return type; //user has declared default interpolation
     }
     if (strcmp(interpToken,"linear")==0) {
-        return linear; //user has declared linear interpolation
+        type = linear;
+        return type; //user has declared linear interpolation
     }
     if (strcmp(interpToken,"cubic")==0) {
-        return cubic; //usen has declared cubic interpolation
+        type = cubic;
+        return type; //usen has declared cubic interpolation
     }
     if (strcmp(interpToken,"sun")==0) {
-        return sun; //user has declared sun interpolation
+        type = sun;
+        return type; //user has declared sun interpolation
     }
-    /* if we got here, used did not declare a valid interpolation type */
-    return default_interp;
+    //if we got here, used did not declare a valid interpolation type
+    //return fallback case.
+
+    //CONSOLE_DEBUG("token %s, type %d ", interpToken, type);
+    return type;
+
 }
 
 /** Set datareader parameters.
-	This function reads the parameters as declared in the model file and
-	fills out the cols and interp_t fields in the datareader structure.
+This function reads the parameters as declared in the model file and
+fills out the cols and interp_t fields in the datareader structure.
 
-	This process happens after datareader creation so that the right amount
-	of memory is allocated for cols and interp_t. The other reason to create
-	a separate function is that an integer with the result of this operation
-	can be returned
-	@param d the datareader object
-	@param par the parameter string passed from the drconfig model
-	@return 0 on sucess
+This process happens after datareader creation so that the right amount
+of memory is allocated for cols and interp_t. The other reason to create
+a separate function is that an integer with the result of this operation
+can be returned
+@param d the datareader object
+@param par the parameter string passed from the drconfig model
+@return 0 on sucess
 **/
 int datareader_set_parameters(DataReader *d, const char *parameters) {
     char *partok = NULL;
@@ -141,9 +144,9 @@ int datareader_set_parameters(DataReader *d, const char *parameters) {
             if (LastTokWasNumeric) parcount++; //last was numeric, no interp_t declared
             d->cols[parcount] = atoi(partok);//assign to corresponding element array
             if (d->cols[parcount] > d->nmaxoutputs) {
-                MSG("col %d, max %d",d->cols[parcount],d->nmaxoutputs);
+                CONSOLE_DEBUG("col %d, max %d",d->cols[parcount],d->nmaxoutputs);
                 ERROR_REPORTER_HERE(ASC_USER_ERROR,
-                "Requested column %d out of range (limit %d). Check your data file and model declaration",d->cols[parcount],d->nmaxoutputs);
+                "Requested Column out of range!,check your data file and model declaration");
                 return 1; //failed due to column out of range
             }
             LastTokWasNumeric =TRUE; //keep track of numeric tokens
@@ -155,7 +158,7 @@ int datareader_set_parameters(DataReader *d, const char *parameters) {
         }
         partok = strtok(NULL,",:"); //reread parameter string for next token
     }
-	MSG("parcount: %d,noutoputs: %d",parcount,d->noutputs);
+CONSOLE_DEBUG("parcount: %d,noutoputs: %d",parcount,d->noutputs); 
     if (parcount+1 != d->noutputs) {
     	ERROR_REPORTER_HERE(ASC_USER_ERROR,
     	"Number of Columns in parameters and Model dont match, check model declaration");
@@ -166,11 +169,11 @@ int datareader_set_parameters(DataReader *d, const char *parameters) {
     variables less or equal to the variables allowed by the data file. This is
     different from the parameter check where the user is requesting a column out
     of range.
-
+    
     One could argue that the user might like to declare several model variables
     linked to the same data column, but a decision has been made by the developer
     to restrict this, as it is thought as superfluous for most modelling scenarios.
-
+    
     */
     if (d->noutputs > d->nmaxoutputs) {
     	ERROR_REPORTER_HERE(ASC_USER_ERROR,"Numbef of model variables exceeds number of data colums, check your model");
@@ -193,7 +196,7 @@ int datareader_set_format(DataReader *d, const char *format) {
 
     int i;
 
-    MSG("FORMAT '%s'", format);
+    CONSOLE_DEBUG("FORMAT '%s'", format);
 
     DataReaderFormat found = DATAREADER_INVALID_FORMAT;
     for (i = 0; i < DATAREADER_INVALID_FORMAT; ++i) {
@@ -203,7 +206,7 @@ int datareader_set_format(DataReader *d, const char *format) {
         }
     }
 
-    MSG("FOUND DATA FORMAT %d", found);
+    CONSOLE_DEBUG("FOUND DATA FORMAT %d", found);
 
     switch (found) {
     case DATAREADER_FORMAT_TMY2:
@@ -212,13 +215,6 @@ int datareader_set_format(DataReader *d, const char *format) {
         d->eoffn = &datareader_tmy2_eof;
         d->indepfn = &datareader_tmy2_time;
         d->valfn = &datareader_tmy2_vals;
-        break;
-    case DATAREADER_FORMAT_TMY3:
-        d->headerfn = &datareader_tmy3_header;
-        d->datafn = &datareader_tmy3_data;
-        d->eoffn = &datareader_tmy3_eof;
-        d->indepfn = &datareader_tmy3_time;
-        d->valfn = &datareader_tmy3_vals;
         break;
     case DATAREADER_FORMAT_ACDB:
         d->headerfn = &datareader_acdb_header;
@@ -233,13 +229,6 @@ int datareader_set_format(DataReader *d, const char *format) {
         d->eoffn = &datareader_csv_eof;
         d->indepfn = &datareader_csv_time;
         d->valfn = &datareader_csv_vals;
-        break;
-    case DATAREADER_FORMAT_EE:
-        d->headerfn = &datareader_ee_header;
-        d->datafn = &datareader_ee_data;
-        d->eoffn = &datareader_ee_eof;
-        d->indepfn = &datareader_ee_time;
-        d->valfn = &datareader_ee_vals;
         break;
     case DATAREADER_FORMAT_TDV:
         ERROR_REPORTER_HERE(ASC_USER_ERROR, "Tab delimited values (TDV) format not yet implemenented.");
@@ -348,13 +337,17 @@ int datareader_init(DataReader *d) {
             return 1;
         }
     }
-    MSG("About to open the data file");
+#if DR_DEBUG
+    CONSOLE_DEBUG("About to open the data file");
+#endif
     d->f = ospath_fopen(d->fp, "r");
     if (d->f == NULL) {
         ERROR_REPORTER_HERE(ASC_USER_ERROR, "Unable to open file '%s' for reading.", d->fn);
         return 1;
     }
-    MSG("Data file open ok");
+#if DR_DEBUG
+    CONSOLE_DEBUG("Data file open ok");
+#endif
     asc_assert(d->headerfn);
     asc_assert(d->eoffn);
     asc_assert(d->datafn);
@@ -372,9 +365,13 @@ int datareader_init(DataReader *d) {
             return 1;
         }
     }
-    MSG("Done retrieving data");
+#if DR_DEBUG
+    CONSOLE_DEBUG("Done retrieving data");
+#endif
     fclose(d->f);
-    MSG("Closed file");
+#if DR_DEBUG
+    CONSOLE_DEBUG("Closed file");
+#endif
 
     d->i = 0; /* set current position to zero */
 
@@ -442,7 +439,9 @@ int datareader_locate(DataReader *d, double t, double *t1, double *t2) {
             (*d->indepfn)(d, t2);
         } while (*t2 < t && d->i < d->ndata);
     }
-    MSG("d->i==%d, t1[0] = %lf, t2[0] = %lf", d->i, t1[0], t2[0]);
+#if DR_DEBUG
+    CONSOLE_DEBUG("d->i==%d, t1[0] = %lf, t2[0] = %lf", d->i, t1[0], t2[0]);
+#endif
 
     if (d->i == d->ndata || d->i == 0) {
         return 1;
@@ -473,17 +472,21 @@ int datareader_func(DataReader *d, double *inputs, double *outputs) {
 
     double t = inputs[0];
 
-    MSG("EVALUATING AT t = %lf", inputs[0]);
+#if DR_DEBUG
+    CONSOLE_DEBUG("EVALUATING AT t = %lf", inputs[0]);
+#endif
 
     asc_assert(d->indepfn);
 
     if (datareader_locate(d, t, t1, t2)) {
-        MSG("LOCATION ERROR");
+        CONSOLE_DEBUG("LOCATION ERROR");
         ERROR_REPORTER_HERE(ASC_USER_ERROR, "Time value t=%f is out of range", t);
         return 1;
     }
 
-    MSG("LOCATED AT t1 = %lf, t2 = %lf", t1[0], t2[0]);
+#if DR_DEBUG
+    CONSOLE_DEBUG("LOCATED AT t1 = %lf, t2 = %lf", t1[0], t2[0]);
+#endif
     if (d->i < d->ndata-1) {
         ++d->i; //go one step forward
         (*d->valfn)(d, v3); //take a data sample at t1+2
@@ -504,7 +507,9 @@ int datareader_func(DataReader *d, double *inputs, double *outputs) {
     }
     else AtStart = TRUE;
 
-    MSG("LOCATED OK, d->i = %d, t1 = %lf, t2 = %lf, v1=%lf, v2=%lf", d->i, t1[0], t2[0], v1[0], v2[0]);
+#if DR_DEBUG
+    CONSOLE_DEBUG("LOCATED OK, d->i = %d, t1 = %lf, t2 = %lf, v1=%lf, v2=%lf", d->i, t1[0], t2[0], v1[0], v2[0]);
+#endif
 
     for (i = 0;i < d->noutputs;++i) {
         j = d->cols[i]-1;
@@ -519,7 +524,9 @@ int datareader_func(DataReader *d, double *inputs, double *outputs) {
 
             break;
         }
-        MSG("[%d]: START = %lf, END = %lf, VALUE=%lf", i, v1[j],v2[j], outputs[i]);
+#if DR_DEBUG
+        CONSOLE_DEBUG("[%d]: START = %lf, END = %lf, VALUE=%lf", i, v1[j],v2[j], outputs[i]);
+#endif
     }
 
     return 0;
@@ -540,17 +547,21 @@ int datareader_deriv(DataReader *d, double *inputs, double *jacobian) {
 
     double t = inputs[0];
 
-    MSG("EVALUATING AT t = %lf", inputs[0]);
+#if DR_DEBUG
+    CONSOLE_DEBUG("EVALUATING AT t = %lf", inputs[0]);
+#endif
 
     asc_assert(d->indepfn);
 
     if (datareader_locate(d, t, t1, t2)) {
-        MSG("LOCATION ERROR");
+        CONSOLE_DEBUG("LOCATION ERROR");
         ERROR_REPORTER_HERE(ASC_USER_ERROR, "Time value t=%f is out of range", t);
         return 1;
     }
 
-    MSG("LOCATED AT t1 = %lf, t2 = %lf", t1[0], t2[0]);
+#if DR_DEBUG
+    CONSOLE_DEBUG("LOCATED AT t1 = %lf, t2 = %lf", t1[0], t2[0]);
+#endif
     if (d->i < d->ndata-1) {
         ++d->i; //go one step forward
         (*d->valfn)(d, v3); //take a data sample at t1+2
@@ -571,7 +582,9 @@ int datareader_deriv(DataReader *d, double *inputs, double *jacobian) {
     }
     else AtStart = TRUE;
 
-    MSG("LOCATED OK, d->i = %d, t1 = %lf, t2 = %lf, v1=%lf, v2=%lf", d->i, t1[0], t2[0], v1[0], v2[0]);
+#if DR_DEBUG
+    CONSOLE_DEBUG("LOCATED OK, d->i = %d, t1 = %lf, t2 = %lf, v1=%lf, v2=%lf", d->i, t1[0], t2[0], v1[0], v2[0]);
+#endif
 
     for (i = 0;i < d->noutputs;++i) {
         j = d->cols[i]-1;
@@ -586,7 +599,9 @@ int datareader_deriv(DataReader *d, double *inputs, double *jacobian) {
 
             break;
         }
-        MSG("[%d]: START = %lf, VALUE=%lf", i, v1[j], jacobian[i]);
+#if DR_DEBUG
+        CONSOLE_DEBUG("[%d]: START = %lf, VALUE=%lf", i, v1[j], jacobian[i]);
+#endif
     }
 
     return 0;
@@ -640,12 +655,14 @@ double dr_cubicinterp(DataReader *d, int j, double t, double *t1, double *t2, do
         d->a1[j] = a1;
         d->a2[j] = a2;
         d->a3[j] = a3;
-#ifdef DR_DEBUG
-        if (j == 1 )MSG("Cubic spline coefficients recalculated");
+#if DR_DEBUG
+        if (j == 1 )CONSOLE_DEBUG("Cubic spline coefficients recalculated");
 #endif
     }
     //calculate output value
-    MSG("v[%d]:%lf",j,d->a0[j] + d->a1[j]*t + d->a2[j]*pow(t,2) + d->a3[j]*pow(t,3));
+#if DR_DEBUG
+    CONSOLE_DEBUG("v[%d]:%lf",j,d->a0[j] + d->a1[j]*t + d->a2[j]*pow(t,2) + d->a3[j]*pow(t,3));
+#endif
     return d->a0[j] + d->a1[j]*t + d->a2[j]*pow(t,2) + d->a3[j]*pow(t,3);
 
 }
@@ -695,9 +712,9 @@ double dr_cubicderiv(DataReader *d, int j, double t, double *t1, double *t2, dou
         d->a1[j] = a1;
         d->a2[j] = a2;
         d->a3[j] = a3;
-#ifdef DR_DEBUG
-        if (j == 1 )MSG("Cubic spline derivatives recalculated");
-#endif
+        #if DR_DEBUG
+        if (j == 1 )CONSOLE_DEBUG("Cubic spline derivatives recalculated");
+        #endif
     }
     //calculate output value
     return d->a1[j] + 2*d->a2[j]*t + 3*d->a3[j]*pow(t,2);

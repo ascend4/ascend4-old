@@ -1,5 +1,5 @@
 /*	ASCEND modelling environment
-	Copyright (C) 2007-2011 Carnegie Mellon University
+	Copyright (C) 2007 Carnegie Mellon University
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -12,8 +12,10 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @defgroup solver_api Solver API
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//** @file
 	Encapsulation of the NLA solver interface, separate from the
 	system definition and access routines.
 *//*
@@ -24,12 +26,8 @@
 #ifndef ASC_SOLVER_H
 #define ASC_SOLVER_H
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/system/slv_client.h>
-
-/**	@addtogroup solver_api
-	@{
-*/
 
 /*-----------------------------------------------------------------------
 	SOLVER HOOKS AND REGISTRATION DATA STRUCTURE
@@ -125,11 +123,6 @@ ASC_DLLSPEC const SlvFunctionsT *solver_engine_named(const char *name);
 /**<
 	@param name name of solver to check for
 	@return SlvFunctions for this solver, if the name is found, else NULL
-*/
-
-ASC_DLLSPEC void solver_destroy_engines();
-/**<
-	Unregister (unload?) all registered solvers.
 */
 
 /*------------------------------------------------------------------------------
@@ -367,8 +360,7 @@ ASC_DLLSPEC const char*slv_solver_name(int sindex);
 	of name-number pair.
 */
 
-/* @} */
-
 #endif
+
 
 

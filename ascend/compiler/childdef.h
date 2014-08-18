@@ -21,8 +21,9 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  You should have received a copy of the GNU General Public License along
+ *  with the program; if not, write to the Free Software Foundation, Inc., 675
+ *  Mass Ave, Cambridge, MA 02139 USA.  Check the file named COPYING.
  */
 
 /** @file
@@ -45,9 +46,7 @@
 #ifndef ASC_CHILDDEF_H
 #define ASC_CHILDDEF_H
 
-#include "type_desc.h"
-
-/**	@addtogroup compiler_inst Compiler Instance Hierarchy
+/**	@addtogroup compiler Compiler
 	@{
 */
 
@@ -61,6 +60,8 @@
 
 extern int BaseType(symchar *name);
 /**<
+ * <!--  int BaseType(name)                                            -->
+ * <!--  symchar * name;                                               -->
  * Returns the number of the fundamental type, or -1 if not fundamental.
  * The code here is *VERY* dependent upon the number and position
  * of the FundamentalTypeList (internal to childdef.c)!
@@ -74,6 +75,10 @@ extern struct ChildDesc *MakeChildDesc(symchar *name,
                                        struct StatementList *sl,
                                        ChildListPtr clist);
 /**<
+ * <!--  struct ChildDesc *childd = MakeChildDesc(name,sl,clist);      -->
+ * <!--  symchar *name;                                                -->
+ * <!--  struct StatementList *sl;                                     -->
+ * <!--  ChildListPtr clist;                                           -->
  * Returns the child description array based on legal statements in sl.
  */
 
@@ -81,6 +86,11 @@ extern unsigned long CalcByteSize(enum type_kind t,
                                   ChildListPtr clist,
                                   struct ChildDesc *childd);
 /**<
+ * <!--  len =  CalcByteSize(t,clist,childd);                          -->
+ * <!--  enum type_kind t;                                             -->
+ * <!--  ChildListPtr clist;                                           -->
+ * <!--  struct ChildDesc *childd;                                     -->
+ * <!--  unsigned long len;                                            -->
  * Calculates the byte size of an atomic instance given its
  * child information
  */

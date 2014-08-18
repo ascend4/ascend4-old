@@ -16,36 +16,35 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/utilities/ascPrint.h>
 #include <ascend/compiler/redirectFile.h>
 
 #define f_vtable_name "asc_test_vtable"
 
-/** @NOTE
-the problem with these functions is that they only do what they appear to do
-when USE_ASC_PRINTF is defined in ascend/general/platform.h, which currently
-only occurs on Windows. An alternative way to suppress debug output is via
-error_reporter_set_callback, but this doesn't prevent ALL output, eg via
-Asc_FPrintF or CONSOLE_DEBUG. There is also some code possibility of using the
-test/redirectStdStreams.h code but not attempting that at this stage
--- JP, Jan 2010
-*/
-
 static struct Asc_PrintVTable f_vtable = {f_vtable_name, vfprintf, fflush, NULL};
 static int f_vtable_registered = FALSE;
 
 int test_enable_printing(void){
-	if(TRUE == f_vtable_registered){
+	fprintf(stderr,"PRINTING ENABLED\n");
+	return TRUE;
+
+	/* old code... */
+	if (TRUE == f_vtable_registered) {
+		fprintf(stderr,"PRINTING *ALREADY* ENABLED\n");
 		return TRUE;
-	}else{
+	}
+	else {
+		fprintf(stderr,"PRINTING ENABLED\n");
 		f_vtable_registered = TRUE;
 		return (0 == Asc_PrintPushVTable(&f_vtable)) ? TRUE : FALSE ;
 	}
@@ -53,6 +52,10 @@ int test_enable_printing(void){
 
 
 void test_disable_printing(void){
+	fprintf(stderr,"PRINTING DISABLED\n");
+	return;
+
+	/* old code... */
 	if (TRUE == f_vtable_registered) {
 		f_vtable_registered = FALSE;
 		Asc_PrintRemoveVTable(f_vtable_name);

@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 */
 
 /**
@@ -26,10 +28,9 @@
 #ifndef ASC_TEST_GLOBALS
 #define ASC_TEST_GLOBALS
 
-/* for PATH_MAX defn */
 #include <ascend/general/ospath.h>
 
 /* GLOBAL Variable to the Test Directory maintained by test/test.c */
-char ASC_TEST_PATH[PATH_MAX];
+struct FilePath* ASC_TEST_DIR;
 
 #endif

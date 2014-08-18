@@ -22,14 +22,16 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  *
  *  Implementation of Child list output
  */
 
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
 
@@ -49,11 +51,13 @@
 #include "nameio.h"
 #include "vlist.h"
 #include "module.h"
-
-#define ASC_CHILDPRIV_ACCESS
+#define __CHILD_ILLEGAL_ACCESS__
 #include "childpriv.h"
-
 #include "childio.h"
+
+#ifndef lint
+static CONST char ChildIOID[] = "$Id: childio.c,v 1.6 1998/06/11 17:36:22 ballan Exp $";
+#endif
 
 /*
  * list of children reported missing.
@@ -158,10 +162,7 @@ void WriteChildList(FILE *fp,ChildListPtr cl)
           ((cle->typeptr==NULL)?"UNKNOWN":SCP(GetName(cle->typeptr))),
           cle->isarray,
           (int)cle->origin,cle->bflags);
-		FPRINTF(fp,"    ");
-        WriteStatementLocation(fp,cle->statement);
-		FPRINTF(fp,"\n");
-        WriteStatement(fp,cle->statement,8);
+        WSEM(fp,cle->statement,"  Declared at ");
       } else {
         FPRINTF(fp,"Child list item %lu is empty!\n",c);
       }
@@ -191,7 +192,7 @@ CONST char *WriteChildMetaDetails(void)
   };
   static char result[(sizeof(metadata)+1)*80];
   static int done=0;
-
+  
   if (!done) {
     done = 1;
     sprintf(result,
@@ -338,19 +339,19 @@ char *WriteChildDetails(ChildListPtr cl,unsigned long n)
     } else {
       Asc_DStringAppend(dsPtr,"0} {",4);
     }
-    /* supported */
+    /* supported */ 
     if (ChildSupported(cl,n)) {
       Asc_DStringAppend(dsPtr,"1} {",4);
     } else {
       Asc_DStringAppend(dsPtr,"0} {",4);
     }
-    /* passed */
+    /* passed */ 
     if (ChildPassed(cl,n)) {
       Asc_DStringAppend(dsPtr,"1} {",4);
     } else {
       Asc_DStringAppend(dsPtr,"0} {",4);
     }
-    /* guesstype */
+    /* guesstype */ 
     desc = ChildBaseTypePtr(cl,n);
     if (desc == NULL) {
       Asc_DStringAppend(dsPtr,"UNKNOWN",7);
@@ -377,11 +378,11 @@ char *WriteChildDetails(ChildListPtr cl,unsigned long n)
     }
     WriteName2Str(dsPtr,name);
     Asc_DStringAppend(dsPtr,"} {",3);
-    /* module */
+    /* module */ 
     tmp = Asc_ModuleBestName(StatementModule(stat));
     Asc_DStringAppend(dsPtr,tmp,-1);
     Asc_DStringAppend(dsPtr,"} {",3);
-    /* line */
+    /* line */ 
     sprintf(longspace,"%lu",StatementLineNum(stat));
     Asc_DStringAppend(dsPtr,longspace,-1);
     /* statement */
@@ -415,4 +416,3 @@ void WriteChildMissing(FILE *fp, char *fcn, symchar *childname)
     CONSOLE_DEBUG("Child '%s' not found (requested by %s).",SCP(childname),fcn);
   }
 }
-

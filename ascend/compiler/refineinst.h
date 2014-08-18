@@ -22,7 +22,9 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  */
 
 /** @file
@@ -40,7 +42,7 @@
 #ifndef ASC_REFINEINST_H
 #define ASC_REFINEINST_H
 
-/**	@addtogroup compiler_inst Compiler Instance Hierarchy
+/**	@addtogroup compiler Compiler
 	@{
 */
 
@@ -48,6 +50,9 @@ extern struct Instance *RefineInstance(struct Instance *i,
                                        struct TypeDescription *type,
                                        struct Instance *arginst);
 /**<
+ *  <!--  struct Instance *RefineInstance(i,type,arginst)              -->
+ *  <!--  struct Instance *, *arginsti;                                -->
+ *  <!--  struct TypeDescription *type;                                -->
  *  This returns the refined instance.  In most cases, the return value equals
  *  i, but sometimes it doesn't.  In general the interface should not
  *  call this routine.  Check RefineClique below.  This may change
@@ -63,6 +68,9 @@ ASC_DLLSPEC struct Instance *RefineClique(struct Instance *i,
                                      struct TypeDescription *type,
                                      struct Instance *arginst);
 /**<
+ *  <!--  void RefineClique(i,type,arginst)                            -->
+ *  <!--  struct Instance *i, *arginst;                                -->
+ *  <!--  struct TypeDescription *type;                                -->
  *  This returns the refined instance.  In most cases, the return value equals
  *  i, but sometimes it doesn't.
  *  Proper arginst must be supplied if the type is in any way parameterized.

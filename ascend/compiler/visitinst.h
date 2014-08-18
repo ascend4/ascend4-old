@@ -14,7 +14,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Ascend Instance Tree Type Visit Implementation
 *//*
@@ -25,11 +27,11 @@
 #ifndef ASC_VISITINST_H
 #define ASC_VISITINST_H
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include "instance_enum.h"
 #include "compiler.h"
 
-/**	@addtogroup compiler_inst Compiler Instance Hierarchy
+/**	@addtogroup compiler Compiler
 	@{
 */
 

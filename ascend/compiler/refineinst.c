@@ -24,17 +24,20 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
  */
 #include <stdarg.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/panic.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/pool.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
-#include <ascend/utilities/bit.h>
 
+#include "bit.h"
 #include "symtab.h"
 #include "functype.h"
 #include "expr_types.h"
@@ -76,6 +79,11 @@
 #include "parentchild.h"
 #include "instantiate.h"
 #include "refineinst.h"
+
+#ifndef lint
+static CONST char RefineInstModuleID[] = "$Id: refineinst.c,v 1.10 1998/02/05 16:37:32 ballan Exp $";
+#endif
+
 
 /* checks children, and does some value copying in the process */
 static void CheckChild(struct Instance *old, struct Instance *new)

@@ -21,16 +21,20 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
  */
 #include <stdarg.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/pool.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
 
+#include "bit.h"
 #include "symtab.h"
 #include "functype.h"
 #include "expr_types.h"
@@ -74,6 +78,11 @@
 #include "cmpfunc.h"
 #include "setinstval.h"
 #include "copyinst.h"
+
+#ifndef lint
+static CONST char CopyInstModuleID[] = "$Id: copyinst.c,v 1.18 1998/03/17 22:08:28 ballan Exp $";
+#endif
+
 
 /*
  * This function simply makes a first pass at determining
@@ -131,9 +140,9 @@ void RedoChildPointers(unsigned long int num,
 		       struct Instance * CONST *oldchildptrs)
 {
   while (num > 0) {
-    *newchildptrs = INST((asc_intptr_t)newparent+
-			 (asc_intptr_t)(*oldchildptrs)-
-			 (asc_intptr_t)oldparent);
+    *newchildptrs = INST((unsigned long)newparent+
+			 (unsigned long)(*oldchildptrs)-
+			 (unsigned long)oldparent);
     newchildptrs++;
     oldchildptrs++;
     num--;
@@ -818,7 +827,7 @@ static struct Instance *CopyNode(CONST struct Instance *i)
     return NULL;
   default:
     ASC_PANIC("Incorrect instance type passed to CopyNode.\n");
-
+    
   }
 }
 
@@ -1200,10 +1209,10 @@ struct Instance *CopyInstance(CONST struct Instance *i)
     Asc_Panic(2, NULL,
               "CopyInstance may not be called on"
               " fundamental atomic instances.\n");
-
+    
   default:
     ASC_PANIC("Unknown instance type passed to CopyInstance.\n");
-
+    
   }
 }
 /************ end of copy stuff ****************/

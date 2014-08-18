@@ -13,10 +13,12 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Ascend Type Definition Lint Module.
-
+	
 	This module provides some lint-like functionality for ascend type
 	definitions.  That is, it checks for the most obvious sorts of blunders
 	but due to the nature of the ascend language, not all can be
@@ -34,11 +36,11 @@
 #define ASC_TYPELINT_H
 
 #include <ascend/general/list.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include "compiler.h"
 #include "stattypes.h"
 
-/**	@addtogroup compiler_type Compiler Type Description
+/**	@addtogroup compiler Compiler
 	@{
 */
 
@@ -103,7 +105,7 @@ enum typelinterr {
   DEF_UNKNOWN_ERR
 };
 
-extern void TypeLintError(FILE *file,
+extern void TypeLintError(FILE *file, 
                           CONST struct Statement *statement,
                           enum typelinterr error_code);
 /**<
@@ -178,9 +180,9 @@ extern void TypeLintNameNodeMsg(FILE *file,
 extern enum typelinterr
 TypeLintIllegalBodyStats(FILE *fp,
                          symchar *typename,
-                         CONST struct StatementList *statements,
+                         CONST struct StatementList *statements, 
                          unsigned int context);
-/**<
+/**< 
  *  Checks all statements for type legality, i.e.
  *  is the statement of a type allowed in body and are any
  *  rhs types referred to at least minimally legal in the body?
@@ -194,7 +196,7 @@ TypeLintIllegalBodyStats(FILE *fp,
  */
 
 extern enum typelinterr
-TypeLintIllegalParamStats(FILE *fp,
+TypeLintIllegalParamStats(FILE *fp, 
                           symchar *typename,
                           CONST struct StatementList *statements);
 /**<
@@ -209,10 +211,10 @@ TypeLintIllegalParamStats(FILE *fp,
  */
 
 extern enum typelinterr
-TypeLintIllegalWhereStats(FILE *fp,
+TypeLintIllegalWhereStats(FILE *fp, 
                           symchar *typename,
                           CONST struct StatementList *statements);
-/**<
+/**< 
  *  Checks all statements for type legality, i.e.
  *  is the statement of a type allowed in WHERE list.
  *  Currently only WILL_BE_THE_SAME allowed.
@@ -225,7 +227,7 @@ extern enum typelinterr
 TypeLintIllegalReductionStats(FILE *fp,
                               symchar *typename,
                               CONST struct StatementList *statements);
-/**<
+/**< 
  *  Checks all statements for type legality, i.e.
  *  is the statement of a type allowed in reduction list?
  *  Currently only CASGN allowed.
@@ -244,9 +246,6 @@ TypeLintIllegalMethodStats(FILE *fp,
  *  is the statement of a type allowed in a method.
  *  Returns DEF_OKAY under normal circumstances,
  *  DEF_ILLEGAL or other when unhappy.
- *  DS: (clarification) Selection is done based on "case" fallthrough;
- *  adding a new statement token before FNAME case will not allow the new
- *  statement type inside a method
  */
 
 /* @} */

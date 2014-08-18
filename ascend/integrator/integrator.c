@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Integrator API for ASCEND, for solving systems of ODEs and/or DAEs.
@@ -25,11 +27,9 @@
 #include <time.h>
 #include <string.h>
 
-#include <ascend/general/panic.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/compiler/packages.h>
-#include <ascend/compiler/link.h>
-
 
 #include <ascend/system/slv_common.h>
 #include <ascend/system/slv_stdcalls.h>
@@ -111,7 +111,7 @@ static int Integ_CmpDynVars(struct Integ_var_t *v1, struct Integ_var_t *v2);
 static int Integ_CmpObs(struct Integ_var_t *v1, struct Integ_var_t *v2);
 static void Integ_SetObsId(struct var_variable *v, long oindex);
 
-static long DynamicVarInfo(struct var_variable *v,long *vindex, IntegratorSystem *sys);
+static long DynamicVarInfo(struct var_variable *v,long *vindex);
 static struct var_variable *ObservationVar(struct var_variable *v, long *oindex);
 static void IntegInitSymbols(void);
 
@@ -219,10 +219,7 @@ static struct gl_list_t *integrator_get_list(int free_space){
 	};
 
 	if(free_space){
-		if(init && L){
-			gl_destroy(L);
-			L = NULL;
-		}
+		if(init && L)ASC_FREE(L);
 		init = 0;
 		return NULL;
 	}
@@ -257,10 +254,6 @@ const struct gl_list_t *integrator_get_engines(){
 
 struct gl_list_t *integrator_get_engines_growable(){
 	return integrator_get_list(0);
-}
-
-void integrator_free_engines(){
-	integrator_get_list(1);
 }
 
 /* return 0 on success */
@@ -319,7 +312,7 @@ const IntegratorInternals *integrator_get_engine(const IntegratorSystem *sys){
 	Free any engine-specific  data that was required for the solution of
 	this system. Note that this data is pointed to by sys->enginedata.
 
-	@TODO rename this, bad choice/confusing name.
+	@TODO rename this
 */
 void integrator_free_engine(IntegratorSystem *sys){
 	if(sys->engine==INTEG_UNKNOWN)return;
@@ -858,7 +851,7 @@ void integrator_dae_classify_var(IntegratorSystem *sys
 		/* only non-fixed variables are accepted */
 		if(!var_fixed(var)){
 			/* get the ode_type and ode_id of this solver_var */
-			type = DynamicVarInfo(var,&index,sys);
+			type = DynamicVarInfo(var,&index);
 
 			if(type==INTEG_OTHER_VAR){
 				/* if the var's type is -1, it's independent */
@@ -872,7 +865,7 @@ void integrator_dae_classify_var(IntegratorSystem *sys
 #if 1
 		else{
 			/* fixed variable, only include it if ode_type == 1 */
-			type = DynamicVarInfo(var,&index,sys);
+			type = DynamicVarInfo(var,&index);
 			if(type==INTEG_STATE_VAR){
 				INTEG_ADD_TO_LIST(info,type,index,var,varindx,sys->dynvars);
 			}
@@ -907,7 +900,7 @@ void integrator_ode_classify_var(IntegratorSystem *sys, struct var_variable *var
 
   if( var_apply_filter(var,&vfilt) ) {
 	/* it's a solver var: what type of variable? */
-    type = DynamicVarInfo(var,&index,sys);
+    type = DynamicVarInfo(var,&index);
 
     if(type==INTEG_ALGEBRAIC_VAR){
 		/* no action required */
@@ -954,7 +947,7 @@ void integrator_classify_indep_var(IntegratorSystem *sys
 #endif
 
 	if( var_apply_filter(var,&vfilt) ) {
-		type = DynamicVarInfo(var,&index,sys);
+		type = DynamicVarInfo(var,&index);
 
 		if(type==INTEG_OTHER_VAR){
 			/* i.e. independent var */
@@ -978,7 +971,6 @@ void integrator_classify_indep_var(IntegratorSystem *sys
 #endif
 }
 
-
 /**
 	Look at a variable, and if it is an 'ODE variable' (it has a child instance
 	named 'ode_type') return its type, which will be either:
@@ -990,20 +982,14 @@ void integrator_classify_indep_var(IntegratorSystem *sys
 	If the parameter 'index' is not null, the value of 'ode_id' will be stuffed
 	there.
 */
-static long DynamicVarInfo(struct var_variable *v,long *index, IntegratorSystem *sys){
+static long DynamicVarInfo(struct var_variable *v,long *index){
   struct Instance *c, *d, *i;
-	int type;
-
   i = var_instance(v);
-
   asc_assert(i!=NULL);
   asc_assert(STATEFLAG!=NULL);
   asc_assert(STATEINDEX!=NULL);
   c = ChildByChar(i,STATEFLAG);
   d = ChildByChar(i,STATEINDEX);
-
-
-
   /* lazy evaluation is important in the following if */
   if(c == NULL
       || d == NULL
@@ -1012,14 +998,6 @@ static long DynamicVarInfo(struct var_variable *v,long *index, IntegratorSystem 
       || !AtomAssigned(c)
       || (!AtomAssigned(d) && GetIntegerAtomValue(c) != INTEG_OTHER_VAR)
   ){
-		type = getOdeType(sys->instance,i);
-		if(type != 0) {
-			if(index !=NULL){
-				*index = getOdeId(sys->instance,i);
-			}
- 			return type;
-		}
-
     return INTEG_ALGEBRAIC_VAR;
   }
   if (index != NULL) {
@@ -1340,7 +1318,6 @@ int integrator_write_matrix(const IntegratorSystem *sys, FILE *fp,const char *ty
 	asc_assert(sys->internals);
 	asc_assert(sys->internals->name);
 	if(sys->internals->writematrixfn){
-		if(type!=NULL && strcmp(type,"")==0)type = NULL;
 		return (sys->internals->writematrixfn)(sys,fp,type);
 	}else{
 		ERROR_REPORTER_HERE(ASC_PROG_NOTE,"Integrator '%s' defines no write_matrix function.",sys->internals->name);

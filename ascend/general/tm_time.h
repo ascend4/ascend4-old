@@ -13,26 +13,10 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//*
-	by Karl Westerberg and Joseph Zaher
-	Created: 6/90
-	Version: $Revision: 1.1 $
-	Version control file: $RCSfile: tm_time.h,v $
-	Date last modified: $Date: 2000/01/25 02:21:26 $
-	Last modified by: $Author: ballan $
-*/
-
-#ifndef ASC_TM_TIME_H
-#define ASC_TM_TIME_H
-
-#include "platform.h"
-
-/**	@addtogroup general_time General Time
-	@{
-*/
-
-/**
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//**
 	@file
 	Time module
 
@@ -52,7 +36,22 @@
 			tm_cpu_time() to return number of seconds
 	06/94 - eliminated cute calendar functions for full
 			ANSI compatibility.
+
+	Requires:
+	#include "utilities/ascConfig.h"
+*//*
+	by Karl Westerberg and Joseph Zaher
+	Created: 6/90
+	Version: $Revision: 1.1 $
+	Version control file: $RCSfile: tm_time.h,v $
+	Date last modified: $Date: 2000/01/25 02:21:26 $
+	Last modified by: $Author: ballan $
 */
+
+#ifndef ASC_TM_TIME_H
+#define ASC_TM_TIME_H
+
+#include <ascend/utilities/ascConfig.h>
 
 #ifndef CLOCKS_PER_SEC
 
@@ -147,8 +146,6 @@ ASC_DLLSPEC void TM_CPU_TIME_FTN(double *timev);
 
 ASC_DLLSPEC void AFTIME(double *timev);
 /**< Short name for TM_CPU_TIME_FTN() to satisfy FORTRAN's 6 char restriction. */
-
-/* @} */
 
 #endif  /* ASC_TM_TIME_H */
 

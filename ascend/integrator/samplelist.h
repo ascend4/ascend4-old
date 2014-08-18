@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Sample list for ASCEND integrator. Keeps a list of sample times
@@ -31,11 +33,11 @@
 #ifndef ASC_SAMPLELIST_H
 #define ASC_SAMPLELIST_H
 
-/**	@addtogroup integrator_sample Integrator Sample List
+/**	@addtogroup integrator Integrator
 	@{
 */
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/compiler/fractions.h>
 #include <ascend/compiler/compiler.h>
 #include <ascend/compiler/dimen.h>

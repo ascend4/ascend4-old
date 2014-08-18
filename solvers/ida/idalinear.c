@@ -1,9 +1,8 @@
 #include "idalinear.h"
-
+#include <ida/ida_impl.h>
 #include <ascend/utilities/error.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 
-/** FIXME should the following be moved to ida.h? */
 #include <sundials/sundials_math.h>
 #define ZERO RCONST(0.0)
 #define ONE  RCONST(1.0)
@@ -236,7 +235,6 @@ int integrator_ida_lsolve(IDAMem IDA_mem
 	, N_Vector b, N_Vector weight
 	, N_Vector ycur, N_Vector ypcur, N_Vector rrcur
 ){
-#ifdef STILL_NEED_TO_IMPLEMENT_THIS_STUFF
 	realtype *bd;
   
   	IntegratorIdaAscendMem *iamem;
@@ -254,7 +252,6 @@ int integrator_ida_lsolve(IDAMem IDA_mem
 	if(cjratio != ONE){
 		N_VScale(TWO/(ONE + cjratio), b, b);
 	}
-#endif
 
 	ERROR_REPORTER_HERE(ASC_PROG_ERR,"Not implemented");
 	return -1;

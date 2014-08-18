@@ -1,4 +1,5 @@
 # Pan and Zoom tools for Gaphas by John Pye, 4 Nov 2008.
+# http://pye.dyndns.org
 
 import gtk
 import gtk.gdk as gdk

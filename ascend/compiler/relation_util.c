@@ -15,7 +15,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Relation utility functions for Ascend
@@ -33,8 +35,8 @@
 #include "relation_util.h"
 
 
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/mathmacros.h>
 #include <ascend/general/list.h>
 #include <ascend/general/ltmatrix.h>
@@ -2154,7 +2156,7 @@ RelationCalcResidualPostfixSafe(struct Instance *i, double *res){
       break;
     case e_blackbox:
       if ( RelationCalcResidualPostfix(i,res) != 0) {
-        CONSOLE_DEBUG("Problem evaluating Blackbox residual");
+        CONSOLE_DEBUG("Problem evalutating Blackbox residual");
         status = safe_problem;
         safe_error_to_stderr(&status);
       }
@@ -2407,7 +2409,7 @@ enum safe_err RelationCalcResidGradSafe(struct Instance *i
   struct relation *r;
   enum Expr_enum reltype;
   enum safe_err not_safe = safe_ok;
-  //int dummy_int;
+  int dummy_int;
 
 #ifndef NDEBUG
   if( i == NULL ) {
@@ -2435,7 +2437,8 @@ enum safe_err RelationCalcResidGradSafe(struct Instance *i
 
 
   if( reltype == e_token ) {
-    RelationEvaluateResidualGradientSafe(r, residual, gradient, &not_safe);
+    dummy_int =
+      RelationEvaluateResidualGradientSafe(r, residual, gradient, &not_safe);
     //CONSOLE_DEBUG("Relation Type: e_token");
     return not_safe;
   }
@@ -2443,19 +2446,19 @@ enum safe_err RelationCalcResidGradSafe(struct Instance *i
     if (BlackBoxCalcResidGrad(i, residual, gradient, r) ) {
       not_safe = safe_problem;
     }
-    //CONSOLE_DEBUG("Relation Type: e_blackbox");
+    CONSOLE_DEBUG("Relation Type: e_blackbox");
     return not_safe;
   }
   if (reltype >= TOK_REL_TYPE_LOW && reltype <= TOK_REL_TYPE_HIGH) {
     if (reltype == e_glassbox){
-	//CONSOLE_DEBUG("Relation Type: e_glassbox");
+	CONSOLE_DEBUG("Relation Type: e_glassbox");
 	ERROR_REPORTER_HERE(ASC_PROG_ERR,"glassbox not implemented yet (%s)",__FUNCTION__);
     }
     if (reltype == e_opcode){
-     	//CONSOLE_DEBUG("Relation Type: e_opcode");
+     	CONSOLE_DEBUG("Relation Type: e_opcode");
 	ERROR_REPORTER_HERE(ASC_PROG_ERR,"opcode not supported (%s)",__FUNCTION__);
     }
-    //CONSOLE_DEBUG("Relation Type: other");
+    CONSOLE_DEBUG("Relation Type: other");
     not_safe = safe_problem;
     return not_safe;
   }
@@ -2522,7 +2525,7 @@ enum safe_err RelationCalcResidGradRevSafe(struct Instance *i
 	struct relation *r;
 	enum Expr_enum reltype;
 	enum safe_err not_safe = safe_ok;
-
+	
 
 	#ifndef NDEBUG
 	if( i == NULL ) {
@@ -2613,7 +2616,7 @@ enum safe_err RelationCalcSecondDerivSafe(struct Instance *i, double *deriv2nd,u
 	struct relation *r;
 	enum Expr_enum reltype;
 	enum safe_err not_safe = safe_ok;
-
+	
 
 #ifndef NDEBUG
 	if( i == NULL ) {
@@ -2646,7 +2649,7 @@ enum safe_err RelationCalcSecondDerivSafe(struct Instance *i, double *deriv2nd,u
 		  								var_index,
 										0,
  										NULL,
- 										&not_safe);
+ 										&not_safe);		
 		return not_safe;
 	}
 	if (reltype == e_blackbox){
@@ -2710,7 +2713,7 @@ enum safe_err RelationCalcHessianMtxSafe(struct Instance *i, hessian_mtx *hess_m
 	struct relation *r;
 	enum Expr_enum reltype;
 	enum safe_err not_safe = safe_ok;
-
+	
 //	CONSOLE_DEBUG("IN FUNCTION RelationCalcHessianMtxSafe");
 
 #ifndef NDEBUG
@@ -2932,7 +2935,7 @@ void PrintGradients(struct Instance *i){
 	else {
 		PRINTF("**** RelationCalcResidGradRevSafe returned nonzero: %d\n", safe);
 	}
-
+	
 	if( ! RelationCalcResidGradRev(i,&res,grads) ) {
 		for (v = 0; v < vars; v++) {
 			PRINTF("reverse non-safe gradient in %6ld =\t%g\n", v+1, grads[v]);

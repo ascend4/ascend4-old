@@ -1,5 +1,5 @@
 /*	ASCEND modelling environment
-	Copyright (C) 1998, 2006-2011 Carnegie Mellon University
+	Copyright (C) 1998, 2006 Carnegie Mellon University
 	Copyright (C) 1996 Benjamin Andrew Allan
 
 	This program is free software; you can redistribute it and/or modify
@@ -13,9 +13,12 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @defgroup system_stdcalls System Standard calls
-	'Standard calls' module. This appears to include stuff relating
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//*
+	@file
+	'Standard clients' module. This appears to include stuff relating
 	matrix generation, bounds checking, registration of solver engines.
 *//*
 	by Benjamin Andrew Allan
@@ -26,12 +29,12 @@
 #ifndef ASC_SLV_STDCLIENTS_H
 #define ASC_SLV_STDCLIENTS_H
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/linear/mtx.h>
 
 #include "slv_client.h"
 
-/**	@addtogroup system_stdcalls
+/**	@addtogroup system System
 	@{
 */
 
@@ -87,8 +90,8 @@ ASC_DLLSPEC int slv_check_bounds(const slv_system_t sys, int32 lo, int32 hi,
 );
 /**<
 	Takes a system and a range of vars (lo,hi) from the solver's var list
-	and makes sure all the variables are within bounds, and that bounds are
-	making sense (lower < upper). Reports errors in all cases where they are not.
+	and makes sure all the variables are within bounds and bounds are
+	make sense (lower < upper). Reports errors in all cases where they are not.
 	Does not change anything.
 
 	You can express lo,hi as negative numbers, which means you count back from

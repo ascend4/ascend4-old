@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Symbol Table Management.
 
@@ -29,10 +31,10 @@
 #ifndef ASC_SYMTAB_H
 #define ASC_SYMTAB_H
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include "compiler.h"
 
-/**	@addtogroup compiler_common Compiler Common
+/**	@addtogroup compiler Compiler
 	@{
 */
 

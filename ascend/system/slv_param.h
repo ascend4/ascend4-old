@@ -16,8 +16,10 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @defgroup system_slvparam System Solver Parameters
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//** @file 
 	Solver parameters interface
 	@seepage solver-parameters
 *//*
@@ -93,12 +95,14 @@
 	@endcode
 */
 
-#include <ascend/utilities/config.h>
-#include <ascend/general/platform.h>
 
-/**	@addtogroup system_slvparam
+#include <ascend/utilities/config.h>
+#include <ascend/utilities/ascConfig.h>
+
+/**	@addtogroup system System
 	@{
 */
+
 
 /*------------------------------------------------------------------------------
   DATA STRUCTURES
@@ -220,7 +224,7 @@ typedef struct{
 	const int guipagenum;
 	const char *description;
 } SlvParameterInitMeta;
-
+	
 typedef struct{
 	const SlvParameterInitMeta meta;
 	const int val;
@@ -253,7 +257,7 @@ ASC_DLLSPEC int slv_param_bool(struct slv_parameters_structure *p, const int ind
 ASC_DLLSPEC int slv_param_real(struct slv_parameters_structure *p, const int index, const SlvParameterInitReal);
 ASC_DLLSPEC int slv_param_char(struct slv_parameters_structure *p, const int index, const SlvParameterInitChar, char *options[]);
 
-/* macros to access values from your solver code
+/* macros to access values from your solver code 
 
 	Usage example:
 		if(SLV_PARAM_BOOL(p,IDA_PARAM_AUTODIFF)){
@@ -261,8 +265,6 @@ ASC_DLLSPEC int slv_param_char(struct slv_parameters_structure *p, const int ind
 		}
 		SLV_PARAM_BOOL(p,IDA_PARAM_AUTODIFF) = FALSE;
 */
-
-#define SLV_PARAM_TYPE(PARAMS,INDEX)  ((PARAMS)->parms[INDEX].type)
 
 /* the first three are read/write */
 #define SLV_PARAM_INT(PARAMS,INDEX)  (PARAMS)->parms[INDEX].info.i.value
@@ -593,14 +595,13 @@ ASC_DLLSPEC int32 slv_define_parm(slv_parameters_t *p,
 	        otherwise returns the number of registered parameters in p.
  */
 
+/* slv_set_char_parameter() is defined in slv.c */
 ASC_DLLSPEC void slv_set_char_parameter(char **cptr, CONST char *newvalue);
 /**<
 	Sets a char parameter value to a new string.
-
-	The string currently pointed to within the parameter structure is first
-	freed if necessary, then a new copy of 'newvalue' is created, and assigned
-	to the parameter structure. The means that it's up to the caller to
-	free the 'newvalue' string, if that needs ot be done.
+	Resetting the value of a parameter can be done directly except
+	for string parameters which must be set with this function.  The
+	string newvalue is not kept by the function.<br><br>
 
 	Example:   slv_set_char_parameter(&(p.parms[i].info.c.value),argv[j]);
 

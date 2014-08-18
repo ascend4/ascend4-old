@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Relation Data Type.
 
@@ -39,16 +41,16 @@
 #ifndef ASC_RELATION_TYPE_H
 #define ASC_RELATION_TYPE_H
 
-/**	@addtogroup compiler_rel Compiler Relations
+/**	@addtogroup compiler Compiler
 	@{
 */
 
+#include <ascend/utilities/ascConfig.h>
 #include "compiler.h"
 #include "dimen.h"
 #include "expr_types.h"
-#include "func.h"
-
 #include <ascend/general/list.h>
+#include "func.h"
 
 /** If TOKENDOMINANT is 1, then we assume union RelationUnion fields
  * other than relop and ref_count are all going to be initialized

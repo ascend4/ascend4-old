@@ -1,7 +1,7 @@
 import ascpy
 import time
 import gtk
-from diagnose import *
+import gtk.glade
 
 class PythonSolverReporter(ascpy.SolverReporter):
 	def __init__(self,browser,message=None):
@@ -44,30 +44,29 @@ class PythonSolverReporter(ascpy.SolverReporter):
 
 
 class PopupSolverReporter(PythonSolverReporter):
-	def __init__(self,browser,sim):
+	def __init__(self,browser,numvars):
 		PythonSolverReporter.__init__(self,browser)
 
+		_xml = gtk.glade.XML(browser.glade_file,"solverstatusdialog")
+		_xml.signal_autoconnect(self)
 
-		self.browser.builder.add_objects_from_file(self.browser.glade_file, ["solverstatusdialog"])
-		self.window = self.browser.builder.get_object("solverstatusdialog")
-		self.browser.builder.connect_signals(self)
+		self.window = _xml.get_widget("solverstatusdialog")
 		if self.browser.icon:
 			self.window.set_icon(self.browser.icon)
 		self.window.set_transient_for(self.browser.window)
 		
-		self.numvars = self.browser.builder.get_object("numvarsentry")
-		self.numblocks = self.browser.builder.get_object("numblocksentry")
-		self.elapsedtime = self.browser.builder.get_object("elapsedtimeentry")
-		self.numiterations = self.browser.builder.get_object("numiterationsentry")
-		self.blockvars = self.browser.builder.get_object("blockvarsentry")
-		self.blockiterations = self.browser.builder.get_object("blockiterationsentry")
-		self.blockresidual = self.browser.builder.get_object("blockresidualentry")
-		self.blockelapsedtime = self.browser.builder.get_object("blockelapsedtimeentry")
+		self.numvars = _xml.get_widget("numvarsentry")
+		self.numblocks = _xml.get_widget("numblocksentry")
+		self.elapsedtime = _xml.get_widget("elapsedtimeentry")
+		self.numiterations = _xml.get_widget("numiterationsentry")
+		self.blockvars = _xml.get_widget("blockvarsentry")
+		self.blockiterations = _xml.get_widget("blockiterationsentry")
+		self.blockresidual = _xml.get_widget("blockresidualentry")
+		self.blockelapsedtime = _xml.get_widget("blockelapsedtimeentry")
 	
-		self.progressbar = self.browser.builder.get_object("progressbar")
-		self.diagnose_button = self.browser.builder.get_object("diagnose_button")
-		self.closebutton = self.browser.builder.get_object("closebutton1")
-		self.stopbutton = self.browser.builder.get_object("stopbutton")
+		self.progressbar = _xml.get_widget("progressbar")
+		self.closebutton = _xml.get_widget("closebutton1")
+		self.stopbutton = _xml.get_widget("stopbutton")
 			
 		#print "SOLVER REPORTER ---- PYTHON"
 
@@ -81,27 +80,16 @@ class PopupSolverReporter(PythonSolverReporter):
 		self.guiinterrupt = False;
 		self.guitime = 0;
 
-		self.sim = sim
-
-		self.nv = self.sim.getNumVars()
+		self.nv = numvars
 
 		while gtk.events_pending():
 			gtk.main_iteration()
 
-	def on_diagnose_button_click(self,*args):
-		try:
-			_bl = self.sim.getActiveBlock()
-			_db = DiagnoseWindow(self.browser,_bl)
-			_db.run();
-		except RuntimeError, e:
-			self.reporter.reportError(str(e))
-			return
-
 	def on_stopbutton_activate(self,*args):
-		self.guiinterrupt = True
+		print "STOPPING..."
+		self.guiinterrupt = True;
 
 	def on_solverstatusdialog_response(self,widget,response):
-		self.guiinterrupt = True
 		self.window.destroy()
 		
 	def fill_values(self,status):
@@ -150,6 +138,8 @@ class PopupSolverReporter(PythonSolverReporter):
 			_p = self.browser.prefs;
 			_close_on_converged = _p.getBoolPref("SolverReporter","close_on_converged",True);
 			_close_on_nonconverged = _p.getBoolPref("SolverReporter","close_on_nonconverged",False);
+
+
 			if status.isConverged() and _close_on_converged:
 				self.report_to_browser(status)
 				print "CLOSING ON CONVERGED"

@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Ascend Interpreter(Instantiator).
 	
@@ -47,7 +49,7 @@
 
 	ASCEND is licensed under the GNU General Public License. See the the file
 	'LICENSE.txt' for more information, which is available at:
-	http://ascendcode.cheme.cmu.edu/viewvc.cgi/code/trunk/LICENSE.txt?view=markup
+	http://ascendcode.cheme.cmu.edu/viewvc.cgi/code/branches/extfn/LICENSE.txt?view=markup
 */
 
 #ifndef ASC_INSTANTIATE_H
@@ -55,7 +57,7 @@
 
 #include "stattypes.h"
 
-/**	@addtogroup compiler_inst Compiler Instance Hierarchy
+/**	@addtogroup compiler Compiler
 	@{
 */
 
@@ -184,14 +186,6 @@ extern struct Instance *NewInstantiate(symchar *type, symchar *name,
  *      referenced by the whens  must be findable or
  *      they can't be
  *  ...return all the way up eventually.
- *
- *  DS: Added new Phase for LINK statements that need the final instances in order to be consistent
- * 		Phase 6
- *		1 call real_instantiate_5
- * 	  2 call instantiate_model_5
- *    3 process pending instances of model
- * 	  4 recursive instantiate, doing LINKs only	
- *
  *  Phase 5
  *      Execution of default statements. (we would like to delete phase 5).
  *  Phase 6

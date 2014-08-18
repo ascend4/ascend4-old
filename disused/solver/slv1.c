@@ -24,7 +24,10 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.  COPYING is found in ../compiler.
+ *
  */
 
 /*  known bugs:
@@ -38,10 +41,10 @@
 #include <stdarg.h>
 
 #include <ascend/utilities/ascSignal.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/utilities/set.h>
-#include <ascend/general/mem.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/mem.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/tm_time.h>
 #include <ascend/general/list.h>
 

@@ -25,12 +25,15 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
  */
 
-#include "platform.h"
-#include "ascMalloc.h"
-#include "panic.h"
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include "dstring.h"
 #include "mathmacros.h"
 
@@ -133,7 +136,7 @@ char *Asc_DStringAppend(register Asc_DString *dsPtr,
 void Asc_DStringTrunc(register Asc_DString *dsPtr, int length)
 {
   asc_assert(NULL != dsPtr);
-
+  
   if (length < 0) {
     length = 0;
   }

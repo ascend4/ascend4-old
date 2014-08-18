@@ -22,18 +22,20 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  *
  *  This module initializes the fundamental data structures used by the rest of
  *  Ascend and pulls in system headers. Largely this means memory management.
  */
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/utilities/ascEnvVar.h>
 
 #include "ascCompiler.h"
 #include <ascend/utilities/ascSignal.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/list.h>
 
 
@@ -42,7 +44,6 @@
 #include "exprs.h"
 #include "sets.h"
 #include "stattypes.h"
-#include "statio.h"
 #include "slist.h"
 #include "evaluate.h"
 #include "units.h"
@@ -83,9 +84,12 @@
 #include "numlist.h"
 #include "bintoken.h"
 #include "childio.h"
-#include "importhandler.h"
 /* #include "redirectFile.h" */
 #include "ascCompiler.h"
+
+#ifndef lint
+static CONST char ascCompilerID[] = "$Id: ascCompiler.c,v 1.20 2000/01/25 02:25:57 ballan Exp $";
+#endif
 
 
 /*
@@ -152,8 +156,6 @@ int Asc_CompilerInit(int simp)
 
  if (simp !=0){
    g_simplify_relations = 1;
- }else{
-   g_simplify_relations = 0;
  }
 
 #ifdef REIMPLEMENT_STREAMS
@@ -235,9 +237,6 @@ void Asc_CompilerDestroy(void)
   DestroySymbolTable();
   DestroyStringSpace();
   Asc_DestroyScannerWorkBuffer();
-
-  importhandler_destroylibrary();
-
   DestroyExtFuncLibrary();      /* deallocate external function nodes */
 
   /* some of the following calls are order dependent. see the headers.
@@ -267,9 +266,5 @@ void Asc_CompilerDestroy(void)
   gl_destroy_pool();                   /* empty the reused list head pool */
   ClearRecycleStack();                 /* empty the reused stack list  */
   Asc_DestroyScannerInputBuffer();	/* empty lexer */
-  error_reporter_tree_clear();
-  //error_reporter_end_flush();
-  statio_clear_stattypenames();
 
-  tmpalloc(0); /* free temporary scratch memory allocated by relation_util.c */
 }

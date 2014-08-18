@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Interface Qualified Id Routines.
 *//*
@@ -24,12 +26,12 @@
 #ifndef ASC_QLFDID_H
 #define ASC_QLFDID_H
 
-/**	@addtogroup compiler_inst Compiler Instance Hierarchy
+/**	@addtogroup compiler Compiler
 	@{
 */
 
 #include <ascend/utilities/config.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/general/list.h>
 #include "instance_enum.h"
 
@@ -123,19 +125,19 @@ ASC_DLLSPEC int Asc_QlfdidSearch2(char *str);
 
 ASC_DLLSPEC int Asc_QlfdidSearch3(CONST char *str, int relative);
 /**<
-	This function is still yet another entry point to the search routines.
-	It uses the function BrowQlfdidSearch3, and will leave the g_search_inst
-	looking at the found instance, or NULL. It attempts to avoid the
-	overhead of creating search entries, for cases where the user only
-	wants to find the instance associated with the given qualfied id.
-	@return 0 if found, 1 otherwise. This is perhaps the fastest
-	version of the search codes.
-	
-	@param relative If relative = 1 will start search at g_relative_inst whose value
-	should be set by a call to qlfdid (tcl) or Asc_BrowQlfdidSearchCmd (c).
-	Note that if the relative option is used str should be relative to
-	g_relative_inst NOT to the simulation root.
-*/
+ *  This function is still yet another entry point to the search routines.
+ *  It uses the function BrowQlfdidSearch3, and will leave the g_search_inst
+ *  looking at the found instance, or NULL. It attempts to avoid the
+ *  overhead of creating search entries, for cases where the user only
+ *  wants to find the instance associated with the given qualfied id.
+ *  Returns 0 if found, 1 otherwise. This is perhaps the fastest
+ *  version of the search codes.
+ *
+ *  If relative = 1 will start search at g_relative_inst whose value
+ *  should be set by a call to qlfdid (tcl) or Asc_BrowQlfdidSearchCmd (c).
+ *  Note that if the relative option is used str should be relative to
+ *  g_relative_inst NOT to the simulation root.
+ */
 
 /* @} */
 

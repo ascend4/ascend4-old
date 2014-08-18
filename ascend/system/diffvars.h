@@ -12,8 +12,10 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @defgroup system_diffvars System Differential variables
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//** @file
 	Derivative chains for ASCEND solver systems. This structure holds a
 	reorganised form of the solver lists as for example as follows:
 
@@ -50,7 +52,7 @@
 #include "slv_client.h"
 #include "system.h"
 
-/**	@addtogroup system_diffvars
+/**	@addtogroup analyse Analyse
 	@{
 */
 

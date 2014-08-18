@@ -12,8 +12,11 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//* @defgroup system_discrete System Discrete variables
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//* @file
+	Discrete variable module
 
 	This is the ascend version of the bvar module.  This
 	version should be used by any user who receives his/her
@@ -28,12 +31,12 @@
 #define ASC_DISCRETE_H
 
 #include <stdio.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/general/list.h>
 
 #include "slv_types.h"
 
-/**	@addtogroup system_discrete System Discrete variables
+/**	@addtogroup system System
 	@{
 */
 
@@ -123,7 +126,7 @@ extern void dis_set_instanceF(struct dis_discrete *dis, SlvBackendToken i);
  * Do not call this function directly - use dis_set_instance() instead.
  */
 
-ASC_DLLSPEC char *dis_make_name(const slv_system_t sys,
+extern char *dis_make_name(const slv_system_t sys,
                            const struct dis_discrete *dis);
 /**<
  *  Creates and returns a sufficiently large string storing the
@@ -136,7 +139,7 @@ ASC_DLLSPEC char *dis_make_name(const slv_system_t sys,
  *  slv_system_t from which you got the dis.
  */
 extern char *dis_make_xname(const struct dis_discrete *dis);
-/**<
+/**< 
  * Returns the index name, eg x23 rather than full name.
  * @see dis_make_name()
  */
@@ -169,7 +172,7 @@ extern void dis_set_whens_list(struct dis_discrete *dis,
 #define dis_kind(dis) (dis)->t
 #else
 #define dis_kind(dis) dis_kindF(dis)
-#endif
+#endif 
 /**<
  * Return the enumerated type that indicates the type of dis.
  * @param dis   const struct dis_discrete*, the discrete var to query.
@@ -181,7 +184,7 @@ extern void dis_set_whens_list(struct dis_discrete *dis,
 #define dis_set_kind(dis,kind) (dis)->t = (kind)
 #else
 #define dis_set_kind(dis,kind) dis_set_kindF((dis),(kind))
-#endif
+#endif 
 /**<
  * Sets the enumerated type that indicates the type of dis.
  * @param dis   const struct dis_discrete*, the discrete var to modify.
@@ -206,7 +209,7 @@ extern void dis_set_kindF(struct dis_discrete *dis,
 #define dis_mindex(dis) (dis)->mindex
 #else
 #define dis_mindex(dis) dis_mindexF(dis)
-#endif
+#endif 
 /**<
  *  Gets the index of the variable as it appears in a variable list.
  *  @param dis    const struct dis_discrete*, the discrete var to query.
@@ -218,7 +221,7 @@ extern void dis_set_kindF(struct dis_discrete *dis,
 #define dis_set_mindex(dis,index) (dis)->mindex = (index)
 #else
 #define dis_set_mindex(dis,index) dis_set_mindexF((dis),(index))
-#endif
+#endif 
 /**<
  *  Sets the index of the variable as it appears in a variable list.
  *  @param dis    const struct dis_discrete*, the discrete var to modify.
@@ -242,7 +245,7 @@ extern void dis_set_mindexF(struct dis_discrete *dis, int32 mindex);
 #define dis_sindex(dis) (dis)->sindex
 #else
 #define dis_sindex(dis) dis_sindexF(dis)
-#endif
+#endif 
 /**<
  *  Gets the index of the variable as it appears in a solvers variable list.
  *  @param dis    const struct dis_discrete*, the discrete var to query.
@@ -254,7 +257,7 @@ extern void dis_set_mindexF(struct dis_discrete *dis, int32 mindex);
 #define dis_set_sindex(dis,index) (dis)->sindex = (index)
 #else
 #define dis_set_sindex(dis,index) dis_set_sindexF((dis),(index))
-#endif
+#endif 
 /**<
  *  Sets the index of the variable as it appears in a solvers variable list.
  *  @param dis    const struct dis_discrete*, the discrete var to modify.
@@ -400,7 +403,7 @@ extern void dis_set_fixed(struct dis_discrete *dis, uint32 fixed);
 #define dis_flags(dis) ((dis)->flags)
 #else
 #define dis_flags(dis) dis_flagsF(dis)
-#endif
+#endif 
 /**<
  *  Returns the flags field of the var.
  *  @param dis    const struct dis_discrete*, the discrete var to query.
@@ -412,9 +415,9 @@ extern void dis_set_fixed(struct dis_discrete *dis, uint32 fixed);
 #define dis_set_flags(dis,flags) ((dis)->flags = (flags))
 #else
 #define dis_set_flags(dis,flags) dis_set_flagsF((dis),(flags))
-#endif
+#endif 
 /**<
- *  Sets the entire flag field to the value of flags given.
+ *  Sets the entire flag field to the value of flags given. 
  *  This flags value should be composed of the DIS_xxx macro values.
  *  @param dis    const struct dis_discrete*, the discrete var to modify.
  *  @param flags  uint32, the flags value.
@@ -433,14 +436,14 @@ extern void dis_set_flagsF(struct dis_discrete *dis, uint32 flags);
  * Do not call this function directly - use dis_set_flags() instead.
  */
 
-ASC_DLLSPEC uint32 dis_flagbit(const struct dis_discrete *dis,
+ASC_DLLSPEC uint32 dis_flagbit(const struct dis_discrete *dis, 
                           const uint32 name);
 /**<
  *  Returns the value of the bit specified from the variable flags.
  *  name should be a DIS_xx flag defined above)
  */
 
-ASC_DLLSPEC void dis_set_flagbit(struct dis_discrete *dis,
+ASC_DLLSPEC void dis_set_flagbit(struct dis_discrete *dis, 
                             uint32 NAME, uint32 oneorzero);
 /**<
  *  Sets the bit, which should be referred to by its macro name,

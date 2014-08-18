@@ -21,7 +21,9 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  *
  * (further comments moved to anonmerg.h)
  */
@@ -29,9 +31,9 @@
 
 #include <limits.h> /* for INT_MAX */
 #include <ascend/utilities/config.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/utilities/ascPrint.h>
 #include <ascend/general/pool.h>
 #include <ascend/general/list.h>
@@ -67,6 +69,10 @@
 #undef NUMLISTEXPORTIO
 #endif
 
+#ifndef lint
+static CONST char AnonMergeModuleID[] = "$Id: anonmerg.c,v 1.9 2000/01/25 02:25:52 ballan Exp $";
+#endif
+
 /* if want to compile unused functions, set to 1.
  */
 #define AMUNUSED 0
@@ -90,7 +96,7 @@
 /*
  * hash function to put a heap pointer in a bucket.
  */
-#define AMUHASH(p) (((((asc_intptr_t) (p))*1103515245) >> 20) & 1023)
+#define AMUHASH(p) (((((long) (p))*1103515245) >> 20) & 1023)
 
 /*
  * this is the flag that indicates an instance is one of a kind
@@ -438,7 +444,7 @@ void AnonMergeFindPath(struct Instance *i, int target,
               unsigned long start, struct gl_list_t *scratch)
 {
 #define AMFPDEBUG 0
-  asc_intptr_t c;
+  unsigned long c;
   struct Instance *ch = NULL; /* unnec init to avoid warning */
   struct AnonMergeIP *amip;
   int notfound, notchild;
@@ -503,7 +509,7 @@ void AnonWritePath(FILE *fp, struct Instance *i, struct gl_list_t *path)
 {
 #define AWPDB 0 /* debugging for this function */
   struct Instance *root;
-  asc_intptr_t c,len, cn;
+  unsigned long c,len, cn;
 #if AWPDB
   int ip,im;
   struct AnonMergeIP *amip;
@@ -516,7 +522,7 @@ void AnonWritePath(FILE *fp, struct Instance *i, struct gl_list_t *path)
   len = gl_length(path);
   for (c = 1; c <= len; c++) {
     root = i;
-    cn = (asc_intptr_t)gl_fetch(path,c);
+    cn = (unsigned long)gl_fetch(path,c);
     i = InstanceChild(root,cn);
 #if AWPDB
     if (GetAnonFlags(i)&AMIPFLAG) {
@@ -549,11 +555,12 @@ void AnonWritePath(FILE *fp, struct Instance *i, struct gl_list_t *path)
 }
 
 static
-void WriteMList(FILE *fp, struct gl_list_t *aml, struct Instance *i){
+void WriteMList(FILE *fp, struct gl_list_t *aml, struct Instance *i)
+{
   struct gl_list_t *pathlist, *path;
-  asc_intptr_t c,len;
-  asc_intptr_t d,dlen;
-  //asc_intptr_t elen;
+  unsigned long c,len;
+  unsigned long d,dlen;
+  unsigned long elen;
 
   if (aml !=NULL) {
     len = gl_length(aml);
@@ -570,14 +577,14 @@ void WriteMList(FILE *fp, struct gl_list_t *aml, struct Instance *i){
       FPRINTF(fp," //\n");
       for (d = 1; d <= dlen; d++) {
         path = (struct gl_list_t *)gl_fetch(pathlist,d);
-        //elen = gl_length(path);
+        elen = gl_length(path);
         AnonWritePath(fp,i,path);
       }
     }
   }
 }
 
-
+
 #if AMSTAT
 static
 void AnonMergeLogIP(struct Instance *i, struct AnonMergeIPData *amipd)
@@ -1229,7 +1236,7 @@ void CalcFinalIndependentRoutes(struct mdata *md,
                                 int * CONST totfinal,
                                 CONST int totroutes)
 {
-  asc_intptr_t newsg,blc,bllen;
+  unsigned long newsg,blc,bllen;
   struct sgelt *elt;
   GLint blob;
   GLint bigblob;
@@ -1340,7 +1347,7 @@ void CalcFinalIndependentRoutes(struct mdata *md,
           /* add sg to new blob and assign new blob to those sg */
           for (blc = 1; blc <= bllen; blc++) {
             newsg = (GLint)gl_fetch(newsgincol,blc);
-            gl_append_ptr(md->blob[blob],(void *)newsg);
+            gl_append_ptr(md->blob[blob],(VOIDPTR)newsg);
             md->sg2blob[newsg] = blob;
           }
         } else {

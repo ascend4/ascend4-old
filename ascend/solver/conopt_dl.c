@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	This file allows CONOPT to be dlopened at runtime.
@@ -22,7 +24,7 @@
 */
 
 #include <ascend/utilities/config.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/utilities/error.h>
 #include <ascend/utilities/ascEnvVar.h>
 #include <ascend/general/env.h>
@@ -36,7 +38,7 @@
 
 #ifndef ASC_LINKED_CONOPT
 # include <ctype.h>
-# include <ascend/general/ascMalloc.h>
+# include <ascend/utilities/ascMalloc.h>
 # include <ascend/utilities/ascDynaLoad.h>
 
 /*------------------------------------------------------------------------------
@@ -118,7 +120,6 @@ int asc_conopt_load(){
 		CONSOLE_DEBUG("Default conopt search path: %s", ASC_CONOPT_DLPATH);
 	}*/
 
-	/** @TODO replace with a direct call to ospath and/or importhandler? */
 	libpath = SearchArchiveLibraryPath(libname, ASC_CONOPT_DLPATH, envvar);
 
 	if(libpath==NULL){

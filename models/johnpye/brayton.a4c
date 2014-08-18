@@ -1,5 +1,5 @@
 (*	ASCEND modelling environment
-	Copyright (C) 2007, 2008, 2009, 2010 Carnegie Mellon University
+	Copyright (C) 2007, 2008, 2009 Carnegie Mellon University
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 	
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *)(*
 	This file contains some models of Brayton engines and associated cycles,
 	following the development of Çengel & Boles 'Thermodynamcs: An Engineering
@@ -25,9 +27,6 @@ REQUIRE "atoms.a4l";
 REQUIRE "johnpye/thermo_types.a4c";
 REQUIRE "johnpye/airprops.a4c";
 IMPORT "sensitivity/solve";
-
-IMPORT "johnpye/extpy/extpy";
-IMPORT "johnpye/fprops/cycle_plot";
 
 (* first some models of air as an ideal gas *)
 
@@ -83,7 +82,7 @@ END simple_ideal_air;
 	Ideal air, using a quartic polynomial for c_p as given in Moran & Shapiro
 	4th Ed.
 *)
-MODEL ideal_air_poly REFINES ideal_gas_base;
+MODEL ideal_air REFINES ideal_gas_base;
 	M :== 28.958600656 {kg/kmol};
 
 	a[0..4] IS_A real_constant;
@@ -124,43 +123,13 @@ METHOD on_load;
 	T := 200 {K};
 	p := 1 {bar};
 END on_load;	
-END ideal_air_poly;
+END ideal_air;
 
-IMPORT "johnpye/datareader/datareader";
-MODEL drconf;
-	filename IS_A symbol_constant;
-	format IS_A symbol_constant;
-	parameters IS_A symbol_constant;
-END drconf;
-	
-MODEL ideal_air_table REFINES ideal_gas_base;
-	M :== 28.958600656 {kg/kmol};
-
-	dataparams IS_A drconf;
-	dataparams.filename :== 'johnpye/idealair.csv';
-	dataparams.format :== 'CSV';
-	dataparams.parameters :== '1,4,6';
-	
-	s0 IS_A specific_entropy;	
-	u IS_A specific_energy;
-	p_ref IS_A pressure;
-
-	data: datareader(
-		T : INPUT;
-		u, s0 :OUTPUT;
-		dataparams : DATA
-	);
-
-	h = u + R * T; 
-
-	s = s0 - R * ln(p/p_ref);
-END ideal_air_table;
-	
 (*
 	Thermo properties
 *)
-MODEL air_state;
-	air IS_A ideal_air_poly;
+MODEL state;
+	air IS_A ideal_air;
 	p ALIASES air.p;
 	T ALIASES air.T;
 	h ALIASES air.h;
@@ -175,6 +144,7 @@ METHODS
 		T := 400 {K};
 		v.nominal := 10 {L/kg};
 		s := 4 {kJ/kg/K};
+		x := 0.8;
 	END default;
 	METHOD solve;
 		EXTERNAL do_solve(SELF);
@@ -183,12 +153,12 @@ METHODS
 		RUN default_all;
 		FIX p, h;
 	END on_load;
-END air_state;
+END state;
 
 
 (* a simple connector that includes calculation of steam properties *)
-MODEL air_node;
-	state IS_A air_state;
+MODEL node;
+	state IS_A state;
 	p ALIASES state.p;
 	h ALIASES state.h;
 	v ALIASES state.v;
@@ -203,14 +173,14 @@ METHODS
 		EXTERNAL do_solve(SELF);
 	END solve;
 	METHOD on_load;
-		RUN default; RUN reset; RUN values;
+		RUN default_all; RUN reset; RUN values;
 		FIX p,h;
 	END on_load;
-END air_node;
+END node;
 
 MODEL air_equipment;
-	inlet "in: inlet air stream" IS_A air_node;
-	outlet "out: outlet air stream" IS_A air_node;
+	inlet "in: inlet air stream" IS_A node;
+	outlet "out: outlet air stream" IS_A node;
 
 	inlet.mdot, outlet.mdot ARE_THE_SAME;
 	mdot ALIASES inlet.mdot;
@@ -225,7 +195,7 @@ MODEL compressor REFINES air_equipment;
 	dp IS_A delta_pressure;
 	inlet.p + dp = outlet.p;
 
-	outlet_is IS_A air_state;
+	outlet_is IS_A state;
 	outlet_is.p, outlet.p ARE_THE_SAME;
 
 	outlet_is.s, inlet.s ARE_THE_SAME;
@@ -275,7 +245,7 @@ MODEL gas_turbine REFINES air_equipment;
 	dp IS_A delta_pressure;
 	inlet.p + dp = outlet.p;
 	
-	outlet_is IS_A air_state;
+	outlet_is IS_A state;
 	outlet_is.p, outlet.p ARE_THE_SAME;
 	outlet_is.s, inlet.s ARE_THE_SAME;
 
@@ -332,9 +302,6 @@ MODEL combustor REFINES air_equipment;
 
 	eta IS_A fraction;
 	Qdot = eta * Qdot_fuel;
-
-	qdot_fuel IS_A specific_energy_rate;
-	qdot_fuel * mdot = Qdot_fuel;
 END combustor;
 
 MODEL combustor_test REFINES combustor;
@@ -410,8 +377,6 @@ MODEL brayton;
 	BU.outlet, TU.inlet ARE_THE_SAME;
 	TU.outlet, DI.inlet ARE_THE_SAME;
 	DI.outlet, CO.inlet ARE_THE_SAME;
-	braytonpressureratio IS_A positive_factor;
-	braytonpressureratio * CO.inlet.p = TU.outlet.p;
 
 	Wdot_CO ALIASES CO.Wdot;
 	Wdot_TU ALIASES TU.Wdot;
@@ -433,7 +398,7 @@ MODEL brayton;
 	r_bw IS_A factor;
 	r_bw = -Wdot_CO / Wdot_TU;
 
-	state[1..4] IS_A air_node;
+	state[1..4] IS_A node;
 	state[1], CO.inlet ARE_THE_SAME;
 	state[2], BU.inlet ARE_THE_SAME;
 	state[3], TU.inlet ARE_THE_SAME;
@@ -468,7 +433,7 @@ END brayton;
 	Assumption: fluid on both sides have the same c_p.
 *)
 MODEL regenerator REFINES air_equipment;
-	inlet_hot, outlet_hot IS_A air_node;
+	inlet_hot, outlet_hot IS_A node;
 	
 	inlet.p, outlet.p ARE_THE_SAME;
 	inlet_hot.p, outlet_hot.p ARE_THE_SAME;
@@ -558,18 +523,16 @@ MODEL brayton_regenerative;
 	eta_TU ALIASES TU.eta;
 	eta_CO ALIASES CO.eta;
 	epsilon_RE ALIASES RE.epsilon;
-
-	braytonpressureratio ALIASES CO.r;
 METHODS
 METHOD on_load;
 	FIX CO.eta, TU.eta;
-	CO.eta := 0.88;
+	CO.eta := 0.8;
 	TU.eta := 0.85;
 	FIX CO.inlet.T, TU.inlet.T;
 	CO.inlet.T := 300 {K};
 	TU.inlet.T := 1300 {K};
 	FIX CO.r;
-	CO.r := 4.5;
+	CO.r := 8;
 	FIX CO.inlet.p;
 	CO.inlet.p := 1 {bar};
 	FIX CO.inlet.mdot;
@@ -579,9 +542,6 @@ METHOD on_load;
 	FIX RE.epsilon;
 	RE.epsilon := 0.8;
 END on_load;
-METHOD cycle_plot;
-	EXTERNAL cycle_plot_brayton_regen(SELF);
-END cycle_plot;	
 END brayton_regenerative;
 
 

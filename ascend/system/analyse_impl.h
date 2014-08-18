@@ -12,8 +12,10 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @defgroup system_analyseimplem System Analysis Internal implementation
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//** @file
 	Data structures used by the 'analyze.c' implementation. DO NOT include
 	this file unless you are inside the implementation of problem analysis.
 	(so, only analyse.c and diffvars.c, at this stage).
@@ -26,8 +28,7 @@
 #define ASC_ANALYSE_IMPL_H
 
 #include "slv_server.h"
-
-/**	@addtogroup system_analyseimplem
+/**	@addtogroup system System
 	@{
 */
 
@@ -163,8 +164,6 @@ struct problem_t {
   struct gl_list_t *pars;	/* real ATOM instance parameters */
   struct gl_list_t *unas;	/* real ATOM instance of no 'apparent' use */
   struct gl_list_t *models;	/* models in tree. modips */
-
-  int bad_rel_in_list;
 
   /*
   	The following gllists contain pointers to interface ptrs as

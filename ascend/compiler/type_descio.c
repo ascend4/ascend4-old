@@ -22,12 +22,16 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  */
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
+
+
 
 #include "functype.h"
 #include "expr_types.h"
@@ -38,8 +42,6 @@
 #include "proc.h"
 #include "dimen_io.h"
 #include "child.h"
-#include "childio.h"
-#include "childdef.h"
 #include "childinfo.h"
 #include "instance_enum.h"
 #include "watchptio.h"
@@ -49,6 +51,9 @@
 #include "module.h"
 #include "type_descio.h"
 
+#ifndef lint
+static CONST char TypeDescIORCSid[] = "$Id: type_descio.c,v 1.24 1998/04/10 23:25:52 ballan Exp $";
+#endif
 
 static
 void WriteProcedureList(FILE *f, struct gl_list_t *pl)
@@ -520,7 +525,5 @@ void InitBaseTypeNames(void)
   G_BASE_MODEL_NAME	= AddSymbol("MODEL");
   G_BASE_ARRAY_NAME	= AddSymbol("ARRAY");
   G_BASE_PATCH_NAME	= AddSymbol("PATCH");
-
-  BaseType(NULL);
   /* FPRINTF(ASCERR,"...INIT BASE TYPE NAMES\n"); */
 }

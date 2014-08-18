@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Statement list routines.
@@ -28,16 +30,16 @@
 #ifndef ASC_SLIST_H
 #define ASC_SLIST_H
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/general/list.h>
 #include "compiler.h"
 #include "stattypes.h"
 
-/**	@addtogroup compiler_stmt Compiler Statements
+/**	@addtogroup compiler Compiler
 	@{
 */
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 
 extern struct StatementList *CreateStatementList(struct gl_list_t *l);
 /**<

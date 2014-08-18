@@ -5,7 +5,7 @@
  *
  *  This file is part of the Ascend Environment.
  *
- *  The Ascend Environment is free software; you can redistribute it
+ *  The Ascend Environment is free software; you can redistribute it              
  *  and/or modify it under the terms of the GNU General Public License as
  *  published by the Free Software Foundation; either version 2 of the
  *  License, or (at your option) any later version.
@@ -16,20 +16,21 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  */
 
 #include <stdio.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #ifdef __WIN32__
 #include <io.h>
 #endif
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
 #include <ascend/general/listio.h>
-
-#include <test/common.h>
-#include <test/assertimpl.h>
+#include "CUnit/CUnit.h"
+#include "test/assertimpl.h"
 #include "test/redirectStdStreams.h"
 
 #define USE_REDIRECT 0
@@ -136,20 +137,29 @@ static void test_listio(void)
   /* clean up and exit */
   for (i=0 ; i<20 ; ++i)
     ascfree(pint_array[i]);
-
+ 
   if (TRUE == i_initialized_lists) {
     gl_destroy_pool();
   }
-
+  
   CU_TEST(prior_meminuse == ascmeminuse());   /* make sure we cleaned up after ourselves */
 }
 
 /*===========================================================================*/
 /* Registration information */
 
-#define TESTS(T) \
-	T(listio)
+static CU_TestInfo list_test_listio[] = {
+  {"listio", test_listio},
+  CU_TEST_INFO_NULL
+};
 
-REGISTER_TESTS_SIMPLE(general_listio, TESTS)
+static CU_SuiteInfo suites[] = {
+  {"general_listio", NULL, NULL, list_test_listio},
+  CU_SUITE_INFO_NULL
+};
 
-
+/*-------------------------------------------------------------------*/
+CU_ErrorCode test_register_general_listio(void)
+{
+  return CU_register_suites(suites);
+}

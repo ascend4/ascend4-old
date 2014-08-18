@@ -1,35 +1,23 @@
-/*	ASCEND modelling environment
-	Copyright (C) 2011 Carnegie Mellon University
+/*
+ *  Hash function
+ *  by Tom Epperly
+ *  10/24/89
+ *  Version: $Revision: 1.1 $
+ *  Version control file: $RCSfile: hashpjw.h,v $
+ *  Date last modified: $Date: 1997/07/18 11:38:39 $
+ *  Last modified by: $Author: mthomas $
+ */
 
-	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; either version 2, or (at your option)
-	any later version.
+/** @file
+ *  Hash function.
+ *  <pre>
+ *  When #including hashpjw.h, make sure these files are #included first:
+ *         #include "utilities/ascConfig.h"
+ *  </pre>
+ */
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @addtogroup general_hash General String Hashing
-	Hashing functions for strings.
-*//*
-	by Tom Epperly
-	10/24/89
-	Last in CVS: $Revision: 1.1 $ $Date: 1997/07/18 11:38:39 $ $Author: mthomas $
-*/
-
-
-#ifndef ASC_HASHPJW_H
-#define ASC_HASHPJW_H
-
-#include <ascend/general/platform.h>
-
-/**	@addtogroup general_hash General String Hashing
-	@{
-*/
+#ifndef __hashpjw_h_seen__
+#define __hashpjw_h_seen__
 
 ASC_DLLSPEC unsigned long hashpjw(CONST char *str, unsigned long size);
 /**<
@@ -58,7 +46,5 @@ ASC_DLLSPEC unsigned long hashpjw_int(int id, unsigned long size);
  *        possibly remove function as hashpjw_int is not used in ASCEND).
  */
 
-/* @} */
-
-#endif /* ASC_HASHPJW_H */
+#endif /* __hashpjw_h_seen__ */
 

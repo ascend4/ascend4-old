@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//*
 	by Tom Epperly
 	Last in CVS: $Revision: 1.26 $ $Date: 2000/01/25 02:26:02 $ $Author: ballan $
@@ -33,11 +35,11 @@
 #ifndef ASC_COMPILER_H
 #define ASC_COMPILER_H
 
-/**	@addtogroup compiler_common Compiler Common
+/**	@addtogroup compiler Compiler
 	@{
 */
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 
 /* some influential defines and where to set them:
 	ATDEBUG anontype.c -- controls anon type/relation sharing spew
@@ -45,19 +47,17 @@
 	ASC_NO_TRAPS -- compiler -D flag. Turn off traps/setjmp/longjump.
 */
 
-/* #define TIMECOMPILER 1 */
-
 #ifndef TIMECOMPILER
-# define TIMECOMPILER 0
+#define TIMECOMPILER 0
 /**<  Set to 1 for timing spew or 0 for not. */
 #endif
 
 #ifndef CHECK_SYMBOL_USE
-# ifdef NDEBUG
-#  define CHECK_SYMBOL_USE 0
-# else
-#  define CHECK_SYMBOL_USE 1
-# endif
+#ifdef NDEBUG
+#define CHECK_SYMBOL_USE 0
+#else
+#define CHECK_SYMBOL_USE 1
+#endif
 #endif
 /**<
  * Define to check internal and client compliance with symbol
@@ -65,10 +65,11 @@
  */
 
 #if CHECK_SYMBOL_USE
-# ifndef __GNUC__
+
+#ifndef __GNUC__
 /** strcmp() is dumb in string.h. We want it to whine a lot. */
 extern int strcmp(CONST char *s1, CONST char *s2);
-# endif  /* __GNU__ */
+#endif  /* __GNU__ */
 typedef CONST double symchar;
 #else   /* !CHECK_SYMBOL_USE */
 /* This is the real definition for production builds. */

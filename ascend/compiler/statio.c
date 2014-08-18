@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Temporary Statement Output routines
 *//*
@@ -23,11 +25,13 @@
 
 #define INDENTATION 4
 
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/utilities/error.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
+
+
 
 #include "functype.h"
 #include "expr_types.h"
@@ -39,6 +43,7 @@
 #include "when.h"
 #include "select.h"
 #include "switch.h"
+#include "bit.h"
 #include "vlistio.h"
 #include "slist.h"
 #include "setio.h"
@@ -89,11 +94,6 @@ symchar *g_statio_stattypenames[WILLBE+1];
 /* typenames for the subclasses of FLOW statement */
 static
 symchar *g_statio_flowtypenames[fc_stop+1];
-
-void statio_clear_stattypenames(void){
-	g_statio_stattypenames[0]=NULL;
-}
-
 
 static
 void Indent(FILE *f, register int i)
@@ -242,7 +242,6 @@ struct gl_list_t *GetTypeNamesFromStatList(CONST struct StatementList *sl)
     case REL:
     case LOGREL:
     case AA:
-    case LNK:
     case FOR: 	/* that this isn't handled further may be a bug */
     case ASGN:
     case CASGN:
@@ -374,11 +373,6 @@ void WriteStatement(FILE *f, CONST struct Statement *s, int i)
     WriteVariableList(f,GetStatVarList(s));
     FPRINTF(f," ARE_ALIKE;\n");
     break;
-  case LNK:
-  	FPRINTF(f,"key: %s\n;",SCP(LINKStatKey(s)));
-    WriteVariableList(f,LINKStatVlist(s));
-    FPRINTF(f," LINK;\n");
-    break;	
   case FOR:
   {
     FPRINTF(f,"FOR %s IN ",SCP(ForStatIndex(s)));
@@ -398,7 +392,6 @@ void WriteStatement(FILE *f, CONST struct Statement *s, int i)
 		(ForContainsConditional(s)) ? " conditional" : "",
 		(ForContainsWillbe(s)) ? " wb" : "",
 		(ForContainsAlike(s)) ? " aa" : "",
-		(ForContainsLink(s)) ? " lnk" : "",
 		(ForContainsAlias(s)) ? " ali" : "",
 		(ForContainsArray(s)) ? " arr" : "",
 		(ForContainsWbts(s)) ? " wbts" : "",
@@ -525,17 +518,6 @@ void WriteStatement(FILE *f, CONST struct Statement *s, int i)
 	WriteVariableList(f,FixFreeStatVars(s));
 	FPRINTF(f,";\n");
 	break;
-  case SOLVER:
-  	FPRINTF(f,"SOLVER %s;\n",s->v.solver.name);
-	break;
-  case OPTION:
-  	FPRINTF(f,"OPTION %s ",s->v.option.name);
-	WriteExpr(f,s->v.option.rhs);
-	FPRINTF(f,";\n");
-	break;
-  case SOLVE:
-  	FPRINTF(f,"SOLVE;\n");
-	break;
   case CALL:
     FPRINTF(f,"CALL %s(",SCP(CallStatId(s)));
     WriteSet(f,CallStatArgs(s));
@@ -614,7 +596,7 @@ void WriteStatement(FILE *f, CONST struct Statement *s, int i)
     FPRINTF(f,"END;\n");
     break;
   default:
-    FPRINTF(f,"<Unimplemented statement type in WriteStatement>");
+    FPRINTF(f,"<Implemented statement type in WriteStatement>");
     break;
   }
 }
@@ -683,6 +665,7 @@ void WriteStatementError(const error_severity_t sev
 		, ...
 ){
 	va_list args;
+
 	error_reporter_start(sev,Asc_ModuleFileName(stat->mod),stat->linenum,SCP(StatementTypeString(stat)));
 	va_start(args,fmt);
 	vfprintf_error_reporter(ASCERR,fmt,args);
@@ -694,11 +677,10 @@ void WriteStatementError(const error_severity_t sev
 	error_reporter_end_flush();
 }
 
-void WriteStatementErrorMessage(
-	FILE *f, CONST struct Statement *stat
-	,CONST char *message, int noisy,int level
-){
-  /* old behaviour */
+void WriteStatementErrorMessage(FILE *f, CONST struct Statement *stat,
+                                CONST char *message, int noisy,int level)
+{
+  /* old behavior */
   const char *filename=NULL;
   int line=0;
   error_severity_t sev;
@@ -733,34 +715,12 @@ void WriteStatementErrorMessage(
       WriteForTable(ASCERR,GetEvaluationForTable());
     }
   }else{
-    ASC_FPRINTF(f,"NULL STATEMENT!");
+    FPRINTF(f,"NULL STATEMENT!");
   }
 
   error_reporter_end_flush();
-  CONSOLE_DEBUG("%s",message);
-  WriteStatementLocation(ASCERR,stat);
+  CONSOLE_DEBUG("MESSAGE OUTPUT");
 }
-
-void WriteStatementLocation(FILE *f, CONST struct Statement *stat){
-	//CONSOLE_DEBUG("writing...");
-	const char *filename=NULL;
-	int line=0;
-
-	if(stat==NULL){
-		//CONSOLE_DEBUG("STATEMENT POINTER IS NULL");
-		ASC_FPRINTF(f,"NULL STATEMENT!");
-		return;
-	}
-	//CONSOLE_DEBUG("...");
-
-	filename=Asc_ModuleBestName(StatementModule(stat));
-	line=StatementLineNum(stat);
-
-	/* write some more detail */
-	ASC_FPRINTF(f,"%s:%d",filename,line);
-	CONSOLE_DEBUG("%s:%d",filename,line);
-}
-
 
 CONST char *StatioLabel(int level)
 {
@@ -813,7 +773,7 @@ symchar *StatementTypeString(CONST struct Statement *s)
 {
   static symchar *error_statement_sym;
   assert(s!=NULL);
-  if(g_statio_stattypenames[0]==NULL) {
+  if (g_statio_stattypenames[0]==NULL) {
     error_statement_sym = AddSymbol("Unknown-statement-type");
     g_statio_stattypenames[ALIASES] = AddSymbol("ALIASES");
     g_statio_stattypenames[ISA] = AddSymbol("IS_A");
@@ -821,10 +781,7 @@ symchar *StatementTypeString(CONST struct Statement *s)
     g_statio_stattypenames[IRT] = AddSymbol("IS_REFINED_TO");
     g_statio_stattypenames[ATS] = AddSymbol("ARE_THE_SAME");
     g_statio_stattypenames[AA] = AddSymbol("ARE_ALIKE");
-    g_statio_stattypenames[LNK] = AddSymbol("LINK");
     g_statio_stattypenames[FOR] = AddSymbol("FOR");
-	g_statio_stattypenames[FIX] = AddSymbol("FIX");
-	g_statio_stattypenames[FREE] = AddSymbol("FREE");
     g_statio_stattypenames[REL] = GetBaseTypeName(relation_type);
     g_statio_stattypenames[LOGREL] = GetBaseTypeName(logrel_type);
     g_statio_stattypenames[ASGN] = AddSymbol("Assignment");
@@ -858,10 +815,7 @@ symchar *StatementTypeString(CONST struct Statement *s)
   case IRT:
   case ATS:
   case AA:
-  case LNK:
   case FOR:
-  case FIX:
-  case FREE:
   case REL:
   case LOGREL:
   case ASGN:

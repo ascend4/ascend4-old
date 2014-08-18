@@ -1,38 +1,40 @@
-/*	ASCEND modelling environment
-	Copyright (c) 1990 Thomas Guthrie Epperly
-	Copyright (C) 1993 Joseph Zaher
-	Copyright (c) 1994 Joseph Zaher, Benjamin Andrew Allan
-	Copyright (c) 2011 Carnegie Mellon University
-
-	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; either version 2, or (at your option)
-	any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @file
-	This file implements some kind of command-line based interface for ASCEND's
-	solver. It hasn't been carefully tested for a long time, although it still
-	compiles successfully. It may have some value for debugging purposes,
-	although currently we prefer to use our CUnit test suite together with 
-	Python scripting to drive ASCEND. -- JP, Feb 2011.
-
-	OUTDATED: This file defines the function Solve(struct Instance *inst), which is
-	swiped from solver/chris.h.  This module will instead use Karl's
-	solver. (was newascend/compiler/chris.h on wetterhorn)
-	much of slv_interface.h is not yet implemented for SLV.
-*//*
+/*
  *  SLV: Ascend Numeric Solver
  *  by Karl Michael Westerberg
  *  Created: 2/6/90
- *  Last in CVS: $Revision: 1.23 $ $Date: 1998/01/11 17:19:09 $ $Author: ballan $
+ *  Version: $Revision: 1.23 $
+ *  Version control file: $RCSfile: slv_interface.c,v $
+ *  Date last modified: $Date: 1998/01/11 17:19:09 $
+ *  Last modified by: $Author: ballan $
+ *
+ *  This file is part of the SLV solver.
+ *
+ *  Copyright (C) 1990 Karl Michael Westerberg, Thomas Guthrie Epperly
+ *  Copyright (C) 1993 Joseph Zaher
+ *  Copyright (C) 1994 Joseph Zaher, Benjamin Andrew Allan
+ *
+ *  The SLV solver is free software; you can redistribute
+ *  it and/or modify it under the terms of the GNU General Public License as
+ *  published by the Free Software Foundation; either version 2 of the
+ *  License, or (at your option) any later version.
+ *
+ *  The SLV solver is distributed in hope that it will be
+ *  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with
+ *  the program; if not, write to the Free Software Foundation, Inc., 675
+ *  Mass Ave, Cambridge, MA 02139 USA.  Check the file named COPYING.
+ *  COPYING is found in ../compiler.
  */
+
+/**
+ ***  This file defines the function Solve(struct Instance *inst), which is
+ ***  swiped from solver/chris.h.  This module will instead use Karl's
+ ***  solver. (was newascend/compiler/chris.h on wetterhorn)
+ ***  much of slv_interface.h is not yet implemented for SLV.
+ **/
 
 #include "slv_interface.h"
 #include "solver.h"
@@ -42,7 +44,7 @@
 # include <ascend/utilities/ascSignal.h>
 #endif
 
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/utilities/readln.h> /* you wot? */
 
 /* DISABLED -- JP 

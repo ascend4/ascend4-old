@@ -24,7 +24,9 @@
  *  See the GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check
+ *  the file named COPYING.  COPYING is found in ../compiler.
  */
 
 /** @file
@@ -37,10 +39,6 @@
 
 #ifndef __pretty_h_seen__
 #define __pretty_h_seen__
-
-/**	@addtogroup general_pretty General String Pretty-printing
-	@{
-*/
 
 /**
  *  Writes a string to a file, splitting it at whitespace characters to
@@ -93,8 +91,6 @@ ASC_DLLSPEC int print_long_string(FILE *fp, char *string, int width, int indent)
  *  @return The total number of characters printed.
  */
 ASC_DLLSPEC int print_long_string_EOL(FILE *fp, char *string, int indent);
-
-/* @} */
 
 #endif /* __pretty_h_seen__ */
 

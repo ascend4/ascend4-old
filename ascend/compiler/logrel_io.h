@@ -20,8 +20,9 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  You should have received a copy of the GNU General Public License along
+ *  with the program; if not, write to the Free Software Foundation, Inc., 675
+ *  Mass Ave, Cambridge, MA 02139 USA.  Check the file named COPYING.
  */
 
 /** @file
@@ -40,9 +41,7 @@
 #ifndef ASC_LOGRELATION_IO_H
 #define ASC_LOGRELATION_IO_H
 
-#include "logrelation.h"
-
-/**	@addtogroup compiler_logrel Compiler Logical Relations
+/**	@addtogroup compiler Compiler
 	@{
 */
 
@@ -50,6 +49,10 @@ extern int LogExprNeedParentheses(enum Expr_enum parent,
                                   enum Expr_enum child,
                                   int rhs);
 /**<
+ *  <!--  int LogExprNeedParentheses(parent,child,rhs);                -->
+ *  <!--  enum Expr_enum parent_op;                                    -->
+ *  <!--  enum Expr_enum child_op;                                     -->
+ *  <!--  int rhs;                                                     -->
  *  Given a unary or binary expression, will determine whether, the
  *  child expression needs parentheses. "rhs" tells if we are looking
  *  at the left or right side of a binary token.
@@ -59,12 +62,20 @@ extern void WriteLogRel(FILE *f,
                         CONST struct Instance *lrelinst,
                         CONST struct Instance *ref);
 /**<
+ *  <!--  WriteLogRel(f,lrelinst,ref);                                 -->
+ *  <!--  FILE *f;                                                     -->
+ *  <!--  const struct Instance *lrelinst;                             -->
+ *  <!--  const struct Instance *ref;                                  -->
  *  Write the logical relation in infix to the file indicated.
  */
 
 ASC_DLLSPEC char *WriteLogRelToString(CONST struct Instance *lrelinst,
                                  CONST struct Instance *ref);
 /**<
+ *  <!--  s = WriteLogRelToString(lrelinst,ref);                       -->
+ *  <!--  char *f;                                                     -->
+ *  <!--  const struct Instance *lrelinst;                             -->
+ *  <!--  const struct Instance *ref;                                  -->
  *  Write the logical relation in infix to a char.
  */
 
@@ -72,12 +83,20 @@ extern void WriteLogRelPostfix(FILE *f,
                                CONST struct Instance *lrelinst,
                                CONST struct Instance *ref);
 /**<
+ *  <!--  void WriteLogRelPostfix(f,lrelinst,ref)                      -->
+ *  <!--  FILE *f;                                                     -->
+ *  <!--  const struct Instance *lrelinst;                             -->
+ *  <!--  const struct Instance *ref;                                  -->
  *  Write the logical relation in postfix to the file indicated.
  */
 
 ASC_DLLSPEC char *WriteLogRelPostfixToString(CONST struct Instance *lrelinst,
                                         CONST struct Instance *ref);
 /**<
+ *  <!--  void WriteRelationPostfixString(lrelinst,ref)                -->
+ *  <!--  char *f;                                                     -->
+ *  <!--  const struct Instance *lrelinst;                             -->
+ *  <!--  const struct Instance *ref;                                  -->
  *  Write the logical relation in postfix to a char
  */
 
@@ -85,6 +104,10 @@ extern void WriteLogRelInfix(FILE *f,
                              CONST struct Instance *lrelinst,
                              CONST struct Instance *ref);
 /**<
+ *  <!--  void WriteLogRelInfix(f,lrelinst,ref)                        -->
+ *  <!--  FILE *f;                                                     -->
+ *  <!--  const struct Instance *lrelinst;                             -->
+ *  <!--  const struct Instance *ref;                                  -->
  *  Write the logical relation in infix to the file indicated.
  */
 

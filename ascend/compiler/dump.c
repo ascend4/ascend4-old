@@ -22,15 +22,17 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  *
  *  Implementation of instance garbage dump using hash tables.
  */
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 
-#include <ascend/general/panic.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
 #include "instance_enum.h"
 #include "cmpfunc.h"
@@ -38,6 +40,10 @@
 #include "destroyinst.h"
 #include "instquery.h"
 #include "dump.h"
+
+#ifndef lint
+static CONST char GarbageDumpID[] = "$Id: dump.c,v 1.10 1998/02/05 22:23:24 ballan Exp $";
+#endif
 
 /*
  * hash table keyed by type name pointer. chain is for some
@@ -47,7 +53,7 @@
 /*
  * macro for hashing pointers. shift, mask must match dump SIZE.
  */
-#define DUMPHASHINDEX(p) (((((asc_intptr_t) (p))*1103515245) >> 20) & 1023)
+#define DUMPHASHINDEX(p) (((((long) (p))*1103515245) >> 20) & 1023) 
 
 
 #define DUMPLISTSIZE 10L

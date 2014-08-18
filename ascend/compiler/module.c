@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Ascend Module Control
 *//*
@@ -27,10 +29,10 @@
 #include <time.h>
 #include <ctype.h>
 #include <sys/stat.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/utilities/ascEnvVar.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/list.h>
 #include "scanner.h"
 
@@ -422,13 +424,11 @@ struct module_t *FindModuleFile(CONST char *name,
    */
   dup = SearchForModule(new_module);
 
-#if SEARCH_DEBUG
   if(dup){
     CONSOLE_DEBUG("Duplicate module named '%s' was found"
       ,SCP(new_module->base_name)
     );
   }
-#endif
 
   /*
 	If we were called from RequireModule, return if a module
@@ -1017,9 +1017,7 @@ int ModuleSearchPath(CONST char *name,
 			return 1;
 		}
 
-#ifdef SEARCH_DEBUG
-		CONSOLE_DEBUG("ENV var value is '%s'",tmp);
-#endif
+		/*  CONSOLE_DEBUG("ENV var value is '%s'",tmp); */
 
 		sp1 = ospath_searchpath_new(tmp);
 		if(sp1==NULL){
@@ -1031,9 +1029,7 @@ int ModuleSearchPath(CONST char *name,
 		}
 		ascfree(tmp);
 
-#ifdef SEARCH_DEBUG
-		CONSOLE_DEBUG("Created SP with %d elements",ospath_searchpath_length(sp1));
-#endif
+		/* CONSOLE_DEBUG("Created SP with %d elements",ospath_searchpath_length(sp1)); */
 
 		sd.fp = fp1;
 

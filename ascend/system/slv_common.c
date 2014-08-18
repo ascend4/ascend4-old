@@ -37,9 +37,9 @@
 #endif
 
 #include <ascend/general/mathmacros.h>
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
-#include <ascend/general/mem.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/utilities/mem.h>
 
 #ifdef SLV_STANDALONE
 # ifdef NDEBUG
@@ -270,9 +270,9 @@ int slv_direct_solve(slv_system_t server, struct rel_relation *rel,
     var_write_name(server,var,ASCERR);
     FPRINTF(ASCERR,"' in equation '");
     rel_write_name(server,rel,ASCERR);
-    FPRINTF(ASCERR,"' out of bounds. Rejected solution(s) =");
+    FPRINTF(ASCERR,"' out of bounds.\n");
     for (--allsolns; allsolns >= 0; allsolns--)  {
-      FPRINTF(ASCERR," %.18g",slist[allsolns]);
+      FPRINTF(ASCERR,"Rejected solution = %.18g\n",slist[allsolns]);
     }
 	error_reporter_end_flush();
   }

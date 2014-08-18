@@ -12,18 +12,18 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	Vector math implementation
 */
 
 #include "mtx_vector.h"
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
-#include <ascend/general/mem.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/utilities/mem.h>
 #include <math.h>
-
-#define MTXVECTOR_DEBUG
 
 struct vec_vector *vec_create(int32 low, int32 high)
 {                                                                
@@ -35,11 +35,6 @@ struct vec_vector *vec_create(int32 low, int32 high)
 
   result->rng = NULL;
   result->vec = NULL;
-#ifdef MTXVECTOR_DEBUG
-  /* set these elements to zero only if we're debugging (eg valgrinding) */
-  result->accurate = 0;
-  result->norm2 = 0;
-#endif
   if (0 != vec_init(result, low, high)) {
     ASC_FREE(result);
     result = NULL;
@@ -66,12 +61,7 @@ int vec_init(struct vec_vector *vec, int32 low, int32 high)
 
   new_size = high + 1;
   if (NULL == vec->vec) {
-#ifdef MTXVECTOR_DEBUG
-    /* set these elements to zero only if we're debugging (eg valgrinding) */
-    vec->vec = ASC_NEW_ARRAY_CLEAR(real64,new_size);
-#else
     vec->vec = ASC_NEW_ARRAY(real64,new_size);
-#endif
     if (NULL == vec->vec) {
       ASC_FREE(vec->rng);
       vec->rng = NULL;

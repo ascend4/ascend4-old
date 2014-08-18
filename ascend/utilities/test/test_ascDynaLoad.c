@@ -16,25 +16,21 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  */
 
 #include <stdio.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #ifdef __WIN32__
 #include <io.h>
 #endif
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/utilities/ascDynaLoad.h>
-
-#include <test/common.h>
-#include <test/printutil.h>
-
-#include "shlib_test.h"
-
-int error_reporter_callback_null(ERROR_REPORTER_CALLBACK_ARGS){
-	return 0;
-}
+#include "CUnit/CUnit.h"
+#include "test_ascDynaLoad.h"
+#include "test_ascDynaLoad_shlib.h"
 
 /*
  *  ascDynaLoad.[ch] has several different platform-dependent
@@ -64,14 +60,10 @@ static void test_ascDynaLoad(void)
   valuetype        *value1, *value2;
   unsigned long prior_meminuse;
 
-	error_reporter_set_callback(&error_reporter_callback_null);
-
 #ifdef __WIN32__
-  const char *shlib_name = "ascend\\utilities\\test\\testdynaload.dll";
-#elif defined(__APPLE__)
-  const char *shlib_name = "ascend/utilities/test/libtestdynaload.dylib";
+  const char *shlib_name = "base\\generic\\utilities\\test\\testdynaload.dll";
 #else
-  const char *shlib_name = "ascend/utilities/test/libtestdynaload.so";
+  const char *shlib_name = "base/generic/utilities/test/libtestdynaload.so";
 #endif  /* __WIN32__ */
 
 
@@ -87,9 +79,9 @@ static void test_ascDynaLoad(void)
   if (NULL == (file = fopen(shlib_name, "r"))) {  /* make sure we can open the test shared library */
     CU_FAIL("Could not find test shared library.  Aborting test.");
   } else {
-
+  
     fclose(file);
-
+    
     if (0 == Asc_DynamicLoad(shlib_name, NULL)) {  /* shared lib with no init func */
       CU_PASS("Opening of shared library succeeded.");
 
@@ -120,10 +112,10 @@ static void test_ascDynaLoad(void)
     else {
       CU_FAIL("Opening of shared library failed.");
     }
-
+  
     if (-5 == Asc_DynamicLoad(shlib_name, "init")) {  /* shared lib with init func */
       CU_PASS("Opening of shared library succeeded.");
-
+  
       CU_TEST(NULL != (init_func =          (initFunc)Asc_DynamicFunction(shlib_name, "init")));
       CU_TEST(NULL != (isInitialized_func = (isInitializedFunc)Asc_DynamicFunction(shlib_name, "isInitialized")));
       CU_TEST(NULL != (cleanup_func =       (cleanupFunc)Asc_DynamicFunction(shlib_name, "cleanup")));
@@ -148,7 +140,7 @@ static void test_ascDynaLoad(void)
       CU_FAIL("Opening of shared library failed.");
     }
   }
-
+  
   /* test Asc_DynamicVariable(), test Asc_DynamicFunction(), test Asc_DynamicSymbol()
           - normal operation tested in previous tests */
 
@@ -165,15 +157,23 @@ static void test_ascDynaLoad(void)
   CU_TEST(NULL == Asc_DynamicFunction(shlib_name, "init")); /* library not open */
 
   CU_TEST(prior_meminuse == ascmeminuse());   /* make sure we cleaned up after ourselves */
-
-	error_reporter_set_callback(NULL);
 }
 
 /*===========================================================================*/
 /* Registration information */
 
-#define TESTS(T) \
-	T(ascDynaLoad)
+static CU_TestInfo ascDynaLoad_test_list[] = {
+  {"dyna;oad", test_ascDynaLoad},
+  CU_TEST_INFO_NULL
+};
 
-REGISTER_TESTS_SIMPLE(utilities_ascDynaLoad, TESTS)
+static CU_SuiteInfo suites[] = {
+  {"utilities_ascDynaLoad", NULL, NULL, ascDynaLoad_test_list},
+  CU_SUITE_INFO_NULL
+};
 
+/*-------------------------------------------------------------------*/
+CU_ErrorCode test_register_utilities_ascDynaLoad(void)
+{
+  return CU_register_suites(suites);
+}

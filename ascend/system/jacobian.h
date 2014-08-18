@@ -12,8 +12,10 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @defgroup system_jacobian System Jacobian
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//** @file
 	General-purpose jacobian routines that should hopefully be shareable
 	but at this stage are only going to be used by IDA.
 */
@@ -25,10 +27,6 @@
 
 #include <ascend/linear/mtx.h>
 
-/**	@addtogroup system_jacobian
-	@{
-*/
-
 ASC_DLLSPEC const rel_filter_t system_rfilter_algeb;
 ASC_DLLSPEC const rel_filter_t system_rfilter_diff;
 ASC_DLLSPEC const rel_filter_t system_rfilter_all;
@@ -38,11 +36,10 @@ ASC_DLLSPEC const var_filter_t system_vfilter_diff;
 ASC_DLLSPEC const var_filter_t system_vfilter_deriv;
 ASC_DLLSPEC const var_filter_t system_vfilter_nonderiv;
 
-
 /**
 	This mischevious data structure is a quick dodge to avoid having to
 	set some some big complicated slv_system_t structure for the purpose of
-	reporting back on a matrix slice. It seems that the better way to do
+	reporting back on a matrix slice. It seems that the better way to do 
 	all this would be using a mtx_matrix_t with rol/col permutations mapping
 	back to the solvers_var/rel_list.
 
@@ -60,7 +57,7 @@ struct SystemJacobianStruct{
 	and vars matching the filter. Return the list of rels and vars.
 
 	This routine uses relman_diff2 to calculate derivatives and
-	mtx_set_value to insert them into the matrix.
+	mtx_set_value to insert them into the matrix. 
 
 	It's not in any way optimised for fast evaluation / mtx updates etc.
 */

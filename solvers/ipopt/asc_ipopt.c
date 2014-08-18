@@ -1,5 +1,5 @@
 /*	ASCEND modelling environment
-	Copyright (C) 2007-2010 Carnegie Mellon University
+	Copyright (C) 2007-2008 Carnegie Mellon University
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Connection of the IPOPT optimisation solver into ASCEND.
@@ -21,14 +23,13 @@
 
 	The IPOPT solver is documented at http://projects.coin-or.org/Ipopt/
 *//*
-	ASCEND wrapper for IPOPT originally by John Pye, Jun 2007 onwards. Further
-	contributions from Mahesh Narayanamurthi 2009.
+	ASCEND wrapper for IPOPT originally by John Pye, Jun 2007 onwards.
 */
 
 #include <ascend/utilities/config.h>
 
 #ifndef ASC_WITH_IPOPT
-# error "ASC_WITH_IPOPT must be defined in order to build this."
+# error "ASC_WITH_IPOPT must be defined in order to build this." 
 #endif
 
 #include <math.h>
@@ -40,11 +41,11 @@
 #include <ascend/system/slv_stdcalls.h>
 #include <ascend/system/block.h>
 
-#include <ascend/general/platform.h>
-#include <ascend/general/panic.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/utilities/ascDynaLoad.h>
-#include <ascend/general/mem.h>
+#include <ascend/utilities/mem.h>
 #include <ascend/utilities/ascEnvVar.h>
 #include <ascend/general/tm_time.h>
 #include <ascend/general/env.h>
@@ -67,14 +68,14 @@ enum{
 	/** ASCEND OPTIONS */
 	ASCEND_PARAM_SAFEEVAL
 	/** OUTPUT OPTIONS */
-	,IPOPT_PARAM_PRINT_LEVEL
+	,IPOPT_PARAM_PRINT_LEVEL	
 	,IPOPT_PARAM_PRINT_USER_OPTIONS
 	/** TERMINATION OPTIONS */
 	,IPOPT_PARAM_TOL
 	,IPOPT_PARAM_MAX_ITER
 	,IPOPT_PARAM_MAX_CPU_TIME
 	,IPOPT_PARAM_DIVERGING_ITERATES_TOL
-	,IPOPT_PARAM_CONSTR_VIOL_TOL
+	,IPOPT_PARAM_CONSTR_VIOL_TOL	
 	,IPOPT_PARAM_DUAL_INFEASIBILITY_TOL
 	,IPOPT_PARAM_ACCEPTABLE_TOL
 	,IPOPT_PARAM_ACCEPTABLE_ITER
@@ -86,7 +87,7 @@ enum{
 	,IPOPT_PARAM_DERIVATIVE_TEST
 	/** QUASI-NEWTON OPTIONS */
 	,IPOPT_PARAM_HESS_APPROX
-	/** OPTIONS COUNT */
+	/** OPTIONS COUNT */	
 	,IPOPT_PARAMS
 };
 
@@ -125,9 +126,7 @@ struct IpoptSystemStruct{
 	int32 calc_ok;
 	double obj_val;
 
-#if 0
 	void *parm_array[IPOPT_PARAMS];
-#endif
 	struct slv_parameter pa[IPOPT_PARAMS];
 
 	/*
@@ -139,21 +138,17 @@ struct IpoptSystemStruct{
 	Index nnzJ; /* number of non zeros in the jacobian of the constraints */
 	Index nnzH; /* number of non-zeros in the hessian of the objective */
 
-#if 0
 	Number* x_L;                  /* lower bounds on x */
 	Number* x_U;                  /* upper bounds on x */
 	Number* g_L;                  /* lower bounds on g */
 	Number* g_U;                  /* upper bounds on g */
-#endif
 
 	IpoptProblem nlp;             /* IpoptProblem */
 
 	enum ApplicationReturnStatus status; /* Solve return code */
-#if 0
 	Number* x;                    /* starting point and solution vector */
 	Number* mult_x_L;             /* lower bound multipliers at the solution */
 	Number* mult_x_U;             /* upper bound multipliers at the solution */
-#endif
 	Index i;                      /* generic counter */
 };
 
@@ -240,7 +235,7 @@ static SlvClientToken ipopt_create(slv_system_t server, int32 *statusindex){
 		return NULL;
 	}
 
-
+	
 	/* do nothing with the objective list, pars, bounds, extrels, etc etc */
 
 	slv_check_var_initialization(server);
@@ -249,15 +244,10 @@ static SlvClientToken ipopt_create(slv_system_t server, int32 *statusindex){
 }
 
 static int32 ipopt_destroy(slv_system_t server, SlvClientToken asys){
-	IpoptSystem *sys;
 	UNUSED_PARAMETER(server);
-	sys = SYS(asys);
-	slv_destroy_parms(&(sys->p));
-	if(sys->s.cost) ascfree(sys->s.cost);
-	ASC_FREE(sys);
-	ERROR_REPORTER_HERE(ASC_PROG_WARNING,"ipopt_destroy still needs debugging");
-	return 0;
-}
+	ERROR_REPORTER_HERE(ASC_PROG_ERR,"ipopt_destroy not implemented");
+	return 1;
+}	
 
 
 static int ipopt_get_status(slv_system_t server, SlvClientToken asys
@@ -312,7 +302,7 @@ static int32 ipopt_eligible_solver(slv_system_t server){
 			return(FALSE);
 		}
 	}
-
+	
 	/// @todo check that there are no discrete-valued variables
 	for( vp=slv_get_solvers_var_list(server); *vp != NULL ; ++vp ) {
 		if(var_apply_filter(*vp,&vfilt)){
@@ -320,7 +310,7 @@ static int32 ipopt_eligible_solver(slv_system_t server){
 			return(FALSE);
 		}
 	}
-
+	
 	/// @todo check anything else?
 
 	return 1;
@@ -363,8 +353,8 @@ int32 ipopt_get_default_parameters(slv_system_t server, SlvClientToken asys
 			"throw SIGFPE errors which will then halt integration (FALSE)."
 		}, FALSE}
 	);
-
-
+	
+	
 	/** Output Options */
 
 	slv_param_int(parameters,IPOPT_PARAM_PRINT_LEVEL
@@ -388,7 +378,7 @@ int32 ipopt_get_default_parameters(slv_system_t server, SlvClientToken asys
 		}, "yes"}, (char *[]){
 			"no","yes",NULL
 		}
-	);
+	); 
 
 
 
@@ -417,7 +407,7 @@ int32 ipopt_get_default_parameters(slv_system_t server, SlvClientToken asys
 
 	slv_param_real(parameters,IPOPT_PARAM_MAX_CPU_TIME
 		,(SlvParameterInitReal){{"max_cpu_time"
-			,"Maximum CPU time allowed per problem (seconds)",3
+			,"Maximum CPU time allowed per problem (seconds)",3  
 			,"The algorithm terminates with an error message if the CPU time exceeds this value."
 		}, 1.e6, 0, 1.e7}
 	);
@@ -425,7 +415,7 @@ int32 ipopt_get_default_parameters(slv_system_t server, SlvClientToken asys
 	slv_param_real(parameters,IPOPT_PARAM_DIVERGING_ITERATES_TOL
 		,(SlvParameterInitReal){{"diverging_iterates_tol"
 			,"Threshold for maximal value of primal iterates",3
-			,"If any component of the primal iterates exceeded this value"
+			,"If any component of the primal iterates exceeded this value" 
 			 " (in absolute terms), the optimization is aborted with the "
 			 "exit message that the iterates seem to be diverging"
 		}, 1.e20, 0, 1.e50}
@@ -435,10 +425,10 @@ int32 ipopt_get_default_parameters(slv_system_t server, SlvClientToken asys
 	slv_param_real(parameters,IPOPT_PARAM_DUAL_INFEASIBILITY_TOL
 		,(SlvParameterInitReal){{"dual_inf_tol"
 			,"Desired threshold for the dual infeasibility.",3
-			,"Absolute tolerance on the dual infeasibility. Successful "
+			,"Absolute tolerance on the dual infeasibility. Successful " 
 			 "termination requires that the max-norm of the (unscaled) "
 			 "dual infeasibility is less than this threshold. The valid "
-			 "range for this real option is 0 < dual_inf_tol < +inf and"
+			 "range for this real option is 0 < dual_inf_tol < +inf and" 
 			 " its default value is 1."
 		}, 1, 0, 1.e50}
 	);
@@ -447,10 +437,10 @@ int32 ipopt_get_default_parameters(slv_system_t server, SlvClientToken asys
 	slv_param_real(parameters,IPOPT_PARAM_CONSTR_VIOL_TOL
 		,(SlvParameterInitReal){{"constr_viol_tol"
 			,"Desired threshold for the constraint violation.",3
-			,"Absolute tolerance on the constraint violation. Successful"
+			,"Absolute tolerance on the constraint violation. Successful" 
 			 "termination requires that the max-norm of the (unscaled) "
 			 " constraint violation is less than this threshold. The valid"
-			 " range for this real option is 0 < constr_viol_tol < +inf and"
+			 " range for this real option is 0 < constr_viol_tol < +inf and" 
 			 " its default value is  0.0001"
 		}, 1e-4, 0, 1.e50}
 	);
@@ -502,7 +492,7 @@ int32 ipopt_get_default_parameters(slv_system_t server, SlvClientToken asys
 		}, "mumps"}, (char *[]){
 			"ma27","ma57","pardiso","wsmp","mumps","custom",NULL
 		}
-	);
+	); 
 
 
 	/** Barrier Parameter Options*/
@@ -545,7 +535,7 @@ int32 ipopt_get_default_parameters(slv_system_t server, SlvClientToken asys
 			"exact","limited-memory",NULL
 		}
 	);
-
+	
 
 	asc_assert(parameters->num_parms==IPOPT_PARAMS);
 
@@ -594,7 +584,7 @@ int ipopt_update_model(IpoptSystem *sys, const double *x){
 	/* FIXME do we need to update any other stuff? */
 	for(j = 0; j < sys->n; ++j){
 		//CONSOLE_DEBUG("value of var[%d] = %g", j, x[j]);
-		asc_assert(!isnan(x[j]));
+	    	asc_assert(!isnan(x[j]));
 		var_set_value(sys->vlist[j], x[j]);
 	}
 
@@ -650,6 +640,11 @@ Bool ipopt_eval_grad_f(Index n, Number* x, Bool new_x, Number* grad_f, void *use
 
 	sys = SYS(user_data);
 
+	static var_filter_t vfilter = {
+		VAR_ACTIVE | VAR_INCIDENT | VAR_SVAR | VAR_FIXED
+		,VAR_ACTIVE | VAR_INCIDENT | VAR_SVAR
+	};
+
 	//CONSOLE_DEBUG("ipopt_eval_grad_f");
 
 	asc_assert(n==sys->n);
@@ -666,25 +661,25 @@ Bool ipopt_eval_grad_f(Index n, Number* x, Bool new_x, Number* grad_f, void *use
 	for(j=0; j<n; ++j){
 		grad_f[j] = 0;
 	}
-
+	
 	len = rel_n_incidences(sys->obj);
 	variables = ASC_NEW_ARRAY_CLEAR(int,len);
 	derivatives = ASC_NEW_ARRAY_CLEAR(double,len);
 	/** @todo Check if memory allocation was successful and flag error if otherwise */
 	//CONSOLE_DEBUG("Length of incidences: %d",len);
 	//CONSOLE_DEBUG("allocated variables,derivatives");
-
+	
 	/*relman_diff2(
 		sys->obj,&vfilter,derivatives,variables
 		, &count,SLV_PARAM_BOOL(&(sys->p),ASCEND_PARAM_SAFEEVAL)
 	);*/
 
 	relman_diff2_rev(
-		sys->obj,&(sys->vfilt),derivatives,variables
-		, &count,SLV_PARAM_BOOL(&(sys->p),ASCEND_PARAM_SAFEEVAL)
+				 sys->obj,&vfilter,derivatives,variables
+			, &count,SLV_PARAM_BOOL(&(sys->p),ASCEND_PARAM_SAFEEVAL)
 	);
-
-
+	
+	
 	for(j=0; j<len; ++j){
 		//asc_assert(!isnan(derivatives[j]));
 		grad_f[variables[j]] = derivatives[j];
@@ -743,11 +738,22 @@ Bool ipopt_eval_jac_g(Index n, Number* x, Bool new_x, Index m
 	int i,res,j,k,len,count;
 	struct var_variable **incidence_list;
 	int *variables;
-	double *derivatives;
+	double *derivatives; 
+
+	static var_filter_t vfilter = {
+		VAR_ACTIVE | VAR_INCIDENT | VAR_SVAR | VAR_FIXED,
+		VAR_ACTIVE | VAR_INCIDENT | VAR_SVAR
+	};	
+
 
 	//CONSOLE_DEBUG("ipopt_eval_jac_g... nnzJ = %d",sys->nnzJ);
 	//CONSOLE_DEBUG("ipopt_eval_jac_g... n = %d",sys->n);
 	//CONSOLE_DEBUG("ipopt_eval_jac_g... m = %d",sys->m);
+	
+	/*if(!values){
+		//CONSOLE_DEBUG("sparsity structure requested, but not implemented");
+		return 0; // failure 
+	}*/
 
 	asc_assert(sys!=NULL);
 	asc_assert(n==sys->n);
@@ -760,59 +766,51 @@ Bool ipopt_eval_jac_g(Index n, Number* x, Bool new_x, Index m
 	}
 
 	if(values == NULL){
-		CONSOLE_DEBUG("sparsity structure requested");
 		k=0;
 		for(i=0; i<m;++i){
-			/* looping through rows, one per relation */
-			if(rel_apply_filter(sys->rlist[i], &(sys->rfilt))){
-				incidence_list = (struct var_variable**) rel_incidence_list(sys->rlist[i]);
+			incidence_list = (struct var_variable**) rel_incidence_list(sys->rlist[i]); 
+			if(incidence_list!=NULL){
 				len=rel_n_incidences(sys->rlist[i]);
 				for(j=0;j<len;j++){
-					/* looping through incident variables in current relation */
-					if(var_apply_filter(incidence_list[j], &(sys->vfilt))){
-						CONSOLE_DEBUG("Non-zero #%d at [%d,%d]",k, i,incidence_list[j]->sindex);
-
-						/* valgrind says invalid write of size 4 here... */
 						iRow[k]=i; // should i use sindex of row here or is this ok?
 						jCol[k++]=incidence_list[j]->sindex;
-					}
-				}
-			}else{
-				CONSOLE_DEBUG("Filter removes relation %d",i);
+						//CONSOLE_DEBUG("Location of Non Zero: {%d,%d}; k = %d",i,incidence_list[j]->sindex,k);
+				}		
+			}
+			else{
+				ERROR_REPORTER_HERE(ASC_PROG_WARNING,"Unused Relation???");
+				return FALSE; //I'm not sure about the action to take.
 			}
 		}
-		CONSOLE_DEBUG("Found %d non-zero elements in jacobian", k);
-	}else{
-		//CONSOLE_DEBUG("Calculating jacobian...");
+		//CONSOLE_DEBUG("Finished Locating Non-Zero elements in Sparse Matrix");
+	}	
+	else{
+		/** @todo Allocating and Deallocating memory for each row??? you must be out of your mind :O */
 		k=0;
-		/** @TODO make use of some temporary allocated memory for these arrays... */
 		variables = ASC_NEW_ARRAY(int,n);
-		derivatives = ASC_NEW_ARRAY_CLEAR(double,n);
+		derivatives = ASC_NEW_ARRAY(double,n);
 		for(i=0; i<m;++i){
-			if(rel_apply_filter(sys->rlist[i], &(sys->rfilt))){
-				incidence_list = (struct var_variable**) rel_incidence_list(sys->rlist[i]);
-				len = rel_n_incidences(sys->rlist[i]);
-
-#if 0
-				relman_diff2(sys->rlist[i],&(sys->vfilt),derivatives,variables
-					,&count,SLV_PARAM_BOOL(&(sys->p),ASCEND_PARAM_SAFEEVAL)
-				);
-#else
-				relman_diff2_rev(sys->rlist[i], &(sys->vfilt), derivatives
-					,variables, &count, SLV_PARAM_BOOL(&(sys->p),ASCEND_PARAM_SAFEEVAL)
-				);
-#endif
-
-				for(j=0;j<count;j++){ /* loop through only the returned (filtered) incidences, not all of them */
-					asc_assert(k < sys->nnzJ);
-					//CONSOLE_DEBUG("Recording values[%d] = derivatives[%d]",k,j);
+			incidence_list = (struct var_variable**) rel_incidence_list(sys->rlist[i]);
+			if(incidence_list!=NULL){
+			      len = rel_n_incidences(sys->rlist[i]);
+			      /*relman_diff2(sys->rlist[i],&vfilter,derivatives,variables
+			      ,&count,SLV_PARAM_BOOL(&(sys->p),ASCEND_PARAM_SAFEEVAL)
+			      );*/
+				  relman_diff2_rev(sys->rlist[i],&vfilter,derivatives,variables
+						  ,&count,SLV_PARAM_BOOL(&(sys->p),ASCEND_PARAM_SAFEEVAL)
+						);
+			      for(j=0;j<len;j++){
 					asc_assert(!isnan(derivatives[j]));
-					values[k++] = derivatives[j];
-				}
+				    values[k++] = derivatives[j];
+			      }
+			}
+			else{
+				ERROR_REPORTER_HERE(ASC_PROG_WARNING,"Unused Relation???");
+				return FALSE; //I'm not sure about the action to take.
 			}
 		}
 		if(variables)ASC_FREE(variables);
-		if(derivatives)ASC_FREE(derivatives);
+		if(derivatives)ASC_FREE(derivatives);	
 		//CONSOLE_DEBUG("Filled in values of Jacobian");
 	}
 	//CONSOLE_DEBUG("done ipopt_eval_jac_g");
@@ -832,63 +830,67 @@ Bool ipopt_eval_h(Index n, Number* x, Bool new_x
 
 	struct var_variable **incidence_list;
 
-	hessian_mtx *hess_matrix;
+	hessian_mtx *hess_matrix; 
 
-	unsigned long i;
+	unsigned long i;	
 
 	Index row;
 	Index col;
 	Index idx;
 
+
+	static var_filter_t vfilter = {
+		VAR_ACTIVE | VAR_INCIDENT | VAR_SVAR | VAR_FIXED,
+ 		VAR_ACTIVE | VAR_INCIDENT | VAR_SVAR
+	};	
+
 	//CONSOLE_DEBUG("IN FUNCTION ipopt_eval_h");
-	//CONSOLE_DEBUG("nnzH = %d",sys->nnzH);
-	//CONSOLE_DEBUG("n = %d, m = %d",sys->n, sys->m);
+	//CONSOLE_DEBUG("ipopt_eval_h... nnzH = %d",sys->nnzH);
+	//CONSOLE_DEBUG("ipopt_eval_h... n = %d",sys->n);
 
 	asc_assert(sys!=NULL);
 	asc_assert(n==sys->n);
 	asc_assert(nele_hess==sys->nnzH);
-
+	
 	if(new_x){
 		res = ipopt_update_model(sys,x);
-		if(res)return FALSE; /* fail model update */
+		if(res)return 0; /* fail model update */
 	}
 
 	if(values == NULL){
 		asc_assert(iRow !=NULL && jCol != NULL);
-
-		CONSOLE_DEBUG("Determining sparsity structure of the hessian of the lagrangian");
+		
 
 		/* identify the sparsity structure of the Hessian (note: only the lower-
 		left part is required by IPOPT , because the Hessian is symmetric) */
 		//CONSOLE_DEBUG("Analysing of Hessian matrix sparsity structure not implemented");
 		//CONSOLE_DEBUG("Dense Hessian Calculations being performed");
-
+	
 		idx = 0;
 
 		for (row = 0; row < n; row++) {
 			for (col = 0; col <= row; col++) {
-				iRow[idx] = row;
+				iRow[idx] = row; 
 				jCol[idx] = col;
 				idx++;
 			}
 		}
 		asc_assert(idx == nele_hess);
 
-		CONSOLE_DEBUG("Done with sparsity calc, there are %d elements",idx);
 	}
 	else{
 		asc_assert(jCol==NULL && iRow==NULL);
-		asc_assert(lambda!=NULL);
-
+		asc_assert(lambda!=NULL); 
+		
 		/** Array of LT matrix */
 		hess_matrix = Hessian_Mtx_create(Lower,n);
-
+		
 		//CONSOLE_DEBUG("Order of Hessian MATRIX [%d x %d]",n,n);
-
+		
 		/** Correction for objective function **/
 		//CONSOLE_DEBUG("Correction for Objective Relation underway");
-		relman_hess(sys->obj,&(sys->vfilt),hess_matrix,&count,n,SLV_PARAM_BOOL(&(sys->p),ASCEND_PARAM_SAFEEVAL));
-
+		relman_hess(sys->obj,&vfilter,hess_matrix,&count,n,SLV_PARAM_BOOL(&(sys->p),ASCEND_PARAM_SAFEEVAL));
+		
 		idx = 0;
 
 		for (row = 0; row < n; row++) {
@@ -898,11 +900,11 @@ Bool ipopt_eval_h(Index n, Number* x, Bool new_x
 			}
 		}
 		asc_assert(idx == nele_hess);
-
+		
 
 		/** Correction for m-relations **/
 
-
+	
 		for(i=0; i<m; i++){
 			/** @TODO Initialize the Hess Matrix Elements to zero */
 			Hessian_Mtx_clear(hess_matrix);
@@ -910,8 +912,8 @@ Bool ipopt_eval_h(Index n, Number* x, Bool new_x
 			incidence_list = (struct var_variable**) rel_incidence_list(sys->rlist[i]);
 			if(incidence_list!=NULL){
 				//CONSOLE_DEBUG("Correction for Constraint Relation [%lu] underway",i);
-				relman_hess(sys->rlist[i],&(sys->vfilt),hess_matrix,&count,n,SLV_PARAM_BOOL(&(sys->p),ASCEND_PARAM_SAFEEVAL));
-
+				relman_hess(sys->rlist[i],&vfilter,hess_matrix,&count,n,SLV_PARAM_BOOL(&(sys->p),ASCEND_PARAM_SAFEEVAL));
+			
 				idx=0;
 
 				for (row = 0; row < n; row++) {
@@ -920,7 +922,7 @@ Bool ipopt_eval_h(Index n, Number* x, Bool new_x
 						idx++;
 					}
 				}
-				asc_assert(idx == nele_hess);
+				asc_assert(idx == nele_hess);	
 
 			}
 			else{
@@ -929,15 +931,15 @@ Bool ipopt_eval_h(Index n, Number* x, Bool new_x
 				return FALSE; //I'm not sure about the action to take.
 			}
 		}
-
+		
 		//CONSOLE_DEBUG("Hessian Matrix evaluation successful");
 
 		Hessian_Mtx_destroy(hess_matrix);
-
+		
 		/* evaluate the Hessian matrix */
 		//CONSOLE_DEBUG("Evaluation of Hessian matrix Completed");
 	}
-
+	
 	return TRUE; /* fail: not yet implemented */
 }
 
@@ -960,23 +962,9 @@ static int ipopt_presolve(slv_system_t server, SlvClientToken asys){
 
 	/** @todo work out if matrix creation is not again needed */
 
-	slv_sort_rels_and_vars(server,&(sys->m),&(sys->n));
-#if 0
-	/* ignore any errors here; if it fails, we may just have a single objective function and no constraining relations */
-	if(-1 == sys->n){
-		ERROR_REPORTER_HERE(ASC_PROG_ERR,"Failed to find any optimisable vars");
-		return -4;
-	}
-	if(-1 == sys->m){
-		sys->m = 0; /* no relations found, but that's OK if there's an objective? */
-	}
-	if(-1 == sys->m)sys->m = 0;
-	if(-1 == sys->n)sys->n = 0;
-#endif
+	/** @todo slv_sort_rels_and_vars(server,&(sys->m),&(sys->n)); */
 
-	CONSOLE_DEBUG("Got %d rels and %d vars",sys->m, sys->n);
 
-#if 1
 	/* count the number of optimisation variables */
 	sys->n = 0;
 	for(i = 0; i < sys->vtot; i++){
@@ -985,7 +973,6 @@ static int ipopt_presolve(slv_system_t server, SlvClientToken asys){
 			sys->n++;
 		}
 	}
-#endif
 
 	/* set all relations as being 'unsatisfied' to start with... */
 	for(i=0; i < sys->rtot; ++i){
@@ -994,7 +981,7 @@ static int ipopt_presolve(slv_system_t server, SlvClientToken asys){
 
 	sys->obj = slv_get_obj_relation(server); /*may have changed objective*/
 
-
+	
 	if(!sys->obj){
 		ERROR_REPORTER_HERE(ASC_PROG_ERR,"No objective function was specified");
 		return -3;
@@ -1002,11 +989,8 @@ static int ipopt_presolve(slv_system_t server, SlvClientToken asys){
 	//CONSOLE_DEBUG("got objective rel %p",sys->obj);
 	/* @todo check if old_obj == obj ? */
 
-#if 1
 	/* TODO are there cases where these should be different: answer: NO. they are always the same -- JP */
 	sys->m = sys->rtot;
-#endif
-
 	//CONSOLE_DEBUG("Numbers of constraints = %d",sys->m);
 
 	/** @todo we need to move the objective relation to the end of the list */
@@ -1054,16 +1038,14 @@ static int ipopt_presolve(slv_system_t server, SlvClientToken asys){
 	/* calculate number of non-zeros in the Jacobian matrix for the constraint equations */
 
 	/* @todo make sure objective rel moved to end */
-
-	CONSOLE_DEBUG("About to call relman_jacobian_count");
 	sys->nnzJ = relman_jacobian_count(sys->rlist, sys->m, &(sys->vfilt), &(sys->rfilt), &max);
 	/*sys->nnzJ=0;
 	for(i=0;i<sys->m;++i){
 		sys->nnzJ += rel_n_incidences(sys->rlist[i]);
 	}*/
 
-	CONSOLE_DEBUG("got %d non-zeros in constraint Jacobian", sys->nnzJ);
-
+	//CONSOLE_DEBUG("got %d non-zeros in constraint Jacobian", sys->nnzJ);
+	
 	/* need to provide sparsity structure for jacobian? */
 
 
@@ -1189,7 +1171,7 @@ static int ipopt_solve(slv_system_t server, SlvClientToken asys){
 
 	double *x, *x_L, *x_U, *g_L, *g_U, *mult_x_L, *mult_x_U;
 
-	CONSOLE_DEBUG("SOLVING: sys->n = %d, sys->m = %d...",sys->n,sys->m);
+	//CONSOLE_DEBUG("SOLVING: sys->n = %d, sys->m = %d...",sys->n,sys->m);
 	asc_assert(sys->n!=-1);
 
 	/* set the number of variables and allocate space for the bounds */
@@ -1224,7 +1206,7 @@ static int ipopt_solve(slv_system_t server, SlvClientToken asys){
 	g_L = ASC_NEW_ARRAY(Number,sys->m);
 	g_U = ASC_NEW_ARRAY(Number,sys->m);
 	//CONSOLE_DEBUG("Allocated arrays for bounds of relations");
-	if(g_L!=NULL && g_U!=NULL)
+	if(g_L!=NULL && g_U!=NULL) 	
 		for(j = 0; j < sys->m; j++){
 			type_of_rel = rel_relop(sys->rlist[j]);
 			if (type_of_rel == e_rel_less || type_of_rel == e_rel_lesseq){
@@ -1234,7 +1216,7 @@ static int ipopt_solve(slv_system_t server, SlvClientToken asys){
 			else if (type_of_rel == e_rel_greatereq || type_of_rel == e_rel_greater){
 				g_L[j] = 0;
 				g_U[j] = 2.0e19;  //refer to IPOPT Manual "the C Interface"
-			}
+			}	
 			else{
 				g_L[j] = 0;
 				g_U[j] = 0;
@@ -1250,19 +1232,22 @@ static int ipopt_solve(slv_system_t server, SlvClientToken asys){
 
 	/* create the IpoptProblem */
 	//CONSOLE_DEBUG("n = %d, m = %d, nnzJ = %d, nnzH = %d",sys->n, sys->m, sys->nnzJ, sys->nnzH);
-	sys->nlp = CreateIpoptProblem(sys->n, x_L, x_U, sys->m, g_L, g_U, sys->nnzJ, sys->nnzH, 0/*index style=C*/,
-		&ipopt_eval_f, &ipopt_eval_g, &ipopt_eval_grad_f,
+	sys->nlp = CreateIpoptProblem(sys->n, x_L, x_U, sys->m, g_L, g_U, sys->nnzJ, sys->nnzH, 0/*index style=C*/, 
+		&ipopt_eval_f, &ipopt_eval_g, &ipopt_eval_grad_f, 
 		&ipopt_eval_jac_g, &ipopt_eval_h
 	);
 
 	//CONSOLE_DEBUG("FREEING INTERNAL STUFF");
-
+  
 	/* We can free the memory now - the values for the bounds have been
 	copied internally in CreateIpoptProblem */
+#if 0
+	/* freeing this stuff seems to cause a crash...?!?!? */
 	ASC_FREE(x_L);
 	ASC_FREE(x_U);
 	ASC_FREE(g_L);
 	ASC_FREE(g_U);
+#endif
 
 	//CONSOLE_DEBUG("SETTING OPTIONS...");
 	/* set some options */
@@ -1278,7 +1263,7 @@ static int ipopt_solve(slv_system_t server, SlvClientToken asys){
 	AddIpoptNumOption(sys->nlp, "constr_viol_tol", SLV_PARAM_REAL(&(sys->p),IPOPT_PARAM_CONSTR_VIOL_TOL));
 	AddIpoptNumOption(sys->nlp, "acceptable_tol", SLV_PARAM_REAL(&(sys->p),IPOPT_PARAM_ACCEPTABLE_TOL));
 	AddIpoptIntOption(sys->nlp, "acceptable_iter", SLV_PARAM_INT(&(sys->p),IPOPT_PARAM_ACCEPTABLE_ITER));
-	/** BARRIER PARAMETER OPTIONS */
+	/** BARRIER PARAMETER OTPIONS*/
 	AddIpoptStrOption(sys->nlp, "mu_strategy", SLV_PARAM_CHAR(&(sys->p),IPOPT_PARAM_MU_STRATEGY));
 	/** DERIVATIVE TEST OPTIONS */
 	AddIpoptStrOption(sys->nlp, "derivative_test", SLV_PARAM_CHAR(&(sys->p),IPOPT_PARAM_DERIVATIVE_TEST));
@@ -1286,7 +1271,7 @@ static int ipopt_solve(slv_system_t server, SlvClientToken asys){
 	AddIpoptStrOption(sys->nlp, "hessian_approximation", SLV_PARAM_CHAR(&(sys->p),IPOPT_PARAM_HESS_APPROX));
 	/** LINEAR SOLVER OPTIONS */
 	AddIpoptStrOption(sys->nlp, "linear_solver", SLV_PARAM_CHAR(&(sys->p),IPOPT_PARAM_LINEAR_SOLVER));
-
+	
 
 	//CONSOLE_DEBUG("Hessian method: %s",SLV_PARAM_CHAR(&(sys->p),IPOPT_PARAM_HESS_APPROX));
 
@@ -1317,11 +1302,9 @@ static int ipopt_solve(slv_system_t server, SlvClientToken asys){
 
 	/** @todo update the sys->s.xxxxx flags based on value of 'status' */
 
-	ret = 1; /* default case is failure */
-	switch(status){
-	case Solve_Succeeded:
+	if (status == Solve_Succeeded) {
 		sys->s.converged = TRUE;
-
+		
 		sys->s.block.current_block = -1; //is this 1??
 		sys->s.cost = ASC_NEW_ARRAY(struct slv_block_cost,1);
 		sys->s.cost->size=sys->s.block.current_size=sys->n;
@@ -1331,88 +1314,83 @@ static int ipopt_solve(slv_system_t server, SlvClientToken asys){
 		sys->s.cost->time=sys->s.block.cpu_elapsed;
 		sys->s.cost->functime=sys->s.block.functime;
 		sys->s.cost->jactime=sys->s.block.jactime;
-
+		
 
 		//CONSOLE_DEBUG("Solution of the primal variables, x");
 		for (i=0; i<sys->n; i++) {
-			//CONSOLE_DEBUG("   x[%d] = %e\n", i, x[i]);
-		}
+			//CONSOLE_DEBUG("   x[%d] = %e\n", i, x[i]); 
+		}		
 
 		//CONSOLE_DEBUG("Solution of the bound multipliers, z_L and z_U");
 		for (i=0; i<sys->n; i++) {
-			//CONSOLE_DEBUG("   z_L[%d] = %e", i, mult_x_L[i]);
+			//CONSOLE_DEBUG("   z_L[%d] = %e", i, mult_x_L[i]); 
 		}
 		for (i=0; i<sys->n; i++) {
-			//CONSOLE_DEBUG("    z_U[%d] = %e", i, mult_x_U[i]);
+			//CONSOLE_DEBUG("    z_U[%d] = %e", i, mult_x_U[i]); 
 		}
 
 		//CONSOLE_DEBUG("Objective value");
-		//CONSOLE_DEBUG("    f(x*) = %e", sys->obj_val);
-
+		//CONSOLE_DEBUG("    f(x*) = %e", sys->obj_val); 
+		
+		
+		
 		ret = 0; /* success */
 		ipopt_iteration_ends(sys);
 		update_status(sys);
-
-		break;
-	case Search_Direction_Becomes_Too_Small:
-		ERROR_REPORTER_HERE(ASC_USER_NOTE,"Solve direction becomes too small");
-		break;
-	case Feasible_Point_Found:
-		ERROR_REPORTER_HERE(ASC_USER_NOTE,"Feasible point not found");
-		break;
-	case NonIpopt_Exception_Thrown:
-		ERROR_REPORTER_HERE(ASC_USER_NOTE,"Non-IPOPT exception thrown");
-		break;
-	case Solved_To_Acceptable_Level:
-		/** @todo What should be done here? */
-		ERROR_REPORTER_HERE(ASC_USER_NOTE,"Solved to acceptable level");
-		break;
-	case Infeasible_Problem_Detected:
-		ERROR_REPORTER_HERE(ASC_USER_WARNING,"Infeasible Problem Detected");
-		break;
-	case Diverging_Iterates:
-		ERROR_REPORTER_HERE(ASC_USER_WARNING,"Diverging iterations found.");
-		break;
-	case User_Requested_Stop:
-		ERROR_REPORTER_HERE(ASC_USER_WARNING,"User Requested Stop.");
-		break;
-	case Maximum_Iterations_Exceeded:
-		ERROR_REPORTER_HERE(ASC_USER_WARNING,"Maximum Iterations Exceeded.");
-		break;
-	case Restoration_Failed:
-		ERROR_REPORTER_HERE(ASC_USER_WARNING,"Restoration Failed.");
-		break;
-	case Error_In_Step_Computation:
-		ERROR_REPORTER_HERE(ASC_USER_WARNING,"Error in Step Computation.");
-		break;
-	case Maximum_CpuTime_Exceeded:
-		ERROR_REPORTER_HERE(ASC_USER_WARNING,"Maximum CPU Time exceeded.");
-		break;
-	case Not_Enough_Degrees_Of_Freedom:
-		ERROR_REPORTER_HERE(ASC_USER_WARNING,"Not enough degrees of freedom.");
-		break;
-	case Invalid_Problem_Definition:
-		ERROR_REPORTER_HERE(ASC_USER_WARNING,"Invalid problem definition.");
-		break;
-	case Invalid_Option:
-		ERROR_REPORTER_HERE(ASC_USER_WARNING,"Invalid Option.");
-		break;
-	case Invalid_Number_Detected:
-		ERROR_REPORTER_HERE(ASC_USER_WARNING,"Invalid Number Detected.");
-		break;
-	case Unrecoverable_Exception:
-		ERROR_REPORTER_HERE(ASC_PROG_FATAL,"Unrecoverable_Exception.");
-		break;
-	case Insufficient_Memory:
-		ERROR_REPORTER_HERE(ASC_PROG_FATAL,"Insufficient Memory.");
-		break;
-	case Internal_Error:
-		ERROR_REPORTER_HERE(ASC_PROG_FATAL,"Internal Error.");
-		break;
-	default:
-		ERROR_REPORTER_HERE(ASC_PROG_ERROR,"Unhanded return state %d from IPOPT",status);
+	}else{
+		//Treat all other cases here
+		switch(status){
+		case Solved_To_Acceptable_Level:
+			/** @todo What should be done here? */
+			ERROR_REPORTER_HERE(ASC_USER_NOTE,"Solved to acceptable level");	
+			break;
+		case Infeasible_Problem_Detected:
+			ERROR_REPORTER_HERE(ASC_USER_WARNING,"Infeasible Problem Detected");
+			break;
+		case Diverging_Iterates:
+			ERROR_REPORTER_HERE(ASC_USER_WARNING,"Diverging iterations found.");
+			break;
+		case User_Requested_Stop:
+			ERROR_REPORTER_HERE(ASC_USER_WARNING,"User Requested Stop.");
+			break;
+		case Maximum_Iterations_Exceeded:
+			ERROR_REPORTER_HERE(ASC_USER_WARNING,"Maximum Iterations Exceeded.");
+			break;
+		case Restoration_Failed:
+			ERROR_REPORTER_HERE(ASC_USER_WARNING,"Restoration Failed.");
+			break;
+		case Error_In_Step_Computation:
+			ERROR_REPORTER_HERE(ASC_USER_WARNING,"Error in Step Computation.");
+			break;
+		case Maximum_CpuTime_Exceeded:
+			ERROR_REPORTER_HERE(ASC_USER_WARNING,"Maximum CPU Time exceeded.");
+			break;
+		case Not_Enough_Degrees_Of_Freedom:
+			ERROR_REPORTER_HERE(ASC_USER_WARNING,"Not enough degrees of freedom.");
+			break;
+		case Invalid_Problem_Definition:
+			ERROR_REPORTER_HERE(ASC_USER_WARNING,"Invalid problem definition.");
+			break;
+		case Invalid_Option:
+			ERROR_REPORTER_HERE(ASC_USER_WARNING,"Invalid Option.");
+			break;
+		case Invalid_Number_Detected:
+			ERROR_REPORTER_HERE(ASC_USER_WARNING,"Invalid Number Detected.");
+			break;
+		case Unrecoverable_Exception:
+			ERROR_REPORTER_HERE(ASC_PROG_FATAL,"Unrecoverable_Exception.");
+			break;
+		case Insufficient_Memory:
+			ERROR_REPORTER_HERE(ASC_PROG_FATAL,"Insufficient Memory.");
+			break;
+		case Internal_Error:
+			ERROR_REPORTER_HERE(ASC_PROG_FATAL,"Internal Error.");
+			break;
+		}
+		ERROR_REPORTER_HERE(ASC_PROG_ERROR,"Failed solve, unknown status");
+		ret = 1; /* failure */
 	}
-
+ 
 	/* free allocated memory */
 	FreeIpoptProblem(sys->nlp);
 	ASC_FREE(x);
@@ -1454,27 +1432,27 @@ static int ipopt_iterate(slv_system_t server, SlvClientToken asys){
 
 static int ipopt_resolve(slv_system_t server, SlvClientToken asys){
 	IpoptSystem *sys;
-  	sys = SYS(asys);
+  	sys = SYS(asys);	
 
 	/** @todo if implementing this, use the 'warm start' thing in IPOPT */
 
 	/** @todo provide initial values of the 'multipliers' */
-
+	
 	sys->resolve = 1; /* resolved recognized here */
-
+	
 	/* Reset status */
 	sys->s.iteration = 0;
 	sys->s.cpu_elapsed = 0.0;
 	sys->s.converged = sys->s.diverged = sys->s.inconsistent = FALSE;
 	sys->s.block.previous_total_size = 0;
-
+	
 	/* go to first unconverged block */
 	sys->s.block.current_block = -1;
 	sys->s.block.current_size = 0;
 	sys->s.calc_ok = TRUE;
 	sys->s.block.iteration = 0;
 	sys->obj_val =  MAXDOUBLE/2000.0;
-
+	
 	update_status(sys);
   	return 1;
 }

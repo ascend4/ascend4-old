@@ -1,4 +1,5 @@
 REQUIRE "system.a4l";
+REQUIRE "basemodel.a4l";
 IMPORT "test/blackbox/bboxtest"; (* yi = coef*xi test *)
 
 (*  incorrect input formal args *)

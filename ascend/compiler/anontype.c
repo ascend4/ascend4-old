@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Anonymous ASCEND IV type classification functions.
@@ -27,9 +29,9 @@
 */
 
 #include <limits.h> /* for LONG_MAX */
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/utilities/ascPrint.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
@@ -55,6 +57,10 @@
 #include "anonmerg.h"
 #include "anontype.h"
 
+#ifndef lint
+static CONST char AnonTypeModuleID[] = "$Id: anontype.c,v 1.9 2000/01/25 02:25:55 ballan Exp $";
+#endif
+
 /*
  * Yo! Pinhead! Don't optimize anything until it has proved slow!
  */
@@ -69,7 +75,7 @@
 /* hash function for type name pointers.
  * assumes 1024 table size.
  */
-#define TYPEHASHINDEX(p) (((((asc_intptr_t) (p))*1103515245) >> 20) & 1023)
+#define TYPEHASHINDEX(p) (((((long) (p))*1103515245) >> 20) & 1023)
 
 /*
  * write merge list before returning.

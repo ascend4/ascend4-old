@@ -16,13 +16,15 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 */
 
 #include "slv_param.h"
 
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 
 /* #define DESTROY_DEBUG */
 
@@ -37,14 +39,14 @@ void slv_set_char_parameter(char **cp, CONST char *newvalue)
 }
 
 void slv_destroy_parms(slv_parameters_t *p) {
-  int32 i, j;
+  int32 i/*, j */;
   for(i = 0; i < p->num_parms; i++){
     switch(p->parms[i].type) {
     case char_parm:
-      ASC_FREE(p->parms[i].info.c.value);
+      /* ASC_FREE(p->parms[i].info.c.value);
       for (j = 0; j < p->parms[i].info.c.high; j++) {
         ASC_FREE(p->parms[i].info.c.argv[j]);
-      }
+      }*/
       ASC_FREE(p->parms[i].info.c.argv);
       /* FALL THROUGH */
     case int_parm:
@@ -72,7 +74,7 @@ void slv_destroy_parms(slv_parameters_t *p) {
 */
 /** @page solver-parameters
 
-	Additional info on new solver parameter routines. This routine attempts
+	Additional info on new solver parameter routines. This routine attempts 
 	to make declaration of new parameters possible with simple syntax, without
 	requiring changes to the underlying data structure. Also aim to eliminate
 	the extensive #defines used in the old approach, and eliminate the risk of
@@ -104,7 +106,7 @@ static void slv_define_param_meta(struct slv_parameter *p1, const SlvParameterIn
 	p1->description = ASC_STRDUP(meta->description);
 	p1->display = meta->guipagenum;
 
-	/* record the index of this parameter */
+	/* record the index of this parameter */		
 	p1->number = index;
 }
 
@@ -179,7 +181,7 @@ int slv_param_char(slv_parameters_t *p, const int index
 	p1->info.c.argv = ASC_NEW_ARRAY(char *,noptions);
 
 	for(i = 0; i < noptions; ++i){
-	    p1->info.c.argv[i] = ASC_STRDUP(options[i]);
+	    p1->info.c.argv[i] = strdup(options[i]);
 		/* CONSOLE_DEBUG("Copied '%s' --> argv[%d] = '%s'",options[i],i,p1->info.c.argv[i]); */
 	}
 

@@ -13,8 +13,10 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @defgroup system_types System Token Types
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//** @file
 	Type definitions as they should be seen by solver engines.
 
 	We're trying to hide the implementation detail from the solver engines,
@@ -28,7 +30,7 @@
 #ifndef ASC_SLV_TYPES_H
 #define ASC_SLV_TYPES_H
 
-/**	@addtogroup system_types
+/**	@addtogroup system System
 	@{
 */
 
@@ -47,7 +49,7 @@ typedef void *SlvBackendToken;
 	Any backend can be connected by an appropriate set of
 	routines conforming to the headers of slv_*, rel.h, var.h
 	and system.h.
-
+	
 	We haven't yet been able to think through the possibilities of
 	having multiple backends operating _simultaneously_, mainly
 	because the ASCEND backend is quite capable of wrapping all
@@ -58,7 +60,7 @@ typedef struct system_structure *slv_system_t;
 /**<
 	This is the handle which should be used in all of the functions
 	in slv and system to reference a mathematical problem. The details of this
-	structure are in system_impl.h, which you should only include if you
+	structure are in system_impl.h, which you should only include if you 
 	are writing code in the 'system' dir.
 */
 

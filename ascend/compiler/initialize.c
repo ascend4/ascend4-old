@@ -1,33 +1,36 @@
+/* ex:set ts=4: */
 /*
-	ASCEND modelling environment
-	Copyright (C) 1990, 1993, 1994 Thomas Guthrie Epperly
-	Copyright (C) 2011 Carnegie Mellon University
-
-	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; either version 2, or (at your option)
-	any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @file
-	Initialization Routines (Support for running METHODs in ASCEND).
-*//*
+ *  Initialization Routines
  *  by Tom Epperly
  *  Created: 3/24/1990
  *  Version: $Revision: 1.36 $
  *  Version control file: $RCSfile: initialize.c,v $
  *  Date last modified: $Date: 1998/06/11 15:28:30 $
  *  Last modified by: $Author: ballan $
-*/
+ *
+ *  This file is part of the Ascend Language Interpreter.
+ *
+ *  Copyright (C) 1990, 1993, 1994 Thomas Guthrie Epperly
+ *
+ *  The Ascend Language Interpreter is free software; you can redistribute
+ *  it and/or modify it under the terms of the GNU General Public License as
+ *  published by the Free Software Foundation; either version 2 of the
+ *  License, or (at your option) any later version.
+ *
+ *  The Ascend Language Interpreter is distributed in hope that it will be
+ *  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
+ */
 
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
 
@@ -65,14 +68,11 @@
 #include "exprs.h"
 #include "sets.h"
 #include "parentchild.h"
-#include "slvreq.h"
-#include "link.h"
 
 /* set to 1 for tracing execution the hard way. */
 #define IDB 0
 
-//#define INIT_DEBUG
-//#define FIXFREE_DEBUG
+/* #define INIT_DEBUG */
 
 /*********************************************************************\
   There is a stack of procedure calls kept for tracing and breaking
@@ -242,105 +242,77 @@ void ExecuteInitRun(struct procFrame *fm, struct Statement *stat)
 */
 static void
 execute_init_fix_or_free(int val, struct procFrame *fm, struct Statement *stat){
-	CONST struct VariableList *vars;
-	enum find_errors e;
-	struct gl_list_t *temp;
-	unsigned i, len;
-	struct Instance *i1, *i2;
-	const char *err = NULL;
-#ifdef FIXFREE_DEBUG
-	char *instname;
-#endif
-	struct TypeDescription *t, *st;
-	CONST struct Name *name;
-	symchar *fixed;
-	/* setup */
-	fixed = AddSymbol("fixed");
-	st = FindType(AddSymbol("solver_var"));
-	if(st==NULL){
-		ERROR_REPORTER_HERE(ASC_PROG_ERR,"'solver_var' type is not yet in library");
-		fm->ErrNo = Proc_type_not_found;
-		return;
+  CONST struct VariableList *vars;
+  enum find_errors e;
+  struct gl_list_t *temp;
+  unsigned i, len;
+  struct Instance *i1, *i2;
+  char *instname;
+  struct TypeDescription *t, *st;
+  CONST struct Name *name;
+  symchar *fixed;
+  /* setup */
+  fixed = AddSymbol("fixed");
+  st = FindType(AddSymbol("solver_var"));
+  if(st==NULL){
+    ERROR_REPORTER_HERE(ASC_PROG_ERR,"'solver_var' type is not yet in library");
+	fm->ErrNo = Proc_type_not_found;
+    return;
+  }
+
+  /* iterate through the variable list */
+  /*CONSOLE_DEBUG("STARTING 'FIX'/'FREE' STATEMENT EXECUTION");*/
+  vars = stat->v.fx.vars;
+  while(vars!=NULL){
+    name = NamePointer(vars);
+    temp = FindInstances(fm->i, name, &e);
+    if(temp==NULL){
+	  fm->ErrNo = Proc_bad_name;
+      return;
+    }
+    len = gl_length(temp);
+    for(i=1; i<=len; i++){
+    	i1 = (struct Instance *)gl_fetch(temp,i);
+	instname = WriteInstanceNameString(i1,NULL);
+	/*if(val){
+		CONSOLE_DEBUG("ABOUT TO FIX %s",instname);
+	}else{
+		CONSOLE_DEBUG("ABOUT TO FREE %s",instname);
+	}*/		
+	ascfree(instname);
+	if(InstanceKind(i1)!=REAL_ATOM_INST){
+	  fm->ErrNo = Proc_illegal_type_use;
+	  ProcWriteFixError(fm,name);
+	  return;
 	}
-
-#ifdef FIXFREE_DEBUG
-	CONSOLE_DEBUG("STARTING 'FIX'/'FREE' EXECUTION...");
-	WriteStatement(ASCERR,stat,4);
-#endif
-
-	/* iterate through the variable list */
-	vars = stat->v.fx.vars;
-	while(vars!=NULL){
-		name = NamePointer(vars);
-		temp = FindInstances(fm->i, name, &e);
-
-		if(temp==NULL){
-			err = "Unknown error";
-			fm->ErrNo = Proc_bad_name;
-		}
-		switch(e){
-			case unmade_instance: err = "unmade instance"; fm->ErrNo = Proc_instance_not_found; break;
-			case undefined_instance: err = "undefined instance"; fm->ErrNo = Proc_name_not_found; break;
-			case impossible_instance: err = "impossible instance"; fm->ErrNo = Proc_illegal_name_use; break;
-			case correct_instance: break;
-		}
-		if(err){
-			WriteStatementError(ASC_USER_ERROR,stat,1,"Invalid name(s) in variable list (%s)",err);
-			fm->flow = FrameError;
-			return;
-		}
-
-		len = gl_length(temp);
-
-#ifdef FIXFREE_DEBUG
-		CONSOLE_DEBUG("There are %d items in the %s list", len, val?"FIX":"FREE");
-#endif
-		for(i=1; i<=len; i++){
-			i1 = (struct Instance *)gl_fetch(temp,i);
-#ifdef FIXFREE_DEBUG
-			instname = WriteInstanceNameString(i1,NULL);
-			if(val){
-				CONSOLE_DEBUG("ABOUT TO FIX %s",instname);
-			}else{
-				CONSOLE_DEBUG("ABOUT TO FREE %s",instname);
-			}
-			ascfree(instname);
-#endif
-			if(InstanceKind(i1)!=REAL_ATOM_INST){
-				CONSOLE_DEBUG("Attempted to FIX or FREE variable that is not a real atom type.");
-				fm->ErrNo = Proc_illegal_type_use;
-				ProcWriteFixError(fm,name);
-				return;
-			}
-			t = InstanceTypeDesc(i1);
-			if(!MoreRefined(t,st)){
-				CONSOLE_DEBUG("Attempted to FIX or FREE variable that is not a refined solver_var.");
-				fm->ErrNo = Proc_illegal_type_use;
-				ProcWriteFixError(fm,name);
-				return;
-			}
-			i2 = ChildByChar(i1,fixed);
-			if(i2==NULL){
-				CONSOLE_DEBUG("Attempted to FIX or FREE a solver_var that doesn't have a 'fixed' child!");
-				fm->ErrNo = Proc_illegal_type_use;
-				ProcWriteFixError(fm,name);
-				return;
-			}
-			if(InstanceKind(i2)!=BOOLEAN_INST){
-				CONSOLE_DEBUG("Attempted to FIX or FREE a solver_var whose 'fixed' child is not boolean!");
-				fm->ErrNo = Proc_illegal_type_use;
-				ProcWriteFixError(fm,name);
-				return;
-			}
-			SetBooleanAtomValue(i2,val,0);
-		}
-		gl_destroy(temp);
-		vars = NextVariableNode(vars);
+	t = InstanceTypeDesc(i1);
+	if(!MoreRefined(t,st)){
+	  CONSOLE_DEBUG("Attempted to FIX or FREE variable that is not a refined solver_var.");
+	  fm->ErrNo = Proc_illegal_type_use;
+	  ProcWriteFixError(fm,name);
+	  return;
 	}
-	/* CONSOLE_DEBUG("DONE WITH VARLIST"); */
+	i2 = ChildByChar(i1,fixed);
+	if(i2==NULL){
+	  CONSOLE_DEBUG("Attempted to FIX or FREE a solver_var that doesn't have a 'fixed' child!");
+	  fm->ErrNo = Proc_illegal_type_use;
+	  ProcWriteFixError(fm,name);
+	  return;
+	}
+	if(InstanceKind(i2)!=BOOLEAN_INST){
+	  CONSOLE_DEBUG("Attempted to FIX or FREE a solver_var whose 'fixed' child is not boolean!");
+	  fm->ErrNo = Proc_illegal_type_use;
+	  ProcWriteFixError(fm,name);
+	  return;
+	}
+	SetBooleanAtomValue(i2,val,0);
+    }
+    vars = NextVariableNode(vars);
+  }
+  /* CONSOLE_DEBUG("DONE WITH VARLIST"); */
 
-	/* return 'ok' */
-	fm->ErrNo = Proc_all_ok;
+  /* return 'ok' */
+  fm->ErrNo = Proc_all_ok;
 }
 
 static void
@@ -353,112 +325,6 @@ ExecuteInitFree(struct procFrame *fm, struct Statement *stat){
 	execute_init_fix_or_free(FALSE,fm,stat);
 }
 
-static void
-ExecuteInitSolver(struct procFrame *fm, struct Statement *stat){
-	int res;
-	CONST char *solvername = stat->v.solver.name;
-	assert(fm->i!=NULL);
-	/*CONSOLE_DEBUG("Setting solver to '%s'...",stat->v.solver.name);*/
-	res = slvreq_set_solver(fm->i, solvername);
-	if(res){
-		switch(res){
-			case SLVREQ_NOT_IMPLEMENTED: fm->ErrNo = Proc_slvreq_not_implemented; break;
-			case SLVREQ_SOLVER_HOOK_NOT_SET: fm->ErrNo = Proc_slvreq_unhooked; break;
-			case SLVREQ_UNKNOWN_SOLVER: fm->ErrNo = Proc_slvreq_unknown_solver; break;
-		}
-		ProcWriteSlvReqError(fm);
-		return;
-	}else{
-		fm->ErrNo = Proc_all_ok;
-	}
-	/*CONSOLE_DEBUG("Solver set to %s, OK",stat->v.solver.name);*/
-}
-
-static void
-ExecuteInitOption(struct procFrame *fm, struct Statement *stat){
-	CONST char *optionname = stat->v.option.name;
-	struct value_t value;
-	assert(GetEvaluationContext()==NULL);
-	SetEvaluationContext(fm->i);
-	value = EvaluateExpr(stat->v.option.rhs,NULL,InstanceEvaluateName);
-	SetEvaluationContext(NULL);
-	/*CONSOLE_DEBUG("Setting option '%s'...",optionname);*/
-	int res;
-
-	switch(ValueKind(value)){
-		case integer_value:
-		case real_value:
-		case symbol_value:
-		case boolean_value:
-			res = slvreq_set_option(fm->i, optionname, &value);
-			switch(res){
-				case 0: fm->ErrNo = Proc_all_ok; break;
-				case SLVREQ_OPTION_HOOK_NOT_SET: fm->ErrNo = Proc_slvreq_unhooked; break;
-				case SLVREQ_OPTIONS_UNAVAILABLE: fm->ErrNo = Proc_slvreq_no_solver_selected; break;
-				case SLVREQ_INVALID_OPTION_NAME: fm->ErrNo = Proc_slvreq_invalid_option_name; break;
-				case SLVREQ_WRONG_OPTION_VALUE_TYPE: fm->ErrNo = Proc_slvreq_option_invalid_type; break;
-				case SLVREQ_NOT_IMPLEMENTED: fm->ErrNo = Proc_slvreq_not_implemented; break;
-				default: fm->ErrNo = Proc_slvreq_error; /* unknown error! */
-			}
-			break;
-		case set_value:
-			fm->ErrNo = Proc_slvreq_option_invalid_type;
-			break;
-		case error_value:
-			fm->ErrNo = Proc_if_expr_error_confused;
-			switch (ErrorValue(value)) {
-				case type_conflict:
-					fm->ErrNo = Proc_if_expr_error_typeconflict;
-					break;
-				case name_unfound:
-					fm->ErrNo = Proc_if_expr_error_nameunfound;
-					break;
-				case incorrect_name:
-					fm->ErrNo = Proc_if_expr_error_incorrectname;
-					break;
-				case undefined_value:
-					fm->ErrNo = Proc_if_expr_error_undefinedvalue;
-					break;
-				case dimension_conflict:
-					fm->ErrNo = Proc_if_expr_error_dimensionconflict;
-					break;
-				case empty_choice:
-					fm->ErrNo = Proc_if_expr_error_emptychoice;
-					break;
-				case empty_intersection:
-					fm->ErrNo = Proc_if_expr_error_emptyintersection;
-					break;
-				default:
-					fm->ErrNo = Proc_slvreq_error;
-			}
-			break;
-		default:
-			fm->ErrNo = Proc_slvreq_error;
-			break;
-	}
-	if(fm->ErrNo != Proc_all_ok){
-		ProcWriteSlvReqError(fm);
-	}
-	DestroyValue(&value);
-	return;
-}
-
-static void
-ExecuteInitSolve(struct procFrame *fm, struct Statement *stat){
-	int res;
-	res = slvreq_do_solve(fm->i);
-	if(res){
-		switch(res){
-			case SLVREQ_NO_SOLVER_SELECTED: fm->ErrNo = Proc_slvreq_no_solver_selected; break;
-			case SLVREQ_NOT_IMPLEMENTED: fm->ErrNo = Proc_slvreq_not_implemented; break;
-			case SLVREQ_SOLVE_HOOK_NOT_SET: fm->ErrNo = Proc_slvreq_unhooked; break;
-			default: fm->ErrNo = Proc_slvreq_error; break;
-		}
-		ProcWriteSlvReqError(fm);
-		return;
-	}
-	fm->ErrNo = Proc_all_ok;
-}
 
 static
 void ExecuteInitFlow(struct procFrame *fm)
@@ -530,7 +396,7 @@ struct gl_list_t *ProcessExtMethodArgs(struct Instance *inst,
   struct gl_list_t *branch;
   CONST struct Name *n;
   enum find_errors ferr;
-  asc_intptr_t pos;
+  unsigned long pos;
 
   ListMode=1;
   arglist = gl_create(10L);
@@ -645,7 +511,7 @@ void ExecuteInitExt(struct procFrame *fm, struct Statement *stat)
     assert((len & 0x1) == 0); /* must be even */
     while (c < len) {
       /* works because error position/code pairs */
-      pos = (asc_intptr_t)gl_fetch(errlist,c);
+      pos = (unsigned long)gl_fetch(errlist,c);
       c++;	/* Wait, who let that dirty word in here!? */
       ferr = (enum find_errors)gl_fetch(errlist,c);
       c++;
@@ -891,16 +757,10 @@ ExecuteInitAssert(struct procFrame *fm, struct Statement *stat){
 	switch(ValueKind(value)){
 		case boolean_value:
 			testerr = 0;
-#ifdef INIT_DEBUG
-			CONSOLE_DEBUG("Assertion %s.",BooleanValue(value)?"OK":"failed");
-#endif
 			if(BooleanValue(value)){
 				WriteStatementError(ASC_USER_SUCCESS,stat,0,"Assertion OK");
 			}else{
 				WriteStatementError(ASC_USER_ERROR,stat,1,"Assertion failed");
-				fm->flow = FrameError;
-				/** FIXME need to add a special proc_enum for this */
-				fm->ErrNo = Proc_stop;
 			}
 			break;
 		case real_value:
@@ -955,7 +815,7 @@ ExecuteInitAssert(struct procFrame *fm, struct Statement *stat){
 			break;
 	}
 	if (fm->flow == FrameError && testerr) {
-		ProcWriteIfError(fm,"ASSERT");
+		ProcWriteIfError(fm,"TEST");
 	}
 	DestroyValue(&value);
 	return;
@@ -1390,7 +1250,7 @@ void ExecuteInitSwitch(struct procFrame *fm, struct Statement *stat)
   struct StatementList *sl;
   int arm;
   int case_match;
-  //int fallthru;
+  int fallthru;
   enum FrameControl oldflow;
 
   vlist = SwitchStatVL(stat);
@@ -1416,12 +1276,12 @@ void ExecuteInitSwitch(struct procFrame *fm, struct Statement *stat)
         case FrameLoop:
         case FrameOK:
           fm->flow = oldflow;
-          //fallthru = 0;
+          fallthru = 0;
           break;
         case FrameReturn:
           return;
         case FrameBreak: /* not properly implemented. fixme */
-          //fallthru = 0;
+          fallthru = 0;
           break;
         case FrameContinue:
           if (oldflow == FrameLoop) {
@@ -1429,7 +1289,7 @@ void ExecuteInitSwitch(struct procFrame *fm, struct Statement *stat)
           }
           break;
         case FrameFallthru: /* not implemented */
-          //fallthru = 1;
+          fallthru = 1;
         case FrameError: /* EISS not supposed to return this */
         default:
           break;
@@ -1625,58 +1485,6 @@ void ExecuteInitAsgn(struct procFrame *fm, struct Statement *stat)
   return /* Proc_all_ok */;
 }
 
-/*DS : Implement Non-declarative LINK statement here*/
-static void ExecuteInitLnk(struct procFrame *fm, struct Statement *stat){
-	//printf("\nDS: ExecuteInitLnk called\n");
-	enum find_errors err;
-	struct gl_list_t *instances;
-	symchar *key;
-
-	instances = FindInsts(fm->i,LINKStatVlist(stat),&err);
-	key = LINKStatKey(stat);
-
-	CONSOLE_DEBUG("LINKStatVlist(stat) contains %lu",VariableListLength(LINKStatVlist(stat)));
-	if((instances != NULL) && (key != NULL)){
-		switch(InstanceKind(fm->i)) {
-		case MODEL_INST:
-			CONSOLE_DEBUG("Adding procedural link");
-			addLinkEntry(fm->i,key,instances,stat,0);
-			break;
-		default:
-			STATEMENT_ERROR(stat, "LINK is not called by a model");
-			break;
-		}
-	}else if(key == NULL){
-		STATEMENT_ERROR(stat, "Procedural LINK contains impossible key");
-	}
-}
-
-
-/*DS : Implement UNLINK statement here (Non-declarative only) */
-static void ExecuteInitUnlnk(struct procFrame *fm, struct Statement *stat){
-	enum find_errors err;
-	struct gl_list_t *instances;
-	symchar *key;
-
-	instances = FindInstances(fm->i,stat->v.lnk.vl->nptr,&err);
-	key = LINKStatKey(stat);
-
-	if((instances != NULL) && (key != NULL)){
-		switch(InstanceKind(fm->i)) {
-		case MODEL_INST:
-			printf("Procedural UNLINK...");
-			removeLinkEntry(fm->i,key,LINKStatVlist(stat));
-			break;
-		default:
-			STATEMENT_ERROR(stat, "UNLINK is not called by a model");
-			break;
-		}
-	}else if(key == NULL){
-		STATEMENT_ERROR(stat, "UNLINK contains impossible key");
-	}
-}
-
-
 static
 void ExecuteInitStatement(struct procFrame *fm, struct Statement *stat)
 {
@@ -1692,29 +1500,14 @@ void ExecuteInitStatement(struct procFrame *fm, struct Statement *stat)
   case ASGN:
     ExecuteInitAsgn(fm,stat);
     break;
-  case LNK:
-	ExecuteInitLnk(fm,stat);
-	break;
-  case UNLNK:
-	ExecuteInitUnlnk(fm,stat);
-	break;
   case RUN:
     ExecuteInitRun(fm,stat);
     break;
-  case FIX:/* this function always returns ok. 5/96 */
+  case FIX:
     ExecuteInitFix(fm,stat);
     break;
   case FREE:
 	ExecuteInitFree(fm,stat);
-	break;
-  case SOLVER:
-	ExecuteInitSolver(fm,stat);
-	break;
-  case OPTION:
-	ExecuteInitOption(fm,stat);
-	break;
-  case SOLVE:
-    ExecuteInitSolve(fm,stat);
 	break;
   case FLOW:
     ExecuteInitFlow(fm);
@@ -1741,12 +1534,14 @@ void ExecuteInitStatement(struct procFrame *fm, struct Statement *stat)
   case CASGN:
     fm->flow = FrameError;
     fm->ErrNo = Proc_declarative_constant_assignment;
-    WriteInitErr(fm, "Assignment of constants is not permitted inside METHODs.");
+    WriteInitErr(fm,
+                 "Incorrect statement type (constant assigned)"
+                 " in initialization section");
     break;
   default:
     fm->flow = FrameError;
     fm->ErrNo = Proc_bad_statement;
-    WriteInitErr(fm,"Unexpected statement type in initialization section.");
+    WriteInitErr(fm,"Unexpected statement type in initialization section");
     break;
   }
 #if IDB
@@ -1892,25 +1687,12 @@ void RealInitialize(struct procFrame *fm, struct Name *name)
 
   morename = WriteNameString(name);
 #ifdef INIT_DEBUG
-  char *name1 = WriteInstanceNameString(fm->i,NULL);
-  if(fm->proc && fm->proc->name){
-    CONSOLE_DEBUG("Running METHOD %s on '%s' (from scope %s)",SCP(fm->proc->name),name1,SCP(fm->cname));
-  }else{
-    CONSOLE_DEBUG("Running METHOD '%s' (from scope %s)",name1,SCP(fm->cname));
-  }
-
-  ASC_FREE(name1);
+  CONSOLE_DEBUG("Running method '%s'...",morename);
 #endif
   ASC_FREE(morename);
 
   SetDeclarativeContext(1); /* set up for procedural processing */
   InstanceNamePart(name,&instname,&procname);
-
-#if 0
-  if(procname){
-    CONSOLE_DEBUG("Procname = %s",SCP(procname));
-  }
-#endif
 
   if (procname != NULL) {
     instances = FindInstances(fm->i, instname, &err);
@@ -1964,9 +1746,6 @@ void RealInitialize(struct procFrame *fm, struct Name *name)
             } /* else was a c-like RETURN;. don't pass upward */
             break;
           }
-#if 0
-          CONSOLE_DEBUG("Destroying frame...");
-#endif
           DestroyProcFrame(newfm);
         } else {
           fm->flow = FrameError;
@@ -2051,15 +1830,9 @@ enum Proc_enum Initialize(struct Instance *context,
 {
   enum Proc_enum rval;
   struct procFrame fm;
-
+  
 #ifdef INIT_DEBUG
-  char *instname = WriteInstanceNameString(context,NULL);
-  const char *insttype =
-		InstanceKind(context)==SIM_INST ? "SIM_INST" :(
-		InstanceKind(context)==MODEL_INST ? "MODEL_INST" : (
-		"UNRECOGNIZED-TYPE"));
-  CONSOLE_DEBUG("Running method '%s' on %s '%s'...",cname,insttype,instname);
-  ASC_FREE(instname);
+  CONSOLE_DEBUG("RUNNING METHOD...");
 #endif
 
   assert(err != NULL);
@@ -2068,7 +1841,6 @@ enum Proc_enum Initialize(struct Instance *context,
   if (watchpoints == NULL) {
     InitNormalTopProcFrame(&fm,context,cname,err,options);
     rval = NormalInitialize(&fm,name);
-	if(fm.cname)ASC_FREE(fm.cname);
   } else {
     CONSOLE_DEBUG("Running method with debug...");
     rval = DebugInitialize(context,name,cname,err,options,watchpoints,log,&fm);
@@ -2232,5 +2004,3 @@ enum Proc_enum ClassAccessInitialize(struct Instance *context,
                                       err,options,watchpoints,log,&fm);
   }
 }
-
-/* vim: set ts=4: */

@@ -14,7 +14,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Real Ascend Instance Types
 *//*
@@ -25,7 +27,7 @@
 #ifndef ASC_INSTANCE_TYPES_H
 #define ASC_INSTANCE_TYPES_H
 
-/**	@addtogroup compiler_inst Compiler Instance Hierarchy
+/**	@addtogroup compiler Compiler
 	@{
 */
 
@@ -35,7 +37,6 @@
 #include "type_desc.h"
 #include <ascend/general/list.h>
 #include "logical_relation.h"
-#include <ascend/utilities/bit.h>
 
 /** @file
  *  Real Ascend Instance Types.
@@ -80,7 +81,7 @@
 /* # define ALIGNSTUPID 1 */
 /* # endif */
 /* if ALIGNSTUPID, then 4 byte ptrs must fall on 8 byte boundaries */
-/* any architecture with such a restriction should be summarily torched */
+/* any architecture with such a restrict should be summarily torched */
 
 
 /* FUNDAMENTAL INSTANCES */
@@ -193,7 +194,7 @@ struct RealAtomInstance {
 
 #if 0
 /** future work.
- * needs parser and interpreter support. Not yet used.
+ * needs parser and interpretter support. Not yet used.
  * @todo Implement SolverAtomInstance.
  */
 struct SolverAtomInstance {
@@ -540,7 +541,6 @@ struct ModelInstance {
   VOIDPTR interface_ptr;
   struct gl_list_t *parents;  /**< link to parent instances */
   struct gl_list_t *whens;    /**< link to whens on which the model appears */
-  struct gl_list_t *link_table; /**< link_table for non-declarative LINKs */
   struct TypeDescription *desc;
   struct Instance *alike_ptr;
   struct BitList *executed;   /**< bit list to keep track of which
@@ -586,7 +586,7 @@ struct AutomaticInstance {
  * Would be nice to have a commoneqninstance type (CE_INST)
  * for rel,log,when.
  *
- * doesn't align as never has children.
+ * doesn't align as never has children. 
  */
 struct WhenInstance {
   enum inst_t t;
@@ -630,7 +630,7 @@ struct ArrayInstance {
 /** CONTAINER INSTANCE for interfaces. never pending.
  * no packed children, so never need align
  */
-struct SimulationInstance {
+struct SimulationInstance { 	  
   /* these have *no* parents, yet */
   enum inst_t t;
   VOIDPTR interface_ptr;
@@ -640,7 +640,6 @@ struct SimulationInstance {
   unsigned long tmp_num;        /**< used when an instance tree is being copied*/
   unsigned int anon_flags;      /**< anonymous field to be manipulated */
   /* add other interesting stuff here */
-  VOIDPTR slvreq_hooks;
 };
 
 /** dummy instance for unselected children of models

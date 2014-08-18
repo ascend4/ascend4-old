@@ -14,7 +14,9 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place - Suite 330,
+  Boston, MA 02111-1307, USA.
 *//*
   by Kirk Andre Abbott
   Created: July 4, 1994.
@@ -23,8 +25,8 @@
 
 #include "extfunc.h"
 
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/hashpjw.h>
 #include <ascend/general/list.h>
 #include <ascend/general/table.h>
@@ -393,7 +395,7 @@ void *GetExtMethodUserData(struct ExternalFunc *efunc){
 void DestroyExternalFunc(struct ExternalFunc *efunc){
   struct ExternalFunc *tmp;
   if(efunc && efunc->etype != efunc_ERR){
-    /*CONSOLE_DEBUG("DESTROYING EFUNC at %p",efunc);*/
+    CONSOLE_DEBUG("DESTROYING EFUNC at %p",efunc);
     tmp = efunc;
     if (tmp->name ) ascfree((char *)(tmp->name)); /* we own the string */
     if (tmp->help) ascfree((char *)(tmp->help)); /* we own the string */

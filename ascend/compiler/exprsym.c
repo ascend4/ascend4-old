@@ -22,15 +22,18 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.  COPYING is found in ../compiler.
+ *
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>		/* !!! dont ever forget this and -lm */
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
 
 #include "expr_types.h"
@@ -1055,7 +1058,6 @@ void RelDestroySloppy(RelationINF *rel)
   if (rel->vars) gl_destroy(rel->vars);
   side = A_TERM(FreeStoreCheckMem(UNION_TERM(Infix_LhsSide(rel))));
   side = A_TERM(FreeStoreCheckMem(UNION_TERM(Infix_RhsSide(rel))));
-  (void)side;
 }
 
 void PrepareDerivatives(int setup,int n_buffers,int buffer_length)

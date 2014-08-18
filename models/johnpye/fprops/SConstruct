@@ -1,53 +1,30 @@
-#!/usr/bin/env python
 # Standalone 'SConstruct' to demonstrate how you can build
 # this ASCEND external library against an existing copy of
 # ASCEND installed on your system.
 
-import os, platform, sys
-
-deft = "default"
-if platform.system()=="Windows":
-	deft = "mingw"
-
-vars = Variables()
-
-vars.Add(
-	'CC'
-	,'C Compiler command'
-	,"${HOST_PREFIX}gcc"
-)
-
-vars.Add(
-	'CFLAGS'
-	,'C compiler flags'
-	,["-Wall"]
-)
-
-env = Environment(
-	toolpath=['scons']
-	,tools = [deft ,'substinfile','swig']
-	,ENV={"TERM":os.environ.get('TERM'), "PATH":os.environ.get('PATH')}
-	,HOST_PREFIX=os.environ.get('HOST_PREFIX')
-)
-
-Help(vars.GenerateHelpText(env))
-vars.Update(env)
+env = Environment()
 
 if WhereIs('ascend-config'):
 	env.ParseConfig(['ascend-config','--libs','--cppflags'])
-	env['WITH_ASCEND'] = 1
 else:
-	print "WARNING: no ascend-config in path, won't build ASCEND wrapper"
-	env['WITH_ASCEND'] = 0
+	print "ERROR: no ascend-config in path"
+	env.Append(
+		LIBS=["ascend"]
+		,LIBPATH=["#/../../.."]
+		,CPPPATH=["#/../../.."]
+	)
 
-env.Append(
-	CFLAGS=['-g','-Wall']
-)
+srcs = ['mbwr.c','asc_mbwr.c']
 
-env['EXTLIB_SUFFIX'] = "_ascend" + env.subst("$SHLIBSUFFIX")
-env['EXTLIB_PREFIX'] = env.subst("$SHLIBPREFIX")
-env['extfns'] = []
-env['WITH_PYTHON'] = 1
+env.SharedLibrary('mbwr_ascend',srcs)
 
-env.SConscript("SConscript",["env"])
+env['fluids'] = ['ammonia','water','nitrogen','hydrogen','carbondioxide']
+
+srcs = ['ideal.c', 'helmholtz.c', 'sat.c'] + ["%s.c" % f for f in env['fluids']]
+
+env['shobjs'] = [env.SharedObject(s) for s in srcs]
+
+env.SharedLibrary('helmholtz_ascend',env['shobjs'] + ['asc_helmholtz.c'])
+
+env.SConscript('python/SConscript',['env'])
 

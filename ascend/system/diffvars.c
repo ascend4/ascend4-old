@@ -12,26 +12,23 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Routines for creating 'derivative chains' during system build.
 *//*
 	By John Pye, Jan 2007
 */
 #include "diffvars.h"
-#include "diffvars_impl.h"
 
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/utilities/error.h>
 
 #include <ascend/compiler/instance_io.h>
-#include <ascend/compiler/link.h>
-#include <ascend/compiler/vlist.h>
-#include <ascend/compiler/name.h>
 
 #include "analyse_impl.h"
-#include "analyze.h"
 #include "system_impl.h"
 
 /* #define DIFFVARS_DEBUG */
@@ -44,24 +41,7 @@ SolverDiffVarCollection *system_get_diffvars(slv_system_t sys){
 	return sys->diffvars;
 }
 
-#if 0 /* unused function, currently */
-/**<DS: compare the names of the instances from the problem_t that will be sent to the solver and a symchar, on success return the pointer to the respective solver_ipdata */
-static struct solver_ipdata *FindVarIPdata(struct problem_t *prob,symchar *varName){
-	int i,len;
-	struct solver_ipdata *ip;
-	len = gl_length(prob->algebvars);
-	for(i=1;i<=len;i++){
-		ip = (struct solver_ipdata *) gl_fetch(prob->algebvars,i);
-		if(strcmp(SCP(varName),WriteInstanceNameString(ip->i,prob->root)) == 0){
-			return ip;
-		}
-	}
-	return NULL;
-}
-#endif
-
-
-static
+static 
 int CmpDiffVars(const struct solver_ipdata *a, const struct solver_ipdata *b){
 	if(a->u.v.odeid < b->u.v.odeid)return -1;
 	if(a->u.v.odeid > b->u.v.odeid)return 1;
@@ -74,7 +54,7 @@ int CmpDiffVars(const struct solver_ipdata *a, const struct solver_ipdata *b){
 /**
 	This function steals a lot of what was in integrator.c, but we try to make
 	it more general and capable of extracting info about high-order derivative
-	chains. One eye open to the possibility of doing Pantelides (or other?)
+	chains. One eye open to the possibility of doing Pantelides (or other?) 
 	style index reduction.
 
 	Also, note that we try to only use data from the struct problem_t, NOT
@@ -84,7 +64,6 @@ int CmpDiffVars(const struct solver_ipdata *a, const struct solver_ipdata *b){
 	@return 0 on success
 */
 int system_generate_diffvars(slv_system_t sys, struct problem_t *prob){
-
 	SolverDiffVarCollection *diffvars = NULL;
 	struct solver_ipdata *vip, *vipnext;
 	SolverDiffVarSequence *seq;
@@ -95,22 +74,19 @@ int system_generate_diffvars(slv_system_t sys, struct problem_t *prob){
 	short maxorder = 0;
 
 	asc_assert(prob);
-
-
+	
 	if(gl_length(prob->diffvars)==0){
-		sys->diffvars = NULL;
+		CONSOLE_DEBUG("No differential variables were seen. Skipping generation of diffvars struct.");
 		return 0;
 	}
 
-	CONSOLE_DEBUG("Differential variables were seen. Generating diffvars data.");
-
 	seqs = gl_create(prob->nr);
-
+	
 	/* add the list of algebraic variables to the structure too */
 	asc_assert(prob->algebvars);
 	nalg = gl_length(prob->algebvars);
 	for(i=0; i<nalg; ++i){
-		vip = (struct solver_ipdata *)gl_fetch(prob->algebvars,i+1);
+		vip = (struct solver_ipdata *)gl_fetch(prob->algebvars,i+1);	
 		seq = ASC_NEW(SolverDiffVarSequence);
 		seq->n = 1;
 		seq->ode_id = 0;
@@ -122,10 +98,10 @@ int system_generate_diffvars(slv_system_t sys, struct problem_t *prob){
 	CONSOLE_DEBUG("Added %ld algebraic vars to chains",nalg);
 	CONSOLE_DEBUG("Sorting %ld differential & derivative vars...",gl_length(prob->diffvars));
 #endif
-
+	
 	/* first sort the list of diffvars */
 	gl_sort(prob->diffvars, (CmpFunc)CmpDiffVars);
-
+	
 	/* scan the list for derivs that are missing vars */
 	i = 1; cont = TRUE; seqstart =1; ndiff = 0;
 	vip = (struct solver_ipdata *)gl_fetch(prob->diffvars,i);
@@ -189,9 +165,9 @@ int system_generate_diffvars(slv_system_t sys, struct problem_t *prob){
 			var_set_diff(seq->vars[j],j==0 && seq->n > 1);
 #ifdef DIFFVARS_DEBUG
 			CONSOLE_DEBUG("seq, j=%d: is %s",j
-				,(var_diff(seq->vars[j]) ? "DIFF" :
+				,(var_diff(seq->vars[j]) ? "DIFF" : 
 					(var_deriv(seq->vars[j]) ? "deriv" : "alg")
-				)
+				) 
 			);
 #endif
 		}
@@ -217,8 +193,7 @@ int system_generate_diffvars(slv_system_t sys, struct problem_t *prob){
 		}
 		continue;
 	}
-
-
+	
 #ifdef DIFFVARS_DEBUG
 	CONSOLE_DEBUG("Identified %ld derivative chains, maximum length %d...",gl_length(seqs),maxorder);
 #endif
@@ -230,12 +205,11 @@ int system_generate_diffvars(slv_system_t sys, struct problem_t *prob){
 	for(i=0;i<diffvars->nseqs;++i){
 		diffvars->seqs[i] = *(SolverDiffVarSequence *)gl_fetch(seqs,i+1);
 	}
-	gl_free_and_destroy(seqs);
+	gl_destroy(seqs);
 	diffvars->nalg = nalg;
 	diffvars->ndiff = ndiff;
 
 	diffvars->nindep = gl_length(prob->indepvars);
-
 	diffvars->indep = ASC_NEW_ARRAY(struct var_variable *,diffvars->nindep);
 	for(i=0;i<diffvars->nindep;++i){
 		vip = (struct solver_ipdata *)gl_fetch(prob->indepvars,i+1);
@@ -288,19 +262,4 @@ int system_diffvars_debug(slv_system_t sys,FILE *fp){
 	}
 	return 0;
 }
-
-void system_diffvars_destroy(slv_system_t sys){
-	SolverDiffVarCollection *diffvars = sys->diffvars;
-	if(diffvars == NULL)return;
-	ASC_FREE(diffvars->indep);
-	ASC_FREE(diffvars->obs);
-	int i;
-	for(i=0; i<diffvars->nseqs; ++i){
-		ASC_FREE(diffvars->seqs[i].vars);
-	}
-	ASC_FREE(diffvars->seqs);
-	ASC_FREE(diffvars);
-	sys->diffvars = NULL;
-}
-
 

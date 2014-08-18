@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Expression Module
@@ -32,10 +34,10 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include <ascend/general/platform.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascPanic.h>
 
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
 #include <ascend/general/pool.h>
 #include "symtab.h"
@@ -49,6 +51,11 @@
 #include "instance_enum.h"
 #include "cmpfunc.h"
 #include "exprs.h"
+
+
+#ifndef lint
+static CONST char ExpressionID[] = "$Id: exprs.c,v 1.13 1998/02/05 16:35:58 ballan Exp $";
+#endif
 
 /*------------------------------------------------------------------------------
   MEMORY USAGE

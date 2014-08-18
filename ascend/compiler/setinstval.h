@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Routines to Process Set Instance Values.
 
@@ -37,14 +39,13 @@
 #ifndef ASC_SETINSTVAL_H
 #define ASC_SETINSTVAL_H
 
-#include <ascend/general/config.h>
 #include "compiler.h"
 
-/**	@addtogroup compiler_inst Compiler Instance Hierarchy
+/**	@addtogroup compiler Compiler
 	@{
 */
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 
 enum set_kind {
   integer_set,  /**< set of integer values */
@@ -88,7 +89,7 @@ extern struct set_t *CreateEmptySet(void);
  *  Creates an empty set.
  */
 
-extern void InsertInteger(struct set_t *set, asc_intptr_t i);
+extern void InsertInteger(struct set_t *set, long i);
 /**<
  *  Insert i into set.  You can insert i multiple times without causing
  *  problems.  Set must be non-NULL.  This will coerce an empty set type
@@ -133,7 +134,7 @@ extern struct set_t *CopySet(CONST struct set_t *set);
  *  Copy a set.
  */
 
-extern int IntMember(asc_intptr_t i, CONST struct set_t *set);
+extern int IntMember(long i, CONST struct set_t *set);
 /**<
  *  Return a TRUE value if i is a member of set; otherwise, return a false
  *  value.
@@ -157,7 +158,7 @@ ASC_DLLSPEC unsigned long Cardinality(CONST struct set_t *set);
 ASC_DLLSPEC symchar*FetchStrMember(CONST struct set_t *set, unsigned long n);
 /**<  Returns the nth (internal sort order ) member symbol. */
 
-ASC_DLLSPEC asc_intptr_t FetchIntMember(CONST struct set_t *set, unsigned long n);
+ASC_DLLSPEC long FetchIntMember(CONST struct set_t *set, unsigned long n);
 /**<  Returns the nth (internal sort order ) member number. */
 
 extern void SetIterate(struct set_t *set, void (*func)());
@@ -195,7 +196,7 @@ extern int CmpSetInstVal(CONST struct set_t *s1, CONST struct set_t *s2);
  *  InsertString functions above.
  */
 
-extern void AppendIntegerElement(struct set_t *set, asc_intptr_t i );
+extern void AppendIntegerElement(struct set_t *set, long int i );
 /**<
  *  This function will append an integer to a set. In so doing it will NOT
  *  attempt to sort the elements of the set or to make the elements of the

@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Expression Input/Output
@@ -33,10 +35,8 @@
 
 #ifndef ASC_EXPRIO_H
 #define ASC_EXPRIO_H
-#include "expr_types.h"
-#include <ascend/general/dstring.h>
 
-/**	@addtogroup compiler_expr Compiler Expressions
+/**	@addtogroup compiler Compiler
 	@{
 */
 
@@ -52,7 +52,7 @@ extern void WriteExprNode(FILE *f, CONST struct Expr *e);
 	Write a single expression node with no leading or trailing white space.
  */
 
-ASC_DLLSPEC void WriteExpr(FILE *f, CONST struct Expr *e);
+extern void WriteExpr(FILE *f, CONST struct Expr *e);
 /**<
 	Write the expression with no leading or trailing white space.
 	@NOTE The output is in POSTFIX format

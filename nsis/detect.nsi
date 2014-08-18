@@ -2,31 +2,25 @@
 ; ROUTINES TO DETECT PYTHON, PYGTK, PYGOBJECT, PYCAIRO and TCL/TK.
 
 ;---------------------------------------------------------------------
-; Look for Python in HKLM and HKCU
+; Look for Python in HKLM. No attempt to detect it in HKCU at this stage.
 
 Function DetectPython
-!ifdef INST64
-	SetRegView 64
-!endif
-	ReadRegStr $R6 HKLM "SOFTWARE\Python\PythonCore\${PYVERSION}\InstallPath" ""
+	ReadRegStr $R6 HKCU "SOFTWARE\Python\PythonCore\${PYVERSION}\InstallPath" ""
 	${If} $R6 == ''
-		;MessageBox MB_OK "No Python in HKLM"
-		ReadRegStr $R6 HKCU "SOFTWARE\Python\PythonCore\${PYVERSION}\InstallPath" ""
+		ReadRegStr $R6 HKLM "SOFTWARE\Python\PythonCore\${PYVERSION}\InstallPath" ""
 		${If} $R6 == ''
-			;MessageBox MB_OK "No Python in HKCU"
-			StrCpy $HAVE_PYTHON "NOK"
-			StrCpy $PYPATH "No registry key found"
+			Push "No registry key found"
+			Push "NOK"
 			Return
 		${EndIf}
 	${EndIf}
 	
 	${If} ${FileExists} "$R6\python.exe"
-		StrCpy $PYPATH "$R6"
-		StrCpy $HAVE_PYTHON "OK"
+		Push "$R6"
+		Push "OK"
 	${Else}
-		;MessageBox MB_OK "No python.exe in $R6"	
-		StrCpy $PYPATH "No python.exe found"
-		StrCpy $HAVE_PYTHON "NOK"
+		Push "No python.exe found"
+		Push "NOK"
 	${EndIf}
 FunctionEnd
 
@@ -34,33 +28,20 @@ FunctionEnd
 ; Prefer the current user's installation of GTK, fall back to the local machine
 
 Function DetectGTK
-!ifdef INST64
-	SetRegView 64
-!endif	
-	; Search in the registry in the first instance
-	ReadRegStr $R6 HKLM "SOFTWARE\GTK+-${GTK_VER}" "InstallDir"
+	ReadRegStr $R6 HKLM "SOFTWARE\Gtk+" "Path"
 	${If} $R6 == ''
-		; If not found in the registory, look in ${GTKSEARCHPATH}
-		;MessageBox MB_OK "No GTK found in HKLM"
-		${If} ${FileExists} "${GTKSEARCHPATH}\manifest\${GTK_MFT}"
-				;MessageBox MB_OK "GTK OK in ${GTKSEARCHPATH}\manifest"
-				StrCpy $GTKPATH "${GTKSEARCHPATH}\bin"
-				StrCpy $HAVE_GTK "OK"
-				Return
-		${EndIf}
-	${Else}
-		; Found in the registry. Check for the GTK DLL, but don't insist
-		; on exactly matching manifest ID in this case.
-		${If} ${FileExists} "$R6\bin\libgtk-win32-2.0-0.dll"
-			;MessageBox MB_OK "GTK OK in $R6 (from registry)"
-			StrCpy $GTKPATH "$R6\bin"
-			StrCpy $HAVE_GTK "OK"
-			Return
-		${EndIf}
+		Push "No GTK registry key found"
+		Push "NOK"
+		Return
 	${EndIf}
-	;MessageBox MB_OK "Failed to locate GTK (searched registry\nand also ${GTKSEARCHPATH})"
-	StrCpy $GTKPATH "GTK not found in registry or ${GTKSEARCHPATH}"
-	StrCpy $HAVE_GTK "NOK"
+	
+	${If} ${FileExists} "$R6\bin\libgtk-win32-2.0-0.dll"
+		Push "$R6\bin"
+		Push "OK"
+	${Else}
+		Push "No libgtk-win32-2.0-0.dll found in'$R6\bin'"
+		Push "NOK"
+	${EndIf}
 FunctionEnd
 
 ;--------------------------------------------------------------------
@@ -68,27 +49,72 @@ FunctionEnd
 
 Function DetectPyGTK
 	${If} ${FileExists} "$PYPATH\Lib\site-packages\gtk-2.0\gtk\__init__.py"
-		StrCpy $HAVE_PYGTK "OK"
+		Push "OK"
 	${Else}
-		;MessageBox MB_OK "No PyGTK in $PYPATH"		
-		StrCpy $HAVE_PYGTK "NOK"
+		Push "NOK"
 	${EndIf}
 FunctionEnd
 
 Function DetectPyCairo
 	${If} ${FileExists} "$PYPATH\Lib\site-packages\cairo\__init__.py"
-		StrCpy $HAVE_PYCAIRO "OK"
+		Push "OK"
 	${Else}
-		;MessageBox MB_OK "No PyCairo in $PYPATH"		
-		StrCpy $HAVE_PYCAIRO "NOK"
+		Push "NOK"
 	${EndIf}
 FunctionEnd
 
 Function DetectPyGObject
 	${If} ${FileExists} "$PYPATH\Lib\site-packages\gtk-2.0\gobject\__init__.py"
-		StrCpy $HAVE_PYGOBJECT "OK"
+		Push "OK"
 	${Else}
-		;MessageBox MB_OK "No PyGObject in $PYPATH"		
-		StrCpy $HAVE_PYGOBJECT "NOK"
+		Push "NOK"
+	${EndIf}
+FunctionEnd
+
+;--------------------------------------------------------------------
+; Prefer the current user's installation of GTK, fall back to the local machine
+
+Function DetectGlade
+	ReadRegStr $R6 HKLM "SOFTWARE\Gtk+" "Path"
+	${If} $R6 == ''
+		Push "No GTK registry key found"
+		Push "NOK"
+		Return
+	${EndIf}
+
+	${If} ${FileExists} "$R6\bin\libglade-2.0-0.dll"
+		Push "$R6\bin"
+		Push "OK"
+	${Else}
+		Push "No libglade-2.0-0.dll found in'$R6\bin'"
+		Push "NOK"
+	${EndIf}
+FunctionEnd
+
+;--------------------------------------------------------------------
+
+Function DetectTcl
+	ReadRegStr $R6 HKCU "SOFTWARE\ActiveState\ActiveTcl" "CurrentVersion"
+	${If} $R6 == ''
+		ReadRegStr $R6 HKLM "SOFTWARE\ActiveState\ActiveTcl" "CurrentVersion"
+		${If} $R6 == ''
+			Push "No 'CurrentVersion' registry key"
+			Push "NOK"
+			Return
+		${Else}
+			StrCpy $R7 "SOFTWARE\ActiveState\ActiveTcl\$R6"
+			ReadRegStr $R8 HKLM $R7 ""		
+		${EndIf}
+	${Else}
+		StrCpy $R7 "SOFTWARE\ActiveState\ActiveTcl\$R6"
+		ReadRegStr $R8 HKCU $R7 ""		
+	${EndIf}
+
+	${If} $R8 == ''
+		Push "No value for $R7"
+		Push "NOK"
+	${Else}
+		Push "$R8\bin"
+		Push "OK"
 	${EndIf}
 FunctionEnd

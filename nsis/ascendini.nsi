@@ -4,7 +4,7 @@
 Function ascendIniCreate
 	
 	${If} $ASCENDINIFOUND == '1'
-	${AndIf} $HAVE_PYTHON == "OK"
+	${AndIf} $PYOK == "OK"
 
 		nsDialogs::Create /NOUNLOAD 1018
 		Pop $0

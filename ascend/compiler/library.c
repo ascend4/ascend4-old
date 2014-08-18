@@ -23,12 +23,16 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
+ * 
  */
 
 #include "library.h"
 
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/utilities/error.h>
 
 #include "instance_enum.h"
@@ -52,7 +56,7 @@
 /*
  * hash function multiply, shift by 30 - n, and mask to SIZE.
  */
-#define LIBHASHINDEX(p) (((((asc_intptr_t) (p))*1103515245) >> 20) & 1023)
+#define LIBHASHINDEX(p) (((((long) (p))*1103515245) >> 20) & 1023)
 
 /* these make an important optimization possible.
  * The relation and when types must still be in the library,
@@ -103,7 +107,7 @@ void InitializeLibrary(void)
   for(c=0;c<LIBRARYHASHSIZE;LibraryHashTable[c++]=NULL); /* no body */
   /* init reused symbols */
   G__SYMBOL_NAME 	= GetBaseTypeName(symbol_type);
-  G__REAL_NAME	= GetBaseTypeName(real_type);
+  G__REAL_NAME	= GetBaseTypeName(real_type); 
   G__INTEGER_NAME	= GetBaseTypeName(integer_type);
   G__BOOLEAN_NAME 	= GetBaseTypeName(boolean_type);
   G__CON_SYMBOL_NAME = GetBaseTypeName(symbol_constant_type);
@@ -441,7 +445,7 @@ int AddType(struct TypeDescription *desc){
   }else{
 	/* FPRINTF(ASCERR,"TYPE '%s' FOUND OK\n",GetName(desc)); */
   }
-
+	
   return 1;
 }
 
@@ -552,7 +556,7 @@ struct gl_list_t *AllTypesThatRefineMe_Flat(symchar *name){
   register unsigned c;
   register struct LibraryStructure *ptr;
   struct TypeDescription *refdesc,*desc;
-  //symchar *refname;
+  symchar *refname;
 
   assert(name!=NULL && AscFindSymbol(name) != NULL);
   desc=FindType(name);
@@ -571,7 +575,7 @@ struct gl_list_t *AllTypesThatRefineMe_Flat(symchar *name){
       refdesc=ptr->type;
       if (refdesc) {
         if (MoreRefined(desc,refdesc)==refdesc && desc!=refdesc) {
-          //refname = GetName(refdesc);
+          refname = GetName(refdesc);
           if ( GetBaseType(refdesc)!=array_type ) {
             gl_append_ptr(result,(VOIDPTR)ptr->type->name);
           }

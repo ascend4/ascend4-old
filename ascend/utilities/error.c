@@ -5,8 +5,8 @@
 #define ERROR_REPORTER_TREE_ACTIVE
 
 #ifdef ERROR_REPORTER_TREE_ACTIVE
-# include <ascend/general/ascMalloc.h>
-# include <ascend/general/panic.h>
+# include "ascMalloc.h"
+# include "ascPanic.h"
 #endif
 
 /**
@@ -34,6 +34,15 @@ static error_reporter_meta_t *error_reporter_meta_new(){
 	return e;
 }
 #endif /* ERROR_REPORTER_TREE_ACTIVE */
+	
+/**
+	XTERM colour codes used to distinguish between errors of different types.
+*/
+#  define ERR_RED "31;1"
+#  define ERR_GRN "32;2"
+#  define ERR_BLU "34;1"
+#  define ERR_BRN "33;1"
+#  define ERR_BOLD "1"
 
 /**
 	Default error reporter. To use this error reporter, set
@@ -41,20 +50,20 @@ static error_reporter_meta_t *error_reporter_meta_new(){
 */
 int error_reporter_default_callback(ERROR_REPORTER_CALLBACK_ARGS){
 	char *sevmsg="";
-	enum ConsoleColor color = 0;
+	char *color=NULL;
 	char *endtxt="\n";
 	int res=0;
 	switch(sev){
-		case ASC_PROG_FATAL:    color=ASC_FG_BRIGHTRED; sevmsg = "PROGRAM FATAL ERROR: "; break;
+		case ASC_PROG_FATAL:    color=ERR_RED; sevmsg = "PROGRAM FATAL ERROR: "; break;
 		case ASC_PROG_ERROR:
-		    color=ASC_FG_RED; sevmsg = "PROGRAM ERROR: ";
+		    color=ERR_RED; sevmsg = "PROGRAM ERROR: ";
 			break;
-		case ASC_PROG_WARNING:  color=ASC_FG_BROWN;sevmsg = "PROGRAM WARNING: "; break;
-		case ASC_PROG_NOTE:     color=ASC_FG_BRIGHTGREEN; endtxt=""; break; /* default, keep unembellished for now */
-		case ASC_USER_ERROR:    color=ASC_FG_BRIGHTRED; sevmsg = "ERROR: "; break;
-		case ASC_USER_WARNING:  color=ASC_FG_BROWN; sevmsg = "WARNING: "; break;
+		case ASC_PROG_WARNING:  color=ERR_BOLD;sevmsg = "PROGRAM WARNING: "; break;
+		case ASC_PROG_NOTE:     color=ERR_GRN; endtxt=""; break; /* default, keep unembellished for now */
+		case ASC_USER_ERROR:    color=ERR_RED; sevmsg = "ERROR: "; break;
+		case ASC_USER_WARNING:  color=ERR_BRN; sevmsg = "WARNING: "; break;
 		case ASC_USER_NOTE:     sevmsg = "NOTE: "; break;
-		case ASC_USER_SUCCESS:  color=ASC_FG_BRIGHTGREEN; sevmsg = "SUCCESS: "; break;
+		case ASC_USER_SUCCESS:  color=ERR_GRN; sevmsg = "SUCCESS: "; break;
 	}
 
 	color_on(ASCERR,color);
@@ -108,10 +117,10 @@ int error_reporter_tree_start(){
 	error_reporter_tree_t *tnew;
 	tnew = error_reporter_tree_new();
 
-#if 0
 	fprintf(stderr,"TREE = %p",TREE);
 	fprintf(stderr,"TREECURRENT = %p",TREECURRENT);
 
+#if 0
 	if(TREE != NULL && TREECURRENT == NULL){
 		CONSOLE_DEBUG("CALLED WITH NULL TREECURRENT BUT NON-NULL TREE");
 		error_reporter_tree_write(TREE);
@@ -149,7 +158,7 @@ int error_reporter_tree_start(){
 }
 
 int error_reporter_tree_end(){
-	//CONSOLE_DEBUG("TREE END");
+	CONSOLE_DEBUG("TREE END");
 	if(!TREECURRENT){
 		ERROR_REPORTER_HERE(ASC_PROG_ERR,"'end' without TREECURRENT set");
 		return 1;
@@ -157,7 +166,7 @@ int error_reporter_tree_end(){
 	TREECURRENT = TREECURRENT->parent;
 	/* CONSOLE_DEBUG("SET TREECURRENT TO %p",TREECURRENT); */
 	return 0;
-}
+}	
 
 static void error_reporter_tree_free(error_reporter_tree_t *t){
 	if(t->head){
@@ -296,7 +305,7 @@ va_error_reporter(
 			t = TREE;
 			TREE = NULL;
 			error_reporter_tree_write(t);
-			//CONSOLE_DEBUG("DONE WRITING TREE");
+			CONSOLE_DEBUG("DONE WRITING TREE");
 			TREECURRENT = t;
 			error_reporter_tree_clear();
 			/* CONSOLE_DEBUG("DONE FREEING TREE");
@@ -331,7 +340,7 @@ int vfprintf_error_reporter(FILE *file, const char *fmt, va_list args){
 			len = strlen(msg);
 			res = vsnprintf(msg+len,ERROR_REPORTER_MAX_MSG-len,fmt,args);
 			if(len+res+1>=ERROR_REPORTER_MAX_MSG){
-				SNPRINTF(msg+ERROR_REPORTER_MAX_MSG-16,15,"... (truncated)");
+				snprintf(msg+ERROR_REPORTER_MAX_MSG-16,15,"... (truncated)");
 				ASC_FPRINTF(stderr,"TRUNCATED MESSAGE, FULL MESSAGE FOLLOWS:\n----------START----------\n");
 				ASC_VFPRINTF(stderr,fmt,args);
 				ASC_FPRINTF(stderr,"\n-----------END----------\n");
@@ -345,7 +354,7 @@ int vfprintf_error_reporter(FILE *file, const char *fmt, va_list args){
 	}
 	return res;
 }
-
+	
 /**
 	This function performs caching of the error text if the flag is set
 */

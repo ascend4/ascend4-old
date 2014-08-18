@@ -9,23 +9,24 @@
  *  and/or modify it under the terms of the GNU General Public License as
  *  published by the Free Software Foundation; either version 2 of the
  *  License, or (at your option) any later version.
- *
+ *                                                                                 
  *  The Ascend Environment is distributed in hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  */
 
 #include <stdio.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/pretty.h>
-
-#include <test/common.h>
-#include <test/printutil.h>
+#include "CUnit/CUnit.h"
+#include "test/printutil.h"
 
 #define MAX_STRING_LEN 100
 
@@ -262,8 +263,18 @@ static void test_pretty(void)
 /*===========================================================================*/
 /* Registration information */
 
-#define TESTS(T) \
-	T(pretty)
+static CU_TestInfo list_test_pretty[] = {
+  {"pretty", test_pretty},
+  CU_TEST_INFO_NULL
+};
 
-REGISTER_TESTS_SIMPLE(general_pretty, TESTS)
+static CU_SuiteInfo suites[] = {
+  {"general_pretty", NULL, NULL, list_test_pretty},
+  CU_SUITE_INFO_NULL
+};
 
+/*-------------------------------------------------------------------*/
+CU_ErrorCode test_register_general_pretty(void)
+{
+  return CU_register_suites(suites);
+}

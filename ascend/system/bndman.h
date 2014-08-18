@@ -12,8 +12,11 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @defgroup system_bndman System Boundary Manipulation
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//* @file
+	Boundary Manipulator Module.
 
 	This module will provide supplemental operations for
 	boundaries such as evaluation.
@@ -25,10 +28,10 @@
 #ifndef ASC_BNDMAN_H
 #define ASC_BNDMAN_H
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include "bnd.h"
 
-/**	@addtogroup system_bndman
+/**	@addtogroup solver Solver
 	@{
 */
 

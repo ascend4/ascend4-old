@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Anonymous copy implementation
@@ -32,7 +34,7 @@
 #include <time.h>
 #include <stdarg.h>
 
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/pairlist.h>
 #include "symtab.h"
 
@@ -54,6 +56,7 @@
 #include "name.h"
 #include "nameio.h"
 #include "vlist.h"
+#include "slist.h"
 #include "evaluate.h"
 #include "value_type.h"
 #include "statio.h"

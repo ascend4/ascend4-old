@@ -1,31 +1,36 @@
-/*	ASCEND modelling environment
-	Copyright (C) 2006, 2011 Carnegie Mellon University
-	Copyright (C) 1990, 1993, 1994 Thomas Guthrie Epperly
-
-	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; either version 2, or (at your option)
-	any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//**
-	@file
-	Ascend Units Type definitions.
-*//*
-	by Tom Epperly 13 Sept 1989
-	Last in CVS: $Revision: 1.18 $ $Date: 1998/04/11 01:32:11 $ $Author: ballan $
-*/
+/*
+ *  Ascend Units Type Implementation
+ *  by Tom Epperly
+ *  9/13/89
+ *  Version: $Revision: 1.18 $
+ *  Version control file: $RCSfile: units.c,v $
+ *  Date last modified: $Date: 1998/04/11 01:32:11 $
+ *  Last modified by: $Author: ballan $
+ *
+ *  This file is part of the Ascend Language Interpreter.
+ *
+ *  Copyright (C) 1990, 1993, 1994 Thomas Guthrie Epperly
+ *
+ *  The Ascend Language Interpreter is free software; you can redistribute
+ *  it and/or modify it under the terms of the GNU General Public License
+ *  as published by the Free Software Foundation; either version 2 of the
+ *  License, or (at your option) any later version.
+ *
+ *  The Ascend Language Interpreter is distributed in hope that it will be
+ *  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ */
 
 #include <math.h>
 #include <ctype.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/hashpjw.h>
 #include <ascend/general/dstring.h>
 
@@ -33,8 +38,14 @@
 #include "cmpfunc.h"
 #include "symtab.h"
 
+
 #include "dimen_io.h"
 #include "units.h"
+
+
+#ifndef lint
+static CONST char UnitsModuleID[] = "$Id: units.c,v 1.18 1998/04/11 01:32:11 ballan Exp $";
+#endif
 
 enum units_scanner_tokens {
   units_id,
@@ -135,14 +146,14 @@ char *g_unit_base_name[NUM_DIMENS];
 void InitUnitsTable(void)
 {
   register unsigned long c;
-  //register CONST struct Units *result;
+  register CONST struct Units *result;
 
   for(c=0;c<UNITS_HASH_SIZE;g_units_hash_table[c++]=NULL);
     /* no body */
   g_units_size = 0;
   g_units_collisions = 0;
-  DefineUnits(AddSymbol("?"),1.0,WildDimension());
-  DefineUnits(AddSymbol(""),1.0,Dimensionless());
+  result = DefineUnits(AddSymbol("?"),1.0,WildDimension());
+  result = DefineUnits(AddSymbol(""),1.0,Dimensionless());
   DefineFundamentalUnits();
   g_unit_base_name[D_MASS] = UNIT_BASE_MASS;
   g_unit_base_name[D_QUANTITY] = UNIT_BASE_QUANTITY;
@@ -545,7 +556,7 @@ struct ParseReturn ParseTerm(CONST char *c,
 {
   register CONST struct Units *lookup;
   struct fraction frac;
-  //enum units_scanner_tokens tok;
+  enum units_scanner_tokens tok;
   struct ParseReturn result;
   unsigned long oldpos;
   result.conv = 1.0;
@@ -607,7 +618,7 @@ struct ParseReturn ParseTerm(CONST char *c,
   }
   SkipStrBlanks(c,pos);
   if (c[*pos]=='^') {
-    GetUnitsToken(c,pos);
+    tok = GetUnitsToken(c,pos);
     SkipStrBlanks(c,pos);
     oldpos = *pos;
     frac = ParseFraction(c,pos,error_code);

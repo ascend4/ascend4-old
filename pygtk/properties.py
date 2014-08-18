@@ -1,6 +1,6 @@
 # GUI for ASCEND solver_var properties
 
-import gtk
+import gtk, gtk.glade
 import ascpy
 from varentry import *
 from infodialog import *
@@ -11,24 +11,24 @@ class RelPropsWin:
 		self.browser = browser;
 
 		# GUI config
-		self.browser.builder.add_objects_from_file(self.browser.glade_file, ["relpropswin"])
-		self.window = self.browser.builder.get_object("relpropswin")
+		_xml = gtk.glade.XML(browser.glade_file,"relpropswin")
+		self.window = _xml.get_widget("relpropswin")
 		self.window.set_transient_for(self.browser.window)
 
-		self.relname = self.browser.builder.get_object("relname")
-		self.residual = self.browser.builder.get_object("residual")
-		self.expr = self.browser.builder.get_object("expr")
-		self.included = self.browser.builder.get_object("included")
-		self.active = self.browser.builder.get_object("active")
+		self.relname = _xml.get_widget("relname")
+		self.residual = _xml.get_widget("residual")
+		self.expr = _xml.get_widget("expr")
+		self.included = _xml.get_widget("included")
+		self.active = _xml.get_widget("active")
 		self.exprbuff = gtk.TextBuffer();
 		self.expr.set_buffer(self.exprbuff)
-		self.morepropsbutton = self.browser.builder.get_object("morepropsbutton");
+		self.morepropsbutton = _xml.get_widget("morepropsbutton");
 
-		self.statusimg = self.browser.builder.get_object("rel_statusimg");
-		self.statusmessage = self.browser.builder.get_object("rel_statusmessage");
+		self.statusimg = _xml.get_widget("rel_statusimg");
+		self.statusmessage = _xml.get_widget("rel_statusmessage");
 
 		self.fill_values()
-		self.browser.builder.connect_signals(self)
+		_xml.signal_autoconnect(self)
 
 	def fill_values(self):
 		self.relname.set_text( self.browser.sim.getInstanceName(self.instance) )
@@ -77,31 +77,32 @@ class VarPropsWin:
 		self.browser = browser;
 
 		# GUI config
-		self.browser.builder.add_objects_from_file(self.browser.glade_file, ["varpropswin"])
-		self.window = self.browser.builder.get_object("varpropswin")
+		_xml = gtk.glade.XML(browser.glade_file,"varpropswin")
+		self.window = _xml.get_widget("varpropswin")
 		self.window.set_transient_for(self.browser.window)
 
-		self.varname = self.browser.builder.get_object("varname")
-		self.valueentry= self.browser.builder.get_object("valueentry");
-		self.lowerentry = self.browser.builder.get_object("lowerentry");
-		self.upperentry = self.browser.builder.get_object("upperentry");
-		self.nominalentry = self.browser.builder.get_object("nominalentry");
-		self.fixed = self.browser.builder.get_object("fixed");
-		self.free = self.browser.builder.get_object("free");
+		self.varname = _xml.get_widget("varname")
+		self.valueentry= _xml.get_widget("valueentry");
+		self.lowerentry = _xml.get_widget("lowerentry");
+		self.upperentry = _xml.get_widget("upperentry");
+		self.nominalentry = _xml.get_widget("nominalentry");
+		self.fixed = _xml.get_widget("fixed");
+		self.free = _xml.get_widget("free");
 
-		self.statusimg = self.browser.builder.get_object("var_statusimg");
+		self.statusimg = _xml.get_widget("var_statusimg");
 		assert self.statusimg
-		self.statusmessage = self.browser.builder.get_object("var_statusmessage");
+		self.statusmessage = _xml.get_widget("var_statusmessage");
 
-		self.cliquebutton = self.browser.builder.get_object("cliquebutton"); 
-		self.morepropsbutton = self.browser.builder.get_object("morepropsbutton");
+		self.cliquebutton = _xml.get_widget("cliquebutton"); 
+		self.morepropsbutton = _xml.get_widget("morepropsbutton");
 
 		self.fill_values()
 
-		self.browser.builder.connect_signals(self)
+		_xml.signal_autoconnect(self)
 
 	def fill_values(self):
 		# all the values here use the same preferred units for this instance type
+
 		_u = self.instance.getType().getPreferredUnits();
 		if _u is None:
 			_conversion = 1
@@ -119,7 +120,6 @@ class VarPropsWin:
 		for _k,_v in _arr.iteritems():	
 			_t = str(_v / _conversion)+" "+_u
 			_k.set_text(_t)
-			self.parse_entry(_k)
 
 		self.varname.set_text(self.browser.sim.getInstanceName(self.instance));
 
@@ -148,11 +148,11 @@ class VarPropsWin:
 			i = RealAtomEntry(self.instance, _k.get_text())
 			try:
 				i.checkEntry()
-				self.taint_entry(_k,"white");
+				self.color_entry(_k,"white");
 				_v(i.getValue())
 			except InputError, e:
 				print "INPUT ERROR: ",str(e)
-				self.taint_entry(_k,"#FFBBBB");
+				self.color_entry(_k,"#FFBBBB");
 				failed = True;
 		
 		self.instance.setFixed(self.fixed.get_active())
@@ -162,35 +162,12 @@ class VarPropsWin:
 
 		self.browser.do_solve_if_auto()
 
-	def taint_entry(self, entry, color):
+	def color_entry(self,entry,color):
 		entry.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse(color))
 		entry.modify_bg(gtk.STATE_ACTIVE, gtk.gdk.color_parse(color))
 		entry.modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse(color))
 		entry.modify_base(gtk.STATE_ACTIVE, gtk.gdk.color_parse(color))
-		if color == "#FFBBBB":
-			entry.set_property("secondary-icon-stock", 'gtk-dialog-error')
-		elif color == "white":
-			entry.set_property("secondary-icon-stock", 'gtk-yes')
-			entry.set_property("secondary-icon-tooltip-text", "")
 
-	def parse_entry(self, entry):
-		# A simple function to get the real value from the entered text
-		# and taint the entry box accordingly
-		i = RealAtomEntry(self.instance, entry.get_text())
-		try:
-			i.checkEntry()
-			_value = i.getValue()
-		except InputError, e:
-			_value = None
-			_error = re.split('Input Error: ', str(e), 1)
-			entry.set_property("secondary-icon-tooltip-text", _error[1])
-		
-		if _value is not None:
-			self.taint_entry(entry, "white")
-		else:
-			self.taint_entry(entry, "#FFBBBB")
-		return _value
-		
 	def on_varpropswin_close(self,*args):
 		self.window.response(gtk.RESPONSE_CANCEL)
 
@@ -213,18 +190,6 @@ class VarPropsWin:
 				text += "%s\n"%self.browser.sim.getInstanceName(i)
 		else:
 			text += "CLIQUE IS EMPTY"
-		_dialog = InfoDialog(self.browser,self.window,text,title)
-		_dialog.run()
-
-	def on_aliasesbutton_clicked(self,*args):
-		title = "Aliases of '%s'"%self.browser.sim.getInstanceName(self.instance)
-		text = title + "\n\n"
-		s = self.instance.getAliases();
-		if s:
-			for i in sorted(s):
-				text += "%s\n" % i
-		else:
-			text += "NO ALIASES"
 		_dialog = InfoDialog(self.browser,self.window,text,title)
 		_dialog.run()
 

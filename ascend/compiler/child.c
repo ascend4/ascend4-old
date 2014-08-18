@@ -22,31 +22,36 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  *
  *  Implementation of Child list stuff.
  */
 
 #include "child.h"
 
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
 
 #include "symtab.h"
 #include "instance_enum.h"
+
 
 #include "expr_types.h"
 #include "stattypes.h"
 #include "statio.h"
 #include "type_desc.h"
 #include "cmpfunc.h"
-
-#define ASC_CHILDPRIV_ACCESS
+#define __CHILD_ILLEGAL_ACCESS__
 #include "childpriv.h"
-
 #include "childio.h"
 #include <ascend/general/mathmacros.h>
+
+#ifndef lint
+static CONST char ChildListID[] = "$Id: child.c,v 1.25 1998/03/26 20:39:34 ballan Exp $";
+#endif
 
 #define NEWCL 1
 /* origin of sanity (or sanity of origin) check. dependent on header */
@@ -135,7 +140,7 @@ static void BuildChildHashTable(struct ChildListStructure *result)
     chp->sym = old->strptr;		/* hash key on pointer, not content. */
     htindex = CHILDHASHINDEX(chp->sym);	/* could save if symtab calc index */
     chp->next = result->table[htindex];	/* stick in bucket list. */
-    result->table[htindex] = chp;
+    result->table[htindex] = chp;	
   }
 }
 
@@ -350,7 +355,7 @@ unsigned int ChildAliasing(ChildListPtr cl, unsigned long int n)
 {
   unsigned result, origin;
   origin = CGET(cl,n)->origin;
-  result = AliasingOrigin(origin);
+  result = AliasingOrigin(origin); 
   return result;
 }
 
@@ -489,3 +494,34 @@ extern int CompareChildLists(ChildListPtr cl1,
   }
 }
 
+#if 0 /* to childio.c */
+void WriteChildList(FILE *fp,ChildListPtr cl)
+{
+  unsigned long c,len;
+  struct ChildListEntry *cle;
+  CONST struct gl_list_t *l;
+  if (cl!=NULL) {
+    l = GL(cl);
+    len = gl_length(l);
+    if (!len) {
+      FPRINTF(fp,"Child list is empty\n");
+      return;
+    }
+    FPRINTF(fp,"Child list is %lu long.\n",len);
+    for (c=1;c<=len;c++) {
+      cle = GGET(l,c);
+      if (cle!=NULL) {
+        FPRINTF(fp,"%lu name=\"%s\" type=\"%s\" ARRAY=%d origin=%d bits=%u\n",
+          c,
+          SCP(cle->strptr),
+          ((cle->typeptr==NULL)?"UNKNOWN":SCP(GetName(cle->typeptr))),
+          cle->isarray,
+          (int)cle->origin,cle->bflags);
+        WSEM(fp,cle->statement,"  Declared at ");
+      } else {
+        FPRINTF(fp,"Child list item %lu is empty!\n",c);
+      }
+    }
+  }
+}
+#endif /* migrated */

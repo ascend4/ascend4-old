@@ -1,5 +1,5 @@
 /*	ASCEND modelling environment
-	Copyright (C) 2006-2011 Carnegie Mellon University
+	Copyright (C) 2006 Carnegie Mellon University
 	Copyright (C) 1994 Joseph Zaher, Benjamin Andrew Allan
 	Copyright (C) 1993 Joseph Zaher
 	Copyright (C) 1990 Karl Michael Westerberg
@@ -15,16 +15,21 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @defgroup system_relman System Relation Manipulation
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//** @file
+	Relation manipulator module for the SLV solver.
+
 	This module will provide supplemental operations for
 	relations such as simplification, evaluation, and
 	differentiation.
-*//*
+
 	Dates: 06/90 - original version
 	       06/93 - separated out exprman
 	       11/93 - added relman_calc_satisfied
 
+*//*
 	by Karl Michael Westerberg and Joseph Zaher, 2/6/90
 	Last in CVS: $Revision: 1.29 $ $Date: 1998/04/23 23:56:24 $ $Author: ballan $
 */
@@ -32,7 +37,7 @@
 #ifndef ASC_RELMAN_H
 #define ASC_RELMAN_H
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 
 #include <ascend/linear/mtx.h>
 #include <ascend/general/ltmatrix.h>
@@ -40,7 +45,7 @@
 #include "var.h"
 #include "rel.h"
 
-/**	@addtogroup system_relman
+/**	@addtogroup solver Solver
 	@{
 */
 
@@ -146,7 +151,6 @@ ASC_DLLSPEC real64 relman_scale(struct rel_relation *rel);
 	@TODO relman_diff() needs to be reimplemented - needs compiler-side work.
 */
 
-
 ASC_DLLSPEC int relman_diff2(struct rel_relation *rel,
                         const var_filter_t *filter,
                         real64 *derivatives,
@@ -155,7 +159,7 @@ ASC_DLLSPEC int relman_diff2(struct rel_relation *rel,
                         int32 safe);
 /**<
 	Calculates the row of the jacobian matrix (the transpose gradient of
-	the relation residual, \f$ \nabla^{T} \left( f \right) \f$) corresponding to the relation
+	the relation residual, $ \grad^{T}(f) $) corresponding to the relation
 	rel. The filter determines which variables actually contribute to the
 	jacobian.
 
@@ -175,7 +179,7 @@ ASC_DLLSPEC int relman_diff2(struct rel_relation *rel,
 
 
 /* return 0 on success (derivatives, variables and count are output vars too) */
-ASC_DLLSPEC int relman_diff2_rev(struct rel_relation *rel,
+ASC_DLLSPEC int relman_diff2_rev(struct rel_relation *rel, 
 								 const var_filter_t *filter,
 		 						 real64 *derivatives,
 		   						 int32 *variables,
@@ -184,13 +188,13 @@ ASC_DLLSPEC int relman_diff2_rev(struct rel_relation *rel,
 /**<
   similar to relman_diff2, but uses revers Automatic differentiation to obtain derivatives
  */
-
+		
 ASC_DLLSPEC int relman_hess(struct rel_relation *rel,
 							const var_filter_t *filter,
 							hessian_mtx *hess_matrix,
 							int32 *count,
 							unsigned long max_dimension,
-							int32 safe);
+							int32 safe);	
 /**<
 	Hessian Matrix Evaluation,
 	@param rel is the relation whose Hessian Matrix is desired
@@ -220,7 +224,7 @@ ASC_DLLSPEC int relman_diff_grad(struct rel_relation *rel,
                             int32 safe);
 /**<
  *  Calculates the row of the jacobian matrix (the transpose gradient of
- *  the relation residual \f$ \nabla^T \left( f \right) \f$) corresponding to the relation
+ *  the relation residual grad^T(f) ) corresponding to the relation
  *  rel.  The filter determines which variables actually contribute to the
  *  jacobian. The residual of the relation is also computed and returned.
  *  If an error is encountered in the calculation, the status returned is
@@ -245,7 +249,7 @@ ASC_DLLSPEC int relman_diffs(struct rel_relation *rel,
 		real64 *resid, int safe);
 /**<
 	Calculates the row of the jacobian matrix (the transpose gradient of
-	the relation residual \f$ \nabla^T \left( f \right) \f$ ) corresponding to the relation
+	the relation residual grad^T(f) ) corresponding to the relation
 	rel.  The filter determines which variables actually contribute to the
 	jacobian.  The residual of the relation is also computed and returned.
 	If an error is encountered in the calculation, the status returned is

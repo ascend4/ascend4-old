@@ -16,28 +16,26 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  */
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include "test_register_general.h"
 
 #define TESTS(T) \
-	T(color) \
 	T(dstring) \
 	T(hashpjw) \
 	T(list) \
 	T(listio) \
-	T(mem) \
 	T(pool) \
 	T(pretty) \
 	T(stack) \
 	T(table) \
 	T(tm_time) \
 	T(ospath) \
-	T(env) \
-	T(ltmatrix) \
-	T(ascMalloc)
+	T(ltmatrix)
 /* 	T(qsort1) */
 
 #define PROTO_GENERAL(NAME) PROTO(general,NAME)
@@ -45,7 +43,7 @@ TESTS(PROTO_GENERAL)
 #undef PROTO_GENERAL
 
 #define REGISTER_TEST(NAME) \
-	result = TESTREGISTER(general,NAME); \
+	result = test_register_general_##NAME(); \
 	if(CUE_SUCCESS!=result){ \
 		return result; \
 	}

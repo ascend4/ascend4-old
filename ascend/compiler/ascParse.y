@@ -16,7 +16,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//*
 	ASCEND parser
 	by Tom Epperly
@@ -34,7 +36,7 @@
 
 #include <ascend/compiler/parser.h>
 
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
 #include <ascend/compiler/compiler.h>
@@ -335,22 +337,21 @@ static void CollectNote(struct Note *);
 %token BEQ_TOK BNE_TOK BREAK_TOK
 %token CALL_TOK CARD_TOK CASE_TOK CHOICE_TOK CHECK_TOK CONDITIONAL_TOK CONSTANT_TOK
 %token CONTINUE_TOK CREATE_TOK
-%token DATA_TOK DECREASING_TOK DEFAULT_TOK DEFINITION_TOK DER_TOK DIMENSION_TOK
+%token DATA_TOK DECREASING_TOK DEFAULT_TOK DEFINITION_TOK DIMENSION_TOK
 %token DIMENSIONLESS_TOK DO_TOK
 %token ELSE_TOK END_TOK EXPECT_TOK EXTERNAL_TOK
 %token FALSE_TOK FALLTHRU_TOK FIX_TOK FOR_TOK FREE_TOK FROM_TOK
 %token GLOBAL_TOK
-%token IF_TOK  IGNORE_TOK IMPORT_TOK IN_TOK INPUT_TOK INCREASING_TOK INTERACTIVE_TOK INDEPENDENT_TOK
+%token IF_TOK IMPORT_TOK IN_TOK INPUT_TOK INCREASING_TOK INTERACTIVE_TOK
 %token INTERSECTION_TOK ISA_TOK _IS_T ISREFINEDTO_TOK
-%token LINK_TOK
 %token MAXIMIZE_TOK MAXINTEGER_TOK MAXREAL_TOK METHODS_TOK METHOD_TOK MINIMIZE_TOK MODEL_TOK
 %token NOT_TOK NOTES_TOK
-%token OF_TOK OPTION_TOK OR_TOK OTHERWISE_TOK OUTPUT_TOK
+%token OF_TOK OR_TOK OTHERWISE_TOK OUTPUT_TOK
 %token PATCH_TOK PROD_TOK PROVIDE_TOK
 %token REFINES_TOK REPLACE_TOK REQUIRE_TOK RETURN_TOK RUN_TOK
-%token SATISFIED_TOK SELECT_TOK SIZE_TOK SOLVE_TOK SOLVER_TOK STOP_TOK SUCHTHAT_TOK SUM_TOK SWITCH_TOK
+%token SATISFIED_TOK SELECT_TOK SIZE_TOK STOP_TOK SUCHTHAT_TOK SUM_TOK SWITCH_TOK
 %token THEN_TOK TRUE_TOK
-%token UNION_TOK UNITS_TOK UNIVERSAL_TOK UNLINK_TOK
+%token UNION_TOK UNITS_TOK UNIVERSAL_TOK
 %token WHEN_TOK WHERE_TOK WHILE_TOK WILLBE_TOK WILLBETHESAME_TOK WILLNOTBETHESAME_TOK
 %token ASSIGN_TOK CASSIGN_TOK DBLCOLON_TOK USE_TOK LEQ_TOK GEQ_TOK NEQ_TOK
 %token DOTDOT_TOK WITH_TOK VALUE_TOK WITH_VALUE_T
@@ -384,9 +385,8 @@ static void CollectNote(struct Note *);
 %type <eptr> relation expr relop logrelop optional_with_value
 %type <sptr> set setexprlist optional_set_values
 %type <lptr> fvarlist input_args output_args varlist
-
 %type <statptr> statement isa_statement willbe_statement aliases_statement
-%type <statptr> is_statement isrefinedto_statement arealike_statement link_statement unlink_statement der_statement independent_statement
+%type <statptr> is_statement isrefinedto_statement arealike_statement
 %type <statptr> arethesame_statement willbethesame_statement
 %type <statptr> willnotbethesame_statement assignment_statement
 %type <statptr> relation_statement glassbox_statement blackbox_statement
@@ -395,8 +395,7 @@ static void CollectNote(struct Note *);
 %type <statptr> when_statement use_statement select_statement
 %type <statptr> conditional_statement notes_statement
 %type <statptr> flow_statement while_statement
-%type <statptr> solve_statement solver_statement option_statement switch_statement
-
+%type <statptr> switch_statement
 %type <slptr> fstatements global_def optional_else
 %type <slptr> optional_model_parameters optional_parameter_reduction
 %type <slptr> optional_parameter_wheres
@@ -404,7 +403,7 @@ static void CollectNote(struct Note *);
 %type <swptr> switchlist switchlistf
 %type <wptr> whenlist whenlistf
 %type <notesptr> notes_body noteslist
-%type <listp> methods proclist proclistf statements unitdeflist complex_statement fix_and_assign_statement
+%type <listp> methods proclist proclistf statements unitdeflist
 %type <procptr> procedure
 %type <dimp> dims dimensions
 %type <dimen> dimexpr
@@ -511,8 +510,8 @@ require_file:
 provide_module:
     PROVIDE_TOK DQUOTE_TOK ';'
 	{
-	  Asc_ModuleCreateAlias(Asc_CurrentModule(),$2);
-	}
+          Asc_ModuleCreateAlias(Asc_CurrentModule(),$2);
+        }
     | PROVIDE_TOK name ';'
 	{
 	  DestroyName($2);
@@ -529,20 +528,14 @@ import:
     IMPORT_TOK IDENTIFIER_TOK FROM_TOK DQUOTE_TOK ';'
 	{
 	  if(package_load($4,SCP($2))){
-	    error_reporter_current_line(ASC_USER_ERROR
-	      ,"IMPORT of '%s' from '%s'."
-	      ,SCP($4), SCP($2)
-	    );
+		ErrMsg_Generic("IMPORT failed");
       }
 	}
 	| IMPORT_TOK DQUOTE_TOK ';'
 	{
 	  if(package_load(SCP($2),NULL)){
-	    error_reporter_current_line(ASC_USER_ERROR
-	      ,"IMPORT of '%s' failed."
-	      ,SCP($2)
-	    );
-	  }
+        ErrMsg_Generic("IMPORT failed");
+      }
 	}
     ;
 
@@ -596,11 +589,11 @@ add_method_def:
 	    }
 	    if (AddMethods($1,$2,g_untrapped_error) != 0) {
 	      if ($1 != ILLEGAL_DEFINITION) {
-	            error_reporter_current_line(ASC_USER_ERROR
-	        ,"ADD METHODS failed for type %s"
-	        ,SCP(GetName($1))
-	      );
-	      DestroyProcedureList($2);
+            error_reporter_current_line(ASC_USER_ERROR
+              ,"ADD METHODS failed for type %s"
+              ,SCP(GetName($1))
+            );
+	        DestroyProcedureList($2);
 	      } /* else adding in DEFINITION MODEL may have misgone */
 	    }
 	  }
@@ -614,10 +607,10 @@ add_method_head:
 	  struct TypeDescription *tmptype;
 	  tmptype = FindType($4);
 	  if(tmptype == NULL){
-	    error_reporter_current_line(ASC_USER_ERROR
-	      ,"ADD METHODS called with undefined type (%s)"
-	      ,SCP($4)
-	    );
+        error_reporter_current_line(ASC_USER_ERROR
+          ,"ADD METHODS called with undefined type (%s)"
+          ,SCP($4)
+        );
 	  }
 	  $$ = tmptype; /* parent should check for NULL */
 	  g_type_name = $4; /* scope for notes */
@@ -639,10 +632,10 @@ replace_method_def:
 	      WarnMsg_MismatchEnd("REPLACE METHODS", NULL, $3, "METHODS");
 	    }
 	    if (ReplaceMethods($1,$2,g_untrapped_error) != 0) {
-	      error_reporter_current_line(ASC_USER_ERROR
-	        ,"REPLACE METHODS failed for type %s"
-	        ,SCP(GetName($1))
-	      );
+          error_reporter_current_line(ASC_USER_ERROR
+            ,"REPLACE METHODS failed for type %s"
+            ,SCP(GetName($1))
+          );
 	      DestroyProcedureList($2);
 	    }
 	  }
@@ -656,10 +649,10 @@ replace_method_head:
 	  struct TypeDescription *tmptype;
 	  tmptype = FindType($4);
 	  if (tmptype == NULL) {
-	    error_reporter_current_line(ASC_USER_ERROR
-	      ,"REPLACE METHODS called with undefined type (%s)"
-	      ,SCP($4)
-	    );
+        error_reporter_current_line(ASC_USER_ERROR
+          ,"REPLACE METHODS called with undefined type (%s)"
+          ,SCP($4)
+        );
 	  }
 	  $$ = tmptype; /* parent should check for NULL */
 	}
@@ -1084,27 +1077,27 @@ definition_id:
 
 
 units_def:
-	units_statement ';'
-	{ /* nothing to do. just cruft to fix ; problem */ }
-	;
+    units_statement ';'
+        { /* nothing to do. just cruft to fix ; problem */ }
+    ;
 
 units_statement:
-	UNITS_TOK unitdeflist end
+    UNITS_TOK unitdeflist end
 	{
-	  struct UnitDefinition *ud;
-	  unsigned long c,len;
+          struct UnitDefinition *ud;
+          unsigned long c,len;
 
 	  if( $3 != UNITS_TOK ) {
 	    WarnMsg_MismatchEnd("UNITS", NULL, $3, NULL);
 	  }
-	  len = gl_length($2);
-	  for (c=1; c <= len; c++) {
-	    ud = (struct UnitDefinition *)gl_fetch($2,c);
-	    ProcessUnitDef(ud);
-	    DestroyUnitDef(ud);
-	  }
-	  gl_destroy($2);
-	  $$ = NULL;
+          len = gl_length($2);
+          for (c=1; c <= len; c++) {
+            ud = (struct UnitDefinition *)gl_fetch($2,c);
+            ProcessUnitDef(ud);
+            DestroyUnitDef(ud);
+          }
+          gl_destroy($2);
+          $$ = NULL;
 	}
     ;
 
@@ -1123,7 +1116,7 @@ unitdef:
     IDENTIFIER_TOK '=' BRACEDTEXT_TOK ';'
 	{
 	  $$ = CreateUnitDef($1,$3,Asc_ModuleBestName(Asc_CurrentModule()),
-	                     LineNum());
+                             LineNum());
 	}
     ;
 
@@ -1135,10 +1128,10 @@ methods:
 	}
     | METHODS_TOK
 	{ /* To get rid of this, we will need a global proclist
-	   * that accumulates procs until a MODEL production is
-	   * completed. If any other sort of production is started,
-	   * and proclist is not NULL, it should be discarded.
-	   */
+           * that accumulates procs until a MODEL production is
+           * completed. If any other sort of production is started,
+           * and proclist is not NULL, it should be discarded.
+           */
 	}
     proclist
 	{
@@ -1163,16 +1156,16 @@ proclistf:
 	  unsigned long c;
 	  struct InitProcedure *oldproc;
 	  c = gl_length($1);
-	  while (c > 0) {
-	    oldproc = (struct InitProcedure *)gl_fetch($1,c);
-	    if (ProcName($2) == ProcName(oldproc)) {
-	      error_reporter_current_line(ASC_USER_WARNING
-	        ,"Duplicate METHOD %s rejected", SCP(ProcName($2))
-	      );
-	      break;
-	    }
-	    c--;
-	  }
+          while (c > 0) {
+            oldproc = (struct InitProcedure *)gl_fetch($1,c);
+            if (ProcName($2) == ProcName(oldproc)) {
+              error_reporter_current_line(ASC_USER_WARNING
+                ,"Duplicate METHOD %s rejected", SCP(ProcName($2))
+              );
+              break;
+            }
+            c--;
+          }
 	  if (c) { /* broke early */
 	    DestroyProcedure($2);
 	  } else {
@@ -1225,13 +1218,6 @@ statements:
 	  }
 	  $$ = $1;
 	}
-    | statements complex_statement ';'
-	{
-	  if ($2 != NULL) {
-	    gl_append_list($1,$2);
-	  }
-	  $$ = $1;
-	}
     | statements error ';'
 	{
 	  ErrMsg_Generic("Error in statement input.");
@@ -1246,10 +1232,6 @@ statement:
     | is_statement
     | isrefinedto_statement
     | arealike_statement
-    | link_statement
-    | unlink_statement
-    | der_statement
-    | independent_statement
     | arethesame_statement
     | willbethesame_statement
     | willnotbethesame_statement
@@ -1263,9 +1245,6 @@ statement:
     | run_statement
     | fix_statement
     | free_statement
-    | solver_statement
-    | solve_statement
-    | option_statement
     | assert_statement
     | if_statement
     | while_statement
@@ -1278,11 +1257,6 @@ statement:
     | notes_statement
     | units_statement
     ;
-
-complex_statement:
-	fix_and_assign_statement
-	;
-
 
 isa_statement:
     fvarlist ISA_TOK type_identifier optional_of optional_with_value
@@ -1438,7 +1412,7 @@ isrefinedto_statement:
 	  tmptype = FindType($3);
 	  if (tmptype != NULL) {
 	    if ((GetBaseType(tmptype) != model_type) && 
-	        (g_typeargs != NULL)) {
+                (g_typeargs != NULL)) {
 	      error_reporter_current_line(ASC_USER_ERROR,"IS_REFINED_TO has arguments to the nonmodel type %s.",SCP($3));
 	      DestroyVariableList($1);
 	      DestroySetList(g_typeargs);
@@ -1521,50 +1495,6 @@ arealike_statement:
     fvarlist AREALIKE_TOK
 	{
 	  $$ = CreateAA($1);
-	}
-    ;
-
-link_statement:
-    LINK_TOK '(' IGNORE_TOK ',' SYMBOL_TOK ',' fvarlist ')'
-	{
-	    $$ = IgnoreLNK($5,NULL,$7);
-	}
-    | LINK_TOK '(' SYMBOL_TOK ',' fvarlist ')'
-	{
-	    $$ = CreateLNK($3,NULL,$5);
-	}
-    | LINK_TOK '(' fname ',' fvarlist ')'
-	{
-	    $$ = CreateLNK(NULL,$3,$5);
-	}
-    ;
-
-unlink_statement:
-    UNLINK_TOK '(' SYMBOL_TOK ',' fvarlist ')'
-	{
-	    $$ = CreateUNLNK($3,NULL,$5);
-	}
-    | UNLINK_TOK '(' fname ',' fvarlist ')'
-	{
-	    $$ = CreateUNLNK(NULL,$3,$5);
-	}
-    ;
-
-der_statement:
-    DER_TOK '(' fvarlist ')'
-	{
-	    symchar *str;
-	    str = AddSymbol("ode");
-	    $$ = CreateLNK(str,NULL,$3);
-	}
-    ;
-
-independent_statement:
-    INDEPENDENT_TOK  fvarlist
-	{
-	    symchar *str;
-	    str = AddSymbol("independent");
-	    $$ = CreateLNK(str,NULL,$2);
 	}
     ;
 
@@ -1672,7 +1602,7 @@ blackbox_statement:
 	n_outputs = VariableListLength($7);
 	/*continue with normal parsing process */
 	vl = JoinVariableLists($5,$7); 
-	/* $$ = CreateEXTERN(2,$1,SCP($3),vl,$8,NULL); */
+        /* $$ = CreateEXTERN(2,$1,SCP($3),vl,$8,NULL); */
 
       /*$$ = CreateEXTERNBlackBox($1,SCP($3),vl,$8); //original */
       //statement now also knows how many of the variables in vl are inputs/outputs
@@ -1743,17 +1673,17 @@ for_statement:
 	  if( $8 != FOR_TOK ) {
 	    WarnMsg_MismatchEnd("FOR", SCP($2), $8, NULL);
 	  }
-	  if ($6 == fk_create && $5 != f_random) {
-	    /* create cannot have an order in declarative FOR */
+          if ($6 == fk_create && $5 != f_random) {
+            /* create cannot have an order in declarative FOR */
 	    ErrMsg_Generic("FOR loops only accept DECREASING or INCREASING in the method section.");
 	    g_untrapped_error++;
-	  }
-	  if ($6 == fk_do && $5 == f_random) {
-	    /* all FOR/DO default to increasing */
+          }
+          if ($6 == fk_do && $5 == f_random) {
+            /* all FOR/DO default to increasing */
 	    $$ = CreateFOR($2,$4,$7,f_increasing,$6);
-	  } else {
+          } else {
 	    $$ = CreateFOR($2,$4,$7,$5,$6);
-	  }
+          }
 	}
     ;
 
@@ -1775,19 +1705,19 @@ optional_direction:
 forexprend:
     CREATE_TOK
 	{
-	  $$ = fk_create; /* declarative FOR */
+          $$ = fk_create; /* declarative FOR */
 	}
     | EXPECT_TOK
 	{
-	  $$ = fk_expect; /* parameter FOR */
+          $$ = fk_expect; /* parameter FOR */
 	}
     | CHECK_TOK
 	{
-	  $$ = fk_check; /* WHERE FOR */
+          $$ = fk_check; /* WHERE FOR */
 	}
     | DO_TOK
 	{
-	  $$ = fk_do; /* method FOR */
+          $$ = fk_do; /* method FOR */
 	}
     ;
 
@@ -1805,53 +1735,14 @@ run_statement:
 fix_statement:
 	FIX_TOK fvarlist
 	{
-		/*CONSOLE_DEBUG("GOT 'FIX' STATEMENT...");*/
 		$$ = CreateFIX($2);
 	}
 	;
-
-fix_and_assign_statement:
-	FIX_TOK assignment_statement
-	{
-		struct Statement *assign = $2;
-		struct Name *n = CopyName($2 -> v.asgn.nptr);
-		struct VariableList *vars = CreateVariableNode(n);
-		struct Statement *fix = CreateFIX(ReverseVariableList(vars));
-		struct gl_list_t *fix_and_assign = gl_create(7L);
-		gl_append_ptr(fix_and_assign,(char*)fix);
-		gl_append_ptr(fix_and_assign,(char*)assign);
-		$$ = fix_and_assign;
-	}
-     ;
 
 free_statement:
 	FREE_TOK fvarlist
 	{
 		$$ = CreateFREE($2);
-	}
-	;
-
-solver_statement:
-	SOLVER_TOK IDENTIFIER_TOK
-	{
-		/*CONSOLE_DEBUG("GOT 'SOLVER' STATEMENT WITH '%s'", SCP($2));*/
-		$$ = CreateSOLVER(SCP($2));
-	}
-	;
-
-option_statement:
-	OPTION_TOK IDENTIFIER_TOK expr
-	{
-		/*CONSOLE_DEBUG("GOT 'OPTION' STATEMENT WITH '%s'", SCP($2));*/
-		$$ = CreateOPTION(SCP($2),$3);
-	}
-	;
-
-solve_statement:
-	SOLVE_TOK
-	{
-		/*CONSOLE_DEBUG("GOT 'SOLVE' STATEMENT");*/
-		$$ = CreateSOLVE();
 	}
 	;
 
@@ -1873,7 +1764,7 @@ call_statement:
 	   * This is proper procedural external method code.
 	   */
 	  $$ = CreateCALL($2,g_callargs);
-	  g_callargs = NULL;
+          g_callargs = NULL;
 	}
     ;
 
@@ -2129,7 +2020,7 @@ notes_statement:
 	    nt = $2;
 	    while (nt != NULL) {
 	      if (nt->lang != NULL) {
-		/* this logic works because of the reverse sort that
+	        /* this logic works because of the reverse sort that
 	         * yacc does via noteslist and the forward sort that
 	         * we do via notesbody. lang recorded last appears
 	         * before other entries that need it.
@@ -2145,7 +2036,7 @@ notes_statement:
 	      nt = nt->next;
 	    }
 	    DestroyNoteTmpList($2);
-	  }
+          }
 	  $$ = NULL;
 	}
     ;
@@ -2178,7 +2069,7 @@ noteslist:
     fvarlist BRACEDTEXT_TOK
 	{
 	  $$ = CreateNoteTmp(NULL, AddBraceChar($2,NULL),
-	                     (void *)$1, LineNum());
+                             (void *)$1, LineNum());
 	}
     | noteslist fvarlist BRACEDTEXT_TOK
 	{
@@ -2229,7 +2120,7 @@ fname:
 	  enum NoteData nd;
 	  $$ = ReverseName($1);
 	  if ($2 != NULL && $1 != NULL) {
-	    simple = SimpleNameIdPtr($$);
+            simple = SimpleNameIdPtr($$);
 	    data = (simple == NULL ? (void *)$$ : NULL);
 	    nd = (data == NULL ? nd_empty : nd_name);
 	    CollectNote(CreateNote(g_type_name, InlineNote(), simple,
@@ -2242,16 +2133,16 @@ fname:
     ;
 
 name:
-	IDENTIFIER_TOK
+    IDENTIFIER_TOK
 	{
 	  $$ = CreateIdName($1);
 	}
-	| name '.' IDENTIFIER_TOK
+    | name '.' IDENTIFIER_TOK
 	{
 	  $$ = CreateIdName($3);
 	  LinkNames($$,$1);
 	}
-	| name '[' set ']'
+    | name '[' set ']'
 	{
 	  if ($3 == NULL) {
 	    error_reporter_current_line(ASC_USER_ERROR,"syntax error: Empty set in name definition, name:");
@@ -2263,79 +2154,79 @@ name:
 	    LinkNames($$,$1);
 	  }
 	}
-	;
+    ;
 
 end:
-	END_TOK CONDITIONAL_TOK
+    END_TOK CONDITIONAL_TOK
 	{
-	  g_end_identifier = NULL;
-	  $$ = CONDITIONAL_TOK;
-	}
-	| END_TOK FOR_TOK
+          g_end_identifier = NULL;
+          $$ = CONDITIONAL_TOK;
+        }
+    | END_TOK FOR_TOK
 	{
-	  g_end_identifier = NULL;
-	  $$ = FOR_TOK;
-	}
-	| END_TOK IF_TOK
+          g_end_identifier = NULL;
+          $$ = FOR_TOK;
+        }
+    | END_TOK IF_TOK
 	{
-	  g_end_identifier = NULL;
-	  $$ = IF_TOK;
-	}
-	| END_TOK INTERACTIVE_TOK
+          g_end_identifier = NULL;
+          $$ = IF_TOK;
+        }
+    | END_TOK INTERACTIVE_TOK
 	{
-	  g_end_identifier = NULL;
-	  $$ = INTERACTIVE_TOK;
-	}
-	| END_TOK METHODS_TOK
+          g_end_identifier = NULL;
+          $$ = INTERACTIVE_TOK;
+        }
+    | END_TOK METHODS_TOK
 	{
-	  g_end_identifier = NULL;
-	  $$ = METHODS_TOK;
-	}
-	| END_TOK NOTES_TOK
+          g_end_identifier = NULL;
+          $$ = METHODS_TOK;
+        }
+    | END_TOK NOTES_TOK
 	{
-	  g_end_identifier = NULL;
-	  $$ = NOTES_TOK;
-	}
+          g_end_identifier = NULL;
+          $$ = NOTES_TOK;
+        }
     | END_TOK SELECT_TOK
 	{
-	  g_end_identifier = NULL;
-	  $$ = SELECT_TOK;
-	}
+          g_end_identifier = NULL;
+          $$ = SELECT_TOK;
+        }
     | END_TOK SWITCH_TOK
 	{
-	  g_end_identifier = NULL;
-	  $$ = SWITCH_TOK;
-	}
+          g_end_identifier = NULL;
+          $$ = SWITCH_TOK;
+        }
     | END_TOK UNITS_TOK
 	{
-	  g_end_identifier = NULL;
-	  $$ = UNITS_TOK;
-	}
+          g_end_identifier = NULL;
+          $$ = UNITS_TOK;
+        }
     | END_TOK GLOBAL_TOK
 	{
-	  g_end_identifier = NULL;
-	  $$ = GLOBAL_TOK;
-	}
+          g_end_identifier = NULL;
+          $$ = GLOBAL_TOK;
+        }
     | END_TOK WHEN_TOK
 	{
-	  g_end_identifier = NULL;
-	  $$ = WHEN_TOK;
-	}
+          g_end_identifier = NULL;
+          $$ = WHEN_TOK;
+        }
     | END_TOK WHILE_TOK
 	{
-	  g_end_identifier = NULL;
-	  $$ = WHILE_TOK;
-	}
+          g_end_identifier = NULL;
+          $$ = WHILE_TOK;
+        }
     | END_TOK IDENTIFIER_TOK
 	{
-	  g_end_identifier = $2;
-	  $$ = IDENTIFIER_TOK;
-	}
+          g_end_identifier = $2;
+          $$ = IDENTIFIER_TOK;
+        }
     | END_TOK /* empty */
 	{
-	  g_end_identifier = NULL;
-	  $$ = END_TOK;
-	}
+          g_end_identifier = NULL;
+          $$ = END_TOK;
+        }
     ;
 
 optional_bracedtext:
@@ -2421,11 +2312,11 @@ realnumber:
 	    $$ = (double)$1*UnitsConvFactor(g_units_ptr);
 	    g_dim_ptr = UnitsDimensions(g_units_ptr);
 	  } else {
-	    char **errv;
+            char **errv;
 	    $$ = (double)$1;
 	    g_dim_ptr = WildDimension();
 	    error_reporter_current_line(ASC_USER_ERROR,"Undefined units '%s'", $2);
-	    errv = UnitsExplainError($2,error_code,pos);
+            errv = UnitsExplainError($2,error_code,pos);
 	    error_reporter_current_line(ASC_USER_ERROR,"  %s\n  %s\n  %s\n",errv[0],errv[1],errv[2]);
 	    g_untrapped_error++;
 	  }
@@ -2447,11 +2338,11 @@ opunits:
 	    $$ = UnitsConvFactor(g_units_ptr);
 	    g_dim_ptr = UnitsDimensions(g_units_ptr);
 	  } else {
-	    char **errv;
+            char **errv;
 	    $$ = 1.0;
 	    g_dim_ptr = WildDimension();
 	    error_reporter_current_line(ASC_USER_ERROR,"Undefined units '%s'",$1);
-	    errv = UnitsExplainError($1,error_code,pos);
+            errv = UnitsExplainError($1,error_code,pos);
 	    error_reporter_current_line(ASC_USER_ERROR,"  %s\n  %s\n  %s\n",errv[0],errv[1],errv[2]);
 	    g_untrapped_error++;
 	  }
@@ -3021,6 +2912,3 @@ static void error_reporter_current_line(const error_severity_t sev, const char *
 	va_error_reporter(sev,Asc_ModuleBestName(Asc_CurrentModule()),(int)LineNum(),NULL,fmt,args);
 	va_end(args);
 }
-
-/* vim: set ts=8: */
-

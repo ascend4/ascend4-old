@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Anonymous type manipulation
@@ -31,12 +33,11 @@
 #ifndef ASC_ANONCOPY_H
 #define ASC_ANONCOPY_H
 
-#include <ascend/utilities/bit.h>
+#include "bit.h"
+#include "instance_enum.h"
 #include <ascend/general/list.h>
 
-#include "instance_enum.h"
-
-/**	@addtogroup compiler_anon Compiler Anonymous Types
+/**	@addtogroup compiler Compiler
 	@{
 */
 
@@ -53,7 +54,7 @@ extern struct gl_list_t *Pass2CollectAnonProtoVars(struct Instance *i);
 
 	At the expense of a visit tree call (which we need anyway)
 	this returns the list unsorted and never searched.<br><br>
-
+	
 	The list returned should be destroyed with
 	Pass2DestroyAnonProtoVars().
 */

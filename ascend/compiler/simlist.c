@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	This module initializes manages a global list simulations,
@@ -25,7 +27,7 @@
 	Last in CVS: $Revision: 1.3 $ $Date: 1997/07/18 12:34:53 $ $Author: mthomas $
 */
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 
 #include "instance_enum.h"
 #include "destroyinst.h"
@@ -44,9 +46,7 @@ struct gl_list_t *g_simulation_list = NULL;
 
 void sim_destroy(struct Instance *sim){
   if (sim) {
-#ifdef SIMLIST_DEBUG
 	CONSOLE_DEBUG("Destroying instance %s", SCP(GetSimulationName(sim)) );
-#endif
     DestroyInstance(sim,NULL);
   }
 }

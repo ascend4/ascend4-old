@@ -29,11 +29,11 @@
 #ifndef ASC_REL_BLACKBOX_H
 #define ASC_REL_BLACKBOX_H
 
-/**	@addtogroup compiler_rel Compiler Relations
+/**	@addtogroup compiler Compiler
 	@{
 */
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include "instance_enum.h"
 #include "relation_type.h"
 #include <ascend/general/list.h>

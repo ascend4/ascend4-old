@@ -22,12 +22,15 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
  */
 #include <stdarg.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/panic.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
 #include <ascend/general/pool.h>
 
@@ -35,6 +38,10 @@
 #include "instance_enum.h"
 #include "cmpfunc.h"
 #include "setinstval.h"
+
+#ifndef lint
+static CONST char SetInstValID[] = "$Id: setinstval.c,v 1.9 1998/02/05 16:37:50 ballan Exp $";
+#endif
 
 #define MYMIN(x,y) (((x)<(y)) ? (x) : (y))
 
@@ -67,7 +74,7 @@ static pool_store_t g_set_pool=NULL;
 
 void InitSetManager(void)
 {
-#if SETINST_USES_POOL
+#if SETINST_USES_POOL 
   if (g_set_pool != NULL ) {
     ASC_PANIC("ERROR: InitSetManager called twice.\n");
   }
@@ -81,7 +88,7 @@ void InitSetManager(void)
 
 void DestroySetManager(void)
 {
-#if SETINST_USES_POOL
+#if SETINST_USES_POOL 
   assert(g_set_pool!=NULL);
   pool_destroy_store(g_set_pool);
   g_set_pool = NULL;
@@ -90,7 +97,7 @@ void DestroySetManager(void)
 
 void ReportSetManager(FILE *f)
 {
-#if SETINST_USES_POOL
+#if SETINST_USES_POOL 
   assert(g_set_pool!=NULL);
   FPRINTF(f,"SetManager ");
   pool_print_store(f,g_set_pool,0);
@@ -99,7 +106,7 @@ void ReportSetManager(FILE *f)
 #endif
 }
 
-#if SETINST_USES_POOL
+#if SETINST_USES_POOL 
 #define MALLOCSET(x) (x = (struct set_t *)pool_get_element(g_set_pool))
 #define FREESET(set) pool_free_element(g_set_pool,(set))
 #else
@@ -124,7 +131,7 @@ int SetStrCmp(CONST char *s1, CONST char *s2)
 struct set_t *CreateEmptySet(void)
 {
   register struct set_t *result;
-  assert(sizeof(asc_intptr_t)==sizeof(char *));
+  assert(sizeof(long)==sizeof(char *));
   MALLOCSET(result);
   result->kind = empty_set;
   result->list = NULL;
@@ -147,33 +154,37 @@ void IntegerViolation(CONST char *name)
             name);
 }
 
-void InsertInteger(struct set_t *set, asc_intptr_t i){
+void InsertInteger(struct set_t *set, long int i)
+{
   assert(set&&((set->kind==integer_set)||(set->kind==empty_set)));
-  if(set->kind==empty_set)
+  if (set->kind==empty_set)
     set->kind = integer_set;
   else if (set->kind==string_set)
     StringViolation("InsertInteger");
-  if(set->list==NULL) {
+  if (set->list==NULL) {
     set->list = gl_create(5L);
     gl_insert_sorted(set->list,(VOIDPTR)i,(CmpFunc)SetIntCmp);
-  }else{
-    if(gl_search(set->list,(VOIDPTR)i,(CmpFunc)SetIntCmp)==0)
+  }
+  else {
+    if (gl_search(set->list,(VOIDPTR)i,(CmpFunc)SetIntCmp)==0)
       gl_insert_sorted(set->list,(VOIDPTR)i,(CmpFunc)SetIntCmp);
   }
 }
 
 
-void InsertString(struct set_t *set, symchar *str){
+void InsertString(struct set_t *set, symchar *str)
+{
   assert(AscFindSymbol(str)!=NULL);
   assert(set&&((set->kind==string_set)||(set->kind==empty_set)));
   if(set->kind==empty_set)
     set->kind = string_set;
   else if(set->kind==integer_set)
     IntegerViolation("InsertString");
-  if(set->list==NULL){
+  if (set->list==NULL){
     set->list = gl_create(5L);
     gl_insert_sorted(set->list,(VOIDPTR)str,(CmpFunc)SetStrCmp);
-  }else{
+  }
+  else {
     if (gl_search(set->list,str,(CmpFunc)SetStrCmp)==0)
       gl_insert_sorted(set->list,(VOIDPTR)str,(CmpFunc)SetStrCmp);
   }
@@ -333,14 +344,15 @@ struct set_t *CopySet(CONST struct set_t *set)
   return result;
 }
 
-int IntMember(asc_intptr_t i, CONST struct set_t *set)
+int IntMember(long int i, CONST struct set_t *set)
 {
   assert(set&&((set->kind==integer_set)||(set->kind==empty_set)));
   if (set->list==NULL) return 0;
-  return (gl_search(set->list,(VOIDPTR)i,(CmpFunc)SetIntCmp)!=0);
+  return (gl_search(set->list,(char *)i,(CmpFunc)SetIntCmp)!=0);
 }
 
-int StrMember(symchar *str, CONST struct set_t *set){
+int StrMember(symchar *str, CONST struct set_t *set)
+{
   assert(set&&((set->kind==string_set)||(set->kind==empty_set)));
   if (set->list==NULL) return 0;
   assert(AscFindSymbol(str)!=NULL);
@@ -376,9 +388,10 @@ symchar *FetchStrMember(CONST struct set_t *s, unsigned long int i)
   return gl_fetch(s->list,i);
 }
 
-asc_intptr_t FetchIntMember(CONST struct set_t *s, unsigned long int i){
+long FetchIntMember(CONST struct set_t *s, unsigned long int i)
+{
   assert(s&&s->list&&(s->kind==integer_set));
-  return (asc_intptr_t)gl_fetch(s->list,i);
+  return (long)gl_fetch(s->list,i);
 }
 
 void SetIterate(struct set_t *s, void (*func) (/* ??? */))
@@ -411,9 +424,9 @@ int SetsEqual(CONST struct set_t *s1, CONST struct set_t *s2)
   if (length != gl_length(s2->list)) return 0;
   if (s1->kind == integer_set) {
     for(c=1;c<=length;c++) {
-      if ((asc_intptr_t)gl_fetch(s1->list,c) != (asc_intptr_t)gl_fetch(s2->list,c)) return 0;
+      if ((long)gl_fetch(s1->list,c) != (long)gl_fetch(s2->list,c)) return 0;
     }
-  }else{
+  } else {
     /* symbol set */
     for(c=1;c<=length;c++) {
       if (gl_fetch(s1->list,c) != gl_fetch(s2->list,c)) return 0;
@@ -424,7 +437,7 @@ int SetsEqual(CONST struct set_t *s1, CONST struct set_t *s2)
 
 int Subset(CONST struct set_t *s1, CONST struct set_t *s2)
 {
-  register asc_intptr_t c1,c2,length1,length2;
+  register unsigned long c1,c2,length1,length2;
   assert(s1&&s2);
   if (s1->kind==empty_set) return 1;
   if (s2->kind==empty_set) return 0;
@@ -438,12 +451,13 @@ int Subset(CONST struct set_t *s1, CONST struct set_t *s2)
   if (s1->kind == integer_set) {
     register long i1,i2;
     while((c1<=length1)&&(c2<=length2)) {
-      i1 = (asc_intptr_t)gl_fetch(s1->list,c1);
-      i2 = (asc_intptr_t)gl_fetch(s2->list,c2);
+      i1 = (long)gl_fetch(s1->list,c1);
+      i2 = (long)gl_fetch(s2->list,c2);
       if (i1 == i2) {
-        c1++;
-        c2++;
-      }else if (i1 < i2) return 0;
+	c1++;
+	c2++;
+      }
+      else if (i1 < i2) return 0;
       else c2++;
     }
   }
@@ -455,9 +469,10 @@ int Subset(CONST struct set_t *s1, CONST struct set_t *s2)
       str2 = gl_fetch(s2->list,c2);
       cmp = strcmp(str1,str2);
       if (cmp==0) {
-        c1++;
-        c2++;
-      }else if (cmp<0) return 0;
+	c1++;
+	c2++;
+      }
+      else if (cmp<0) return 0;
       else c2++;
     }
   }
@@ -517,13 +532,14 @@ int CmpSetInstVal(CONST struct set_t *s1, CONST struct set_t *s2)
   behave more like lists.
 \*********************************************************************/
 
-void AppendIntegerElement(struct set_t *set, asc_intptr_t i){
+void AppendIntegerElement(struct set_t *set, long int i)
+{
   assert(set&&((set->kind==integer_set)||(set->kind==empty_set)));
-  if(set->kind==empty_set)
+  if (set->kind==empty_set)
     set->kind = integer_set;
-  else if(set->kind==string_set)
+  else if (set->kind==string_set)
     StringViolation("InsertInteger");
-  if(set->list==NULL) {
+  if (set->list==NULL) {
     set->list = gl_create(5L);
     gl_append_ptr(set->list,(VOIDPTR)i);
   }

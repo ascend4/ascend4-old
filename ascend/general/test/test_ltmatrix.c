@@ -12,14 +12,14 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 */
 
 #include <CUnit/CUnit.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/general/ltmatrix.h>
-
-#include "test/common.h"
 
 static void Hessian_Mtx_fill_pattern(hessian_mtx* matrix, int pattern);
 static int Hessian_Mtx_check_pattern(hessian_mtx* matrix, int pattern);
@@ -150,8 +150,28 @@ int Hessian_Mtx_check_pattern(hessian_mtx* matrix, int pattern){
 /*===========================================================================*/
 /* Registration information */
 
-#define TESTS(T) \
+/* the list of tests */
+
+#define TESTS(T,X) \
   T(ltmatrix)
 
-REGISTER_TESTS_SIMPLE(general_ltmatrix, TESTS);
+/* you shouldn't need to change the following */
 
+#define TESTDECL(TESTFN) {#TESTFN,test_##TESTFN}
+
+#define X ,
+
+static CU_TestInfo ltmatrix_test_list[] = {
+	TESTS(TESTDECL,X)
+	X CU_TEST_INFO_NULL
+};
+
+static CU_SuiteInfo suites[] = {
+	{"general_ltmatrix", NULL, NULL, ltmatrix_test_list},
+	CU_SUITE_INFO_NULL
+};
+
+/*-------------------------------------------------------------------*/
+CU_ErrorCode test_register_general_ltmatrix(void){
+	return CU_register_suites(suites);
+}

@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	This file provides error reporting to a callback function via
@@ -53,12 +55,8 @@
 	default 'real' printf behaviour on this platform. (As
 	opposed to the sneaky stuff that FPRINTF does in this header)
 */
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/utilities/ascPrint.h>
-
-/**	@addtogroup utilities_error Utilities Error Message Handling
-	@{
-*/
 
 /**
 	FPRINTF(ASCERR,...) messages will by default be treated
@@ -106,11 +104,11 @@ typedef enum error_severity_enum{
 # define ERROR_REPORTER_DEBUG(args...) error_reporter(ASC_PROG_NOTE, __FILE__, __LINE__, __func__, ##args)
 # define ERROR_REPORTER_HERE(SEV,args...) error_reporter(SEV,__FILE__, __LINE__, __func__, ##args)
 # define ERROR_REPORTER_NOLINE(SEV,args...) error_reporter(SEV, NULL, 0, NULL, ##args)
-# define CONSOLE_DEBUG(args...) ((void)(color_on(stderr,ASC_FG_BRIGHTBLUE) + \
+# define CONSOLE_DEBUG(args...) ((void)(color_on(stderr,"0;34") + \
 		fprintf(stderr, "%s:%d ",__FILE__,__LINE__) + \
-		color_on(stderr,ASC_FG_BRIGHTRED) + \
+		color_on(stderr,"0;31") + \
 		fprintf(stderr, "(%s)", __func__) + \
-		color_on(stderr,ASC_FG_BRIGHTBLUE) + \
+		color_on(stderr,"0;34") + \
 		fprintf(stderr, ": ") + \
 		fprintf(stderr, ##args) + \
         fprintf(stderr, "\n") + color_off(stderr)))
@@ -121,7 +119,7 @@ typedef enum error_severity_enum{
 # define ERROR_REPORTER_DEBUG(...) error_reporter(ASC_PROG_NOTE,__FILE__,__LINE__,__func__,## __VA_ARGS__)
 # define ERROR_REPORTER_HERE(SEV,...) error_reporter(SEV,__FILE__,__LINE__,__func__, ## __VA_ARGS__)
 # define ERROR_REPORTER_NOLINE(SEV,...) error_reporter(SEV,NULL,0,NULL, ## __VA_ARGS__)
-# define CONSOLE_DEBUG(...) (color_on(stderr,BRIGHTBLUE) + fprintf(stderr, "%s:%d (%s): ", __FILE__,__LINE__,__func__) + \
+# define CONSOLE_DEBUG(...) (color_on(stderr,"0;34") + fprintf(stderr, "%s:%d (%s): ", __FILE__,__LINE__,__func__) + \
                              fprintf(stderr, ##__VA_ARGS__) + \
                              fprintf(stderr, "\n") + color_off(stderr))
 # define ERROR_REPORTER_START_HERE(SEV) error_reporter_start(SEV,__FILE__,__LINE__,__func__);
@@ -186,9 +184,9 @@ typedef struct{
 			ERROR_REPORTER_NOLINE(ASC_USER_ERROR,"failed");
 		}else{
 			ERROR_REPORTER_NOLINE(ASC_USER_SUCCESS,"success");
-		}
+		}	
 
-	The next 'error_reporter' call after an outermost 'error_reporter_tree_end'
+	The next 'error_reporter' call after an outermost 'error_reporter_tree_end' 
 	will cause the error tree to be output to the error reporting channel.
 
 	If an 'error_reporter' is found *inside* an an 'error_reporter_tree_start'
@@ -319,7 +317,5 @@ ASC_DLLSPEC int va_error_reporter(ERROR_REPORTER_CALLBACK_ARGS);
 ASC_DLLSPEC void error_reporter_set_callback(
 		const error_reporter_callback_t new_callback
 );
-
-/* @} */
 
 #endif /* ASC_ERROR_H */

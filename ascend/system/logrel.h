@@ -14,7 +14,9 @@
 	You should have received a copy of the GNU General Public License
 	along with this program; if not, write to the Free Software
 	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-*//** @defgroup system_logrel System Logical Relations module
+*//**
+	@file
+	Logical Relation Module.
 
 	This is the ASCEND version of the logrel module.  This
 	version should be used by any user who receives his/her
@@ -29,11 +31,11 @@
 #define ASC_LOGREL_H
 
 #include <stdio.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include "discrete.h"
 #include "slv_types.h"
 
-/**	@addtogroup system_logrel
+/**	@addtogroup system System
 	@{
 */
 
@@ -115,7 +117,7 @@ extern enum logrel_enum logrel_relop(struct logrel_relation *logrel);
  * Returns the type of the operator of a given logrelation.
  */
 
-ASC_DLLSPEC char *logrel_make_name(slv_system_t sys,
+extern char *logrel_make_name(slv_system_t sys,
                               struct logrel_relation *logrel);
 /**<
  *  Copies of the logrelation instance name can be made and returned.

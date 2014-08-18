@@ -22,17 +22,11 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
  */
-
-#include "platform.h"
-
-#ifndef ASC_POOL_H
-#define ASC_POOL_H
-
-/**	@addtogroup general_pool General Memory Pool
-	@{
-*/
 
 /** @file
  *  Ascend Pooled Memory Manager.
@@ -111,15 +105,20 @@
  *  </pre>
  */
 
+#ifndef ASC_POOL_H
+#define ASC_POOL_H
+
+#include <ascend/utilities/ascConfig.h>
+
 typedef struct pool_store_header *pool_store_t;
 /**<
  *  The token for this memory system.  Internal details of the
- *  implementation are private.  Do not dereference or free this
+ *  implementation are private.  Do not dereference or free this 
  *  pointer.
  */
 
 /**
- *  Memory pool statistics data structure.
+ *  Memory pool statistics data structure. 
  *  This is the reporting structure for a pool_store_header query.
  */
 struct pool_statistics {
@@ -144,7 +143,7 @@ ASC_DLLSPEC void pool_get_stats(struct pool_statistics *p_stats,
  *  except elt_total, elt_taken, elt_onlist, and elt_size are
  *  available.
  *
- *  @param p_stats Pointer to a pool_statistics struct to receive
+ *  @param p_stats Pointer to a pool_statistics struct to receive 
  *                 the info.  If p_stats is NULL, an error message
  *                 is printed and the function returns.
  *  @param ps      Pointer to the pool store to query.
@@ -158,7 +157,7 @@ ASC_DLLSPEC pool_store_t pool_create_store(int length,
 /**<
  *  Creates and returns a new pool store. The returned pool_store_t
  *  contains all the necessary accounting information, but in particular
- *  the eltsize is fixed at creation. All elements requested from ps
+ *  the eltsize is fixed at creation. All elements requested from ps 
  *  will be pointers to eltsize bytes of memory.
  *  Returns NULL if a store of the requested length*width*eltsize
  *  cannot be initially allocated.<br><br>
@@ -175,8 +174,8 @@ ASC_DLLSPEC pool_store_t pool_create_store(int length,
  *  @param width     Number of elements in each block.
  *                   Width should (for some architectures) be such that
  *                   width*eltsize = 2^n - 32 for some n fairly large
- *                   (heuristic: n= 9..13).  Widths that are too large may
- *                   be prone to causing excess page faults, though the
+ *                   (heuristic: n= 9..13).  Widths that are too large may 
+ *                   be prone to causing excess page faults, though the 
  *                   process cpu time reported by the clock() can be much
  *                   better for extremely large sizes.  If width < 1, an
  *                   error message is printed and NULL is returned.<br><br>
@@ -185,7 +184,7 @@ ASC_DLLSPEC pool_store_t pool_create_store(int length,
  *                   performance on some VM systems.  See deltapool below
  *                   about pool expansions.<br><br>
  *                   If you know something about the page size of your
- *                   architecture, fiddling with width may help you reduce
+ *                   architecture, fiddling with width may help you reduce 
  *                   your page fault or cache miss count in some uses.
  *
  *  @param eltsize   Element size maintained by the pool.
@@ -202,12 +201,12 @@ ASC_DLLSPEC pool_store_t pool_create_store(int length,
  *                   creation of the new pool will fail.
  *
  *  @param deltapool Size change of the pool array when expanded.  It should
- *                   be as large as you are willing to tolerate.  The pool
- *                   array starts out completely filled (all pointers allocated).
- *                   When the pool needs more pointers it gets them in chunks of
- *                   at least deltapool.  These additional pointers will not
+ *                   be as large as you are willing to tolerate.  The pool 
+ *                   array starts out completely filled (all pointers allocated). 
+ *                   When the pool needs more pointers it gets them in chunks of 
+ *                   at least deltapool.  These additional pointers will not 
  *                   automatically have elements allocated to them; rather,
- *                   they will be initialized to NULL and filled in only as the
+ *                   they will be initialized to NULL and filled in only as the 
  *                   chunks of deltalen*width elements are required.
 
  *  @return A pointer to the newly created pool store, NULL if an error occurred.
@@ -224,7 +223,7 @@ ASC_DLLSPEC void *pool_get_element(pool_store_t ps);
  *            If ps is NULL, then an error message is printed
  *            and NULL is returned.
  *  @return A pointer to the usable element, or NULL iff ps is NULL or
- *          store growth is required and the operating system is unable
+ *          store growth is required and the operating system is unable 
  *          to allocate the required memory.
  */
 
@@ -258,7 +257,7 @@ extern void pool_get_element_list(pool_store_t ps,
 #define pool_LIGHTENING FALSE
 /**<
  *  Flag controlling extent of internal sanity checking.
- *  Setting pool_LIGHTENING to TRUE causes pool_store routines to assume
+ *  Setting pool_LIGHTENING to TRUE causes pool_store routines to assume 
  *  the user is perfect: i.e. no sanity checks are at all necessary and most
  *  internal accounting can be disabled.  No one with an ounce of sanity
  *  would ever set this flag to TRUE unless the code using the
@@ -294,7 +293,7 @@ extern void pool_get_element_list(pool_store_t ps,
  *  obvious. If they are not, stop using these routines.<br><br>
  *
  *  If at any time the number of elements freed exceeds the number
- *  handed out, we will whine (unless pool_LIGHTENING).  If ps is
+ *  handed out, we will whine (unless pool_LIGHTENING).  If ps is 
  *  NULL, and error message is printed and the function returns.
  *  If eltpointer is NULL, we will ignore it completely.
  *
@@ -322,7 +321,7 @@ ASC_DLLSPEC void pool_free_elementF(pool_store_t ps, void * eltpointer
 /**<
  *  Clears the books in ps. That is, we reset the ps to think
  *  that __all__ elements are freshly available and have never
- *  been handed out.  If ps is NULL, an error message is printed
+ *  been handed out.  If ps is NULL, an error message is printed 
  *  and the function returns.<br><br>
  *
  *  If pool_DEBUG is TRUE, it first verifies that all elements have
@@ -362,7 +361,7 @@ ASC_DLLSPEC void pool_destroy_store(pool_store_t ps);
  *  returns.
  *
  *  @param ps The pool store to destroy.
- */
+ */                                               
 
 extern void pool_print_store(FILE *fp, pool_store_t ps, unsigned detail);
 /**<
@@ -386,8 +385,6 @@ extern size_t pool_sizeof_store(pool_store_t ps);
  *  @param ps pool_store_t, the pool store to query.
  *  @return The total bytes currently used by the pool store.
  */
-
-/* @} */
 
 #endif  /* ASC_POOL_H */
 

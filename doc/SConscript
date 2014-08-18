@@ -38,7 +38,7 @@ else:
 #------------------------
 # doxygen docs for libascend
 
-env.SConscript('libascend/SConscript',['env'])
+# FIXME
 
 #------------------------
 # install docs

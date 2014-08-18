@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Basic Initializations for Ascend
@@ -34,11 +36,11 @@
 #ifndef ASC_ASCCOMPILER_H
 #define ASC_ASCCOMPILER_H
 
-#include <ascend/general/platform.h>
-
-/**	@addtogroup compiler_common Compiler Common
+/**	@addtogroup compiler Compiler
 	@{
 */
+
+#include <ascend/utilities/ascConfig.h>
 
 ASC_DLLSPEC int Asc_CompilerInit(int simplify_relations);
 /**<
@@ -53,9 +55,6 @@ ASC_DLLSPEC int Asc_CompilerInit(int simplify_relations);
  *
  *  @BUG At present it needs to more aggressively check the return codes
  *       from the functions this calls. Currently returns 0 regardless.
- *
- *  @TODO this function might provide for a means to store so-called Global
- *  variables, if we can at least nest them into a global 'Compiler' object...
  */
 
 ASC_DLLSPEC void Asc_CompilerDestroy(void);

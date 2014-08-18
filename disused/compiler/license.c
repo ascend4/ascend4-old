@@ -10,7 +10,7 @@
  *
  *  Putting the GPL in a C string was accomplished by Tom Epperly.
  */
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include "license.h"
 
 const char GPL1[] =

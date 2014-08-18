@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Prolog for C to be compiled and dynamically loaded to provide
@@ -47,17 +49,17 @@
 #ifndef ASC_BTPROLOG_H
 #define ASC_BTPROLOG_H
 
-/**	@addtogroup compiler_bintok Compiler Binary Tokens
+/**	@addtogroup compiler Compiler
 	@{
 */
 
 #ifdef ASC_BINTOKEN_H
-# include <ascend/general/platform.h>
+# include <ascend/utilities/ascConfig.h>
 # include <ascend/compiler/instance_enum.h>
 #else
 # define IS_BINTOKEN_COMPILE
-# include <ascend/general/platform.h>
-# include <ascend/compiler/instance_enum.h>
+# include <ascConfig.h>
+# include <instance_enum.h>
 #endif
 
 #include <math.h>

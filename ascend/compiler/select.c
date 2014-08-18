@@ -21,19 +21,22 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  You should have received a copy of the GNU General Public License along
+ *  with the program; if not, write to the Free Software Foundation, Inc., 675
+ *  Mass Ave, Cambridge, MA 02139 USA.  Check the file named COPYING.
  */
+#include<stdio.h>
+#include<assert.h>
+#include <ascend/utilities/ascConfig.h>
 
-#include "select.h"
+#include <ascend/utilities/ascMalloc.h>
 
-#include <stdio.h>
-#include <assert.h>
-
-#include <ascend/general/ascMalloc.h>
 
 #include "functype.h"
 #include "func.h"
+#include "expr_types.h"
+#include "stattypes.h"
+#include "select.h"
 #include "sets.h"
 #include "exprs.h"
 #include "slist.h"

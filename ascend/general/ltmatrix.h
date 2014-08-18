@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 */
 
 /**
@@ -25,13 +27,11 @@
 #ifndef LT_MATRIX_H
 #define LT_MATRIX_H
 
-#include "panic.h"
-#include "ascMalloc.h"
+
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/mathmacros.h>
 
-/**	@addtogroup general_ltmatrix General Lightweight Matrix
-	@{
-*/
 
 /**
 	Hessian Matrix Layout-Structure
@@ -181,7 +181,5 @@ ASC_DLLSPEC int Hessian_Mtx_test_validity(hessian_mtx *matrix);
 	When the hessian is not symmetric, can this be used
 	to speed up Hessian evalutations?
 */
-
-/* @} */
 
 #endif

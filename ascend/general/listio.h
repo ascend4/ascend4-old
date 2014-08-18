@@ -23,15 +23,10 @@
  *  See the GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check
+ *  the file named COPYING.  COPYING is found in ../compiler.
  */
-
-#ifndef __listio_h_seen__
-#define __listio_h_seen__
-
-/**	@addtogroup general_list General List
-	@{
-*/
 
 /** @file
  *  List I/O Routines.
@@ -42,6 +37,9 @@
  *  </pre>
  */
 
+#ifndef __listio_h_seen__
+#define __listio_h_seen__
+
 /**
  *  Write the data in a list (as ints/pointers) to a file stream.
  *  If fp is NULL, the the listing is to stderr.  The list pointer
@@ -51,8 +49,6 @@
  *  @param l  The gl_list_t to write to fp (non-NULL).
  */
 ASC_DLLSPEC void gl_write_list(FILE *fp, struct gl_list_t *l);
-
-/* @} */
 
 #endif  /* __listio_h_seen__ */
 

@@ -11,11 +11,13 @@
  */
 
 #include <stdio.h>
-#include "platform.h"
-#include "panic.h"
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascPanic.h>
 #include "hashpjw.h"
 
-#include "config.h"
+#ifndef lint
+static CONST char HashpjwID[] = "$Id: hashpjw.c,v 1.1 1997/07/18 11:38:36 mthomas Exp $";
+#endif
 
 unsigned long hashpjw(register CONST char *str,
                       register unsigned long int size)
@@ -46,7 +48,7 @@ unsigned long hashpjw_int(int id,
 {
   char tmp[64];
 
-  (void)SNPRINTF(tmp, 64, "%d", id);
+  (void)snprintf(tmp, 64, "%d", id);
   return hashpjw(tmp, size);
 }
 

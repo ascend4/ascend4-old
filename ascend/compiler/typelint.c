@@ -22,14 +22,18 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
  */
 
 #include <math.h>
 #include <ctype.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
+
+
 
 #include "functype.h"
 #include "expr_types.h"
@@ -51,6 +55,7 @@
 #include "sets.h"
 #include "exprs.h"
 #include "forvars.h"
+#include "bit.h"
 #include "syntax.h"
 #include "setinstval.h"
 #include "childinfo.h"
@@ -59,6 +64,10 @@
 #include "type_desc.h"
 #include "typedef.h"
 #include "typelint.h"
+
+#ifndef lint
+static CONST char TypeLintRCSid[] ="$Id: typelint.c,v 1.48 1998/07/23 13:57:59 ballan Exp $";
+#endif
 
 struct errormessage {
   const char *str;
@@ -420,22 +429,8 @@ enum typelinterr TypeLintIllegalBodyStats(FILE *fp,
     case ATS:
       break;
     case AA:
-      if(TLINT_STYLE){
+      if (TLINT_STYLE) {
         FPRINTF(fp,"%sType \"%s\" contains AA:\n",
-                StatioLabel(1),SCP(name));
-        WriteStatement(fp,s,2);
-      }
-      break;
-    case LNK:
-      if(TLINT_STYLE){
-        FPRINTF(fp,"%sType \"%s\" contains LNK:\n",
-                StatioLabel(1),SCP(name));
-        WriteStatement(fp,s,2);
-      }
-      break;
-    case UNLNK:
-      if(TLINT_STYLE){
-        FPRINTF(fp,"%sType \"%s\" contains UNLNK:\n",
                 StatioLabel(1),SCP(name));
         WriteStatement(fp,s,2);
       }
@@ -654,8 +649,6 @@ enum typelinterr TypeLintIllegalParamStats(FILE * fp,
     case WBTS:
     case WNBTS:
     case AA:
-    case LNK:
-    case UNLNK:
     case FOR: /* eventually for legal and fk_expect required */
     case REL:
     case LOGREL:
@@ -727,8 +720,6 @@ TypeLintIllegalWhereStats(FILE * fp,
     case IRT:
     case ATS:
     case AA:
-    case LNK:
-    case UNLNK:
     case ASGN:
     case WHEN:
     case FNAME:
@@ -791,8 +782,6 @@ TypeLintIllegalReductionStats(FILE * fp,
     case WBTS:
     case WNBTS:
     case AA:
-    case LNK:
-    case UNLNK:
     case FOR: /* probably should be legal now and require fk_create */
     case REL:
     case LOGREL:
@@ -890,19 +879,11 @@ TypeLintIllegalMethodStatList(FILE *fp,
         rval = DEF_STAT_MISLOCATED;
       }
       break;
-    case LNK:
-    case UNLNK:
-      /* DS: in case we provide functionality for other statements inside LINK, check their legal status */
-      /* DS: in case we provide functionality for other statements inside UNLINK, check their legal status */
-      break;
     case ASGN:
     case RUN:
-    case FIX:
-    case FREE:
+	case FIX:
+	case FREE:
     case CALL:
-    case SOLVER:
-    case OPTION:
-    case SOLVE:
       break;
     case WHILE:
       if (WhileStatBlock(s) != NULL) {
@@ -1008,7 +989,6 @@ enum typelinterr TypeLintIllegalMethodStats(FILE * fp,
     tmperr = TypeLintIllegalMethodStatList(fp,name,pname,sl,context);
     if (tmperr != DEF_OKAY) {
       rval = tmperr;
-		printf("asdsaf \n");
     }
   }
   return rval;

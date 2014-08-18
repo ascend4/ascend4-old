@@ -1,3 +1,4 @@
+#ifdef __CHILD_ILLEGAL_ACCESS__
 /*
  *  Child List Internal Implementation details
  *  by Benjamin Allan
@@ -21,7 +22,9 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  */
 
 /** @file
@@ -33,16 +36,12 @@
  *  </pre>
  */
 
-#ifndef ASC_CHILDPRIV_H
-#define ASC_CHILDPRIV_H
+#ifndef _CHILDPRIV_H_SEEN_
+#define _CHILDPRIV_H_SEEN_
 
-#ifndef ASC_CHILDPRIV_ACCESS
-# error "Illegal inclusion of 'childpriv.h'; code should only be accessed by child.c and childio.c!"
+#ifndef lint
+static CONST char ChildPrivID[] = "$Id: childpriv.h,v 1.1 1998/03/27 10:43:58 ballan Exp $";
 #endif
-
-/**	@addtogroup compiler_inst Compiler Instance Hierarchy
-	@{
-*/
 
 /** origin of sanity (or sanity of origin) check. dependent on header */
 #define LegalOrigin(n) ( ((n)>0 && (n) <=8) ? (n) : 0 )
@@ -58,7 +57,7 @@ struct ChildHash {
  * May need to revisit on high address architectures with
  * 64 bit pointers. Creates a number 0 - 255.
  */
-#define CHILDHASHINDEX(p) (((((asc_intptr_t) (p))*1103515245) >> 22) & 255)
+#define CHILDHASHINDEX(p) (((((long) (p))*1103515245) >> 22) & 255)
 
 /**
  * Must be 2^N with N even and must match CHILDHASHINDEX.
@@ -93,5 +92,6 @@ struct ChildListStructure {
 /** macro to fetch the gl list of names from the ChildListPtr */
 #define GN(a) (a)->symbols
 
-#endif  /* ASC_CHILDPRIV_H */
+#endif  /* _CHILDPRIV_H_SEEN_ */
+#endif  /* __CHILD_ILLEGAL_ACCESS__ */
 

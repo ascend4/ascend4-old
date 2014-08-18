@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Implementation of the reduced molar Helmholtz free energy equation of state.
 
@@ -23,72 +25,15 @@
 */
 
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "helmholtz.h"
 #include "ideal_impl.h"
-#include "sat.h"
-#include "cp0.h"
-#include "refstate.h"
 
-
-
-/* these are the 'raw' functions, they don't do phase equilibrium. */
-PropEvalFn helmholtz_p;
-PropEvalFn helmholtz_u;
-PropEvalFn helmholtz_h;
-PropEvalFn helmholtz_s;
-PropEvalFn helmholtz_a;
-PropEvalFn helmholtz_g;
-PropEvalFn helmholtz_cp;
-PropEvalFn helmholtz_cv;
-PropEvalFn helmholtz_w;
-PropEvalFn helmholtz_dpdrho_T;
-PropEvalFn helmholtz_alphap;
-PropEvalFn helmholtz_betap;
-SatEvalFn helmholtz_sat;
-
-double helmholtz_dpdT_rho(double T, double rho, const FluidData *data, FpropsError *err);
-double helmholtz_d2pdrho2_T(double T, double rho, const FluidData *data, FpropsError *err);
-
-double helmholtz_dhdT_rho(double T, double rho, const FluidData *data, FpropsError *err);
-double helmholtz_dhdrho_T(double T, double rho, const FluidData *data, FpropsError *err);
-
-double helmholtz_dudT_rho(double T, double rho, const FluidData *data, FpropsError *err);
-double helmholtz_dudrho_T(double T, double rho, const FluidData *data, FpropsError *err);
-
-
-//#define HELM_DEBUG
-#define HELM_ERRORS
-//#define SAT_DEBUG
-
-#ifdef HELM_DEBUG
-# include "color.h"
-# define MSG FPROPS_MSG
-#else
-# define MSG(ARGS...) ((void)0)
+#ifdef TEST
+#include <assert.h>
+#include <stdlib.h>
+#include <stdio.h>
 #endif
-
-/* TODO centralise declaration of our error-reporting function somehow...? */
-#ifdef HELM_ERRORS
-# include "color.h"
-# define ERRMSG FPROPS_ERRMSG
-#else
-# define ERRMSG(ARGS...) ((void)0)
-#endif
-
-
-//#define ASSERT_DEBUG
-#ifdef ASSERT_DEBUG
-# include <assert.h>
-#else
-# define assert(ARGS...)
-#endif
-
-//#define RESID_DEBUG
-
-#define INCLUDE_THIRD_DERIV_CODE
 
 /* macros and forward decls */
 
@@ -96,116 +41,10 @@ double helmholtz_dudrho_T(double T, double rho, const FluidData *data, FpropsErr
 
 #include "helmholtz_impl.h"
 
-/* shortcut take us straight into the correct data structure for Helmholtz correlation calculations */
-#define HD data->corr.helm
-#define HD_R data->R
-#define HD_CP0 data->cp0
-
 /* calculate tau and delta using a macro -- is used in most functions */
 #define DEFINE_TD \
-	double tau = data->corr.helm->T_star / T; \
-	double delta = rho / data->corr.helm->rho_star
-
-
-PureFluid *helmholtz_prepare(const EosData *E, const ReferenceState *ref){
-	PureFluid *P = FPROPS_NEW(PureFluid);
-
-	if(E->type != FPROPS_HELMHOLTZ){
-		ERRMSG("invalid EOS data, wrong type");
-		return NULL;
-	}
-
-	MSG("Fluid '%s' with T_t = %f", E->name, E->data.helm->T_t);
-
-	P->data = FPROPS_NEW(FluidData);
-	P->data->corr.helm = FPROPS_NEW(HelmholtzRunData);
-
-	/* metadata */
-	/* FIXME strings should be copied, not just referenced */
-	P->name = E->name;
-	P->source = E->source;
-	P->type = E->type;
-	MSG("name = %s",P->name);
-
-	/* common data across all correlation types */
-#define I E->data.helm
-	P->data->M = I->M;
-	if(I->R == 0){
-		P->data->R = R_UNIVERSAL / I->M;
-	}else{
-		P->data->R = I->R;
-	}
-	P->data->T_t = I->T_t;
-	P->data->T_c = I->T_c;
-	P->data->p_c = 0; // we calculate this later...
-	P->data->rho_c = I->rho_c;
-	P->data->omega = I->omega;
-	P->data->Tstar = I->T_c;
-	P->data->rhostar = I->rho_c;
-	P->data->cp0 = cp0_prepare(E->data.helm->ideal, P->data->R, P->data->T_c);
-
-	/* data specific to helmholtz correlations */
-#define H P->data->corr.helm
-	H->rho_star = I->rho_star;
-	H->T_star = I->T_star;
-	H->np = I->np;
-	// FIXME copy et, ct, pt to runtime struct?, FIXME see helmholtz_destroy below.
-	H->pt = I->pt;
-	H->ng = I->ng;
-	H->gt = I->gt;
-	H->nc = I->nc;
-	H->ct = I->ct;
-	MSG("np = %d, ng = %d, nc = %d, T_t = %f",H->np,H->ng,H->nc,I->T_t);
-#undef H
-
-	/* function pointers... more to come still? */
-#define FN(VAR) P->VAR##_fn = &helmholtz_##VAR
-	FN(p); FN(u); FN(h); FN(s); FN(a); FN(g); FN(cp); FN(cv); FN(w);
-	FN(alphap); FN(betap); FN(dpdrho_T);
-	FN(sat);
-#undef FN
-
-	FpropsError err = 0;
-
-	/* calculate critical pressure (doesn't require h0, s0) */
-	MSG("Calculating critical pressure at T_c = %f K, rho_c = %f kg/m3",P->data->T_c, P->data->rho_c);
-	P->data->p_c = helmholtz_p(P->data->T_c, P->data->rho_c, P->data, &err);
-	if(err){
-		ERRMSG("Failed to calculate critical pressure.");
-		FPROPS_FREE(P->data);
-		FPROPS_FREE(P->data->corr.helm);
-		return NULL;
-	}
-	if(P->data->p_c <= 0){
-		ERRMSG("Calculated a critical pressure <= 0! (value = %f)",P->data->p_c);
-		//return NULL;
-	}
-
-	// ref0 is not yet supported for this fluid type:
-	P->data->ref0 = (ReferenceState){FPROPS_REF_TPHG,{.tphg={298.15,0,NAN,NAN}}};
-
-	// fix up the reference point now...
-	if(ref == NULL){
-		// use the provided ReferenceState, or the default one otherwise.
-		ref = &(I->ref);
-	}
-	int res = fprops_set_reference_state(P,ref);
-	if(res){
-		ERRMSG("Unable to apply reference state (type %d, err %d)",ref->type,res);
-		return NULL;
-	}
-
-#undef I
-	return P;
-}
-
-void helmholtz_destroy(PureFluid *P){
-	assert(FPROPS_HELMHOLTZ == P->data);
-	cp0_destroy(P->data->cp0);
-	FPROPS_FREE(P->data->corr.helm);
-	FPROPS_FREE(P->data);
-	FPROPS_FREE(P);
-}
+	double tau = data->T_star / T; \
+	double delta = rho / data->rho_star
 
 /**
 	Function to calculate pressure from Helmholtz free energy EOS, given temperature
@@ -213,35 +52,29 @@ void helmholtz_destroy(PureFluid *P){
 
 	@param T temperature in K
 	@param rho mass density in kg/m³
-	@return pressure in Pa
+	@return pressure in Pa???
 */
-double helmholtz_p(double T, double rho, const FluidData *data, FpropsError *err){
+double helmholtz_p(double T, double rho, const HelmholtzData *data){
 	DEFINE_TD;
 
-	assert(HD->rho_star!=0);
+#ifdef TEST
+	assert(data->rho_star!=0);
 	assert(T!=0);
-	assert(!isnan(T));
-	assert(!isnan(rho));
-	assert(!isnan(HD_R));
+	assert(!isnan(tau));
+	assert(!isnan(delta));
+	assert(!isnan(data->R));
 
 	//fprintf(stderr,"p calc: T = %f\n",T);
 	//fprintf(stderr,"p calc: tau = %f\n",tau);
 	//fprintf(stderr,"p calc: rho = %f\n",rho);
 	//fprintf(stderr,"p calc: delta = %f\n",delta);
-	//fprintf(stderr,"p calc: R*T*rho = %f\n",HD_R * T * rho);
+	//fprintf(stderr,"p calc: R*T*rho = %f\n",data->R * T * rho);
 
 	//fprintf(stderr,"T = %f\n", T);
-	//fprintf(stderr,"rhob = %f, rhob* = %f, delta = %f\n", rho/HD->M, HD->rho_star/HD->M, delta);
-
-	double p = HD_R * T * rho * (1 + delta * helm_resid_del(tau,delta,HD));
-#if 0
-	if(isnan(p)){
-		fprintf(stderr,"T = %.12e, rho = %.12e\n",T,rho);
-	}
+	//fprintf(stderr,"rhob = %f, rhob* = %f, delta = %f\n", rho/data->M, data->rho_star/data->M, delta);
 #endif
-	//abort();
-	if(isnan(p))*err = FPROPS_NUMERIC_ERROR;
-	return p;
+	
+	return data->R * T * rho * (1 + delta * helm_resid_del(tau,delta,data));
 }
 
 /**
@@ -252,24 +85,24 @@ double helmholtz_p(double T, double rho, const FluidData *data, FpropsError *err
 	@param rho mass density in kg/m³
 	@return internal energy in ???
 */
-double helmholtz_u(double T, double rho, const FluidData *data, FpropsError *err){
+double helmholtz_u(double T, double rho, const HelmholtzData *data){
 	DEFINE_TD;
 
 #ifdef TEST
-	assert(HD->rho_star!=0);
+	assert(data->rho_star!=0);
 	assert(T!=0);
 	assert(!isnan(tau));
 	assert(!isnan(delta));
-	assert(!isnan(HD_R));
+	assert(!isnan(data->R));
 #endif
 
 #if 0
-	fprintf(stderr,"ideal_tau = %f\n",ideal_phi_tau(tau,delta,HD_CP0));
-	fprintf(stderr,"resid_tau = %f\n",helm_resid_tau(tau,delta,HD));
-	fprintf(stderr,"R T = %f\n",HD_R * HD->T_star);
+	fprintf(stderr,"ideal_tau = %f\n",helm_ideal_tau(tau,delta,data->ideal));
+	fprintf(stderr,"resid_tau = %f\n",helm_resid_tau(tau,delta,data));
+	fprintf(stderr,"R T = %f\n",data->R * data->T_star);
 #endif
 
-	return HD_R * HD->T_star * (ideal_phi_tau(tau,delta,HD_CP0) + helm_resid_tau(tau,delta,HD));
+	return data->R * data->T_star * (helm_ideal_tau(tau,delta,data->ideal) + helm_resid_tau(tau,delta,data));
 }
 
 /**
@@ -280,20 +113,18 @@ double helmholtz_u(double T, double rho, const FluidData *data, FpropsError *err
 	@param rho mass density in kg/m³
 	@return enthalpy in J/kg
 */
-double helmholtz_h(double T, double rho, const FluidData *data, FpropsError *err){
+double helmholtz_h(double T, double rho, const HelmholtzData *data){
 	DEFINE_TD;
 
-//#ifdef TEST
-	assert(HD->rho_star!=0);
+#ifdef TEST
+	assert(data->rho_star!=0);
 	assert(T!=0);
 	assert(!isnan(tau));
 	assert(!isnan(delta));
-	assert(!isnan(HD_R));
-//#endif
-	double h = HD_R * T * (1 + tau * (ideal_phi_tau(tau,delta,HD_CP0) + helm_resid_tau(tau,delta,HD)) \
-		+ delta*helm_resid_del(tau,delta,HD));
-	assert(!isnan(h));
-	return h;
+	assert(!isnan(data->R));
+#endif
+
+	return data->R * T * (1 + tau * (helm_ideal_tau(tau,delta,data->ideal) + helm_resid_tau(tau,delta,data)) + delta*helm_resid_del(tau,delta,data));
 }
 
 /**
@@ -304,24 +135,24 @@ double helmholtz_h(double T, double rho, const FluidData *data, FpropsError *err
 	@param rho mass density in kg/m³
 	@return entropy in J/kgK
 */
-double helmholtz_s(double T, double rho, const FluidData *data, FpropsError *err){
+double helmholtz_s(double T, double rho, const HelmholtzData *data){
 	DEFINE_TD;
 
 #ifdef ENTROPY_DEBUG
-	assert(HD->rho_star!=0);
+	assert(data->rho_star!=0);
 	assert(T!=0);
 	assert(!isnan(tau));
 	assert(!isnan(delta));
-	assert(!isnan(HD_R));
+	assert(!isnan(data->R));
 
-	fprintf(stderr,"ideal_phi_tau = %f\n",ideal_phi_tau(tau,delta,HD_CP0));
-	fprintf(stderr,"helm_resid_tau = %f\n",helm_resid_tau(tau,delta,HD));
-	fprintf(stderr,"ideal_phi = %f\n",ideal_phi(tau,delta,HD_CP0));
-	fprintf(stderr,"helm_resid = %f\n",helm_resid(tau,delta,HD));
+	fprintf(stderr,"helm_ideal_tau = %f\n",helm_ideal_tau(tau,delta,data->ideal));
+	fprintf(stderr,"helm_resid_tau = %f\n",helm_resid_tau(tau,delta,data));
+	fprintf(stderr,"helm_ideal = %f\n",helm_ideal(tau,delta,data->ideal));
+	fprintf(stderr,"helm_resid = %f\n",helm_resid(tau,delta,data));
 #endif
-	return HD_R * (
-		tau * (ideal_phi_tau(tau,delta,HD_CP0) + helm_resid_tau(tau,delta,HD))
-		- (ideal_phi(tau,delta,HD_CP0) + helm_resid(tau,delta,HD))
+	return data->R * (
+		tau * (helm_ideal_tau(tau,delta,data->ideal) + helm_resid_tau(tau,delta,data))
+		- (helm_ideal(tau,delta,data->ideal) + helm_resid(tau,delta,data))
 	);
 }
 
@@ -333,23 +164,23 @@ double helmholtz_s(double T, double rho, const FluidData *data, FpropsError *err
 	@param rho mass density in kg/m³
 	@return Helmholtz energy 'a', in J/kg
 */
-double helmholtz_a(double T, double rho, const FluidData *data, FpropsError *err){
+double helmholtz_a(double T, double rho, const HelmholtzData *data){
 	DEFINE_TD;
 
 #ifdef TEST
-	assert(HD->rho_star!=0);
+	assert(data->rho_star!=0);
 	assert(T!=0);
 	assert(!isnan(tau));
 	assert(!isnan(delta));
-	assert(!isnan(HD_R));
+	assert(!isnan(data->R));
 #endif
 
 #ifdef HELMHOLTZ_DEBUG
 	fprintf(stderr,"helmholtz_a: T = %f, rho = %f\n",T,rho);
-	fprintf(stderr,"multiplying by RT = %f\n",HD_R*T);
+	fprintf(stderr,"multiplying by RT = %f\n",data->R*T);
 #endif
 
-	return HD_R * T * (ideal_phi(tau,delta,HD_CP0) + helm_resid(tau,delta,HD));
+	return data->R * T * (helm_ideal(tau,delta,data->ideal) + helm_resid(tau,delta,data));
 }
 
 /**
@@ -360,10 +191,10 @@ double helmholtz_a(double T, double rho, const FluidData *data, FpropsError *err
 	@param rho mass density in kg/m³
 	@return Isochoric specific heat capacity in J/kg/K.
 */
-double helmholtz_cv(double T, double rho, const FluidData *data, FpropsError *err){
+double helmholtz_cv(double T, double rho, const HelmholtzData *data){
 	DEFINE_TD;
 
-	return - HD_R * SQ(tau) * (ideal_phi_tautau(tau,HD_CP0) + helm_resid_tautau(tau,delta,HD));
+	return - data->R * SQ(tau) * (helm_ideal_tautau(tau,data->ideal) + helm_resid_tautau(tau,delta,data));
 }
 
 /**
@@ -374,19 +205,19 @@ double helmholtz_cv(double T, double rho, const FluidData *data, FpropsError *er
 	@param rho mass density in kg/m³
 	@return Isobaric specific heat capacity in J/kg/K.
 */
-double helmholtz_cp(double T, double rho, const FluidData *data, FpropsError *err){
+double helmholtz_cp(double T, double rho, const HelmholtzData *data){
 	DEFINE_TD;
 
-	double phir_d = helm_resid_del(tau,delta,HD);
-	double phir_dd = helm_resid_deldel(tau,delta,HD);
-	double phir_dt = helm_resid_deltau(tau,delta,HD);
-
+	double phir_d = helm_resid_del(tau,delta,data);
+	double phir_dd = helm_resid_deldel(tau,delta,data);
+	double phir_dt = helm_resid_deltau(tau,delta,data);
+	
 	/* note similarities with helmholtz_w */
 	double temp1 = 1 + 2*delta*phir_d + SQ(delta)*phir_dd;
 	double temp2 = 1 + delta*phir_d - delta*tau*phir_dt;
-	double temp3 = -SQ(tau)*(ideal_phi_tautau(tau,HD_CP0) + helm_resid_tautau(tau,delta,HD));
+	double temp3 = -SQ(tau)*(helm_ideal_tautau(tau,data->ideal) + helm_resid_tautau(tau,delta,data));
 
-	return HD_R * (temp3 + SQ(temp2)/temp1);
+	return data->R * (temp3 + SQ(temp2)/temp1);
 }
 
 
@@ -398,19 +229,19 @@ double helmholtz_cp(double T, double rho, const FluidData *data, FpropsError *er
 	@param rho mass density in kg/m³
 	@return Speed of sound in m/s.
 */
-double helmholtz_w(double T, double rho, const FluidData *data, FpropsError *err){
+double helmholtz_w(double T, double rho, const HelmholtzData *data){
 	DEFINE_TD;
 
-	double phir_d = helm_resid_del(tau,delta,HD);
-	double phir_dd = helm_resid_deldel(tau,delta,HD);
-	double phir_dt = helm_resid_deltau(tau,delta,HD);
-
+	double phir_d = helm_resid_del(tau,delta,data);
+	double phir_dd = helm_resid_deldel(tau,delta,data);
+	double phir_dt = helm_resid_deltau(tau,delta,data);
+	
 	/* note similarities with helmholtz_cp */
 	double temp1 = 1. + 2.*delta*phir_d + SQ(delta)*phir_dd;
 	double temp2 = 1. + delta*phir_d - delta*tau*phir_dt;
-	double temp3 = -SQ(tau)*(ideal_phi_tautau(tau,HD_CP0) + helm_resid_tautau(tau,delta,HD));
+	double temp3 = -SQ(tau)*(helm_ideal_tautau(tau,data->ideal) + helm_resid_tautau(tau,delta,data));
 
-	return sqrt(HD_R * T * (temp1 + SQ(temp2)/temp3));
+	return sqrt(data->R * T * (temp1 + SQ(temp2)/temp3));
 
 }
 
@@ -422,36 +253,186 @@ double helmholtz_w(double T, double rho, const FluidData *data, FpropsError *err
 	@param rho mass density in kg/m³
 	@return Gibbs energy, in J/kg.
 */
-double helmholtz_g(double T, double rho, const FluidData *data, FpropsError *err){
+double helmholtz_g(double T, double rho, const HelmholtzData *data){
 	DEFINE_TD;
 
-	double phir_d = helm_resid_del(tau,delta,HD);
-	double phir = helm_resid(tau,delta,HD);
-	double phi0 = ideal_phi(tau,delta,HD_CP0);
-
-	return HD_R * T * (phi0 + phir + 1. + delta * phir_d);
+	double phir_d = helm_resid_del(tau,delta,data);
+	double phir = helm_resid(tau,delta,data);
+	double phi0 = helm_ideal(tau,delta,data->ideal);
+	
+	return data->R * T * (phi0 + phir - 1. - delta * phir_d);
 }
 
 /**
-	alpha_p function from IAPWS Advisory Note 3, used in calculation of
-	partial property derivatives.
+	Calculation zero-pressure specific heat capacity
 */
-double helmholtz_alphap(double T, double rho, const FluidData *data, FpropsError *err){
-	DEFINE_TD;
-	double phir_d = helm_resid_del(tau,delta,HD);
-	double phir_dt = helm_resid_deltau(tau,delta,HD);
-	return 1./T * (1. - delta*tau*phir_dt/(1 + delta*phir_d));
+double helmholtz_cp0(double T, const HelmholtzData *data){
+	double val = helm_cp0(T,data->ideal);
+#if 0
+	fprintf(stderr,"val = %f\n",val);
+#endif
+	return val;
 }
 
 /**
-	beta_p function from IAPWS Advisory Note 3 , used in calculation of partial
-	property derivatives.
+	Solve density given temperature and pressure and bounds for density,
+	used in solving the saturation curve. We use a single-variable Newton
+	method to solve for the desired pressure by iteratively adjusting density.
+
+	@param rho_l lower bound on density
+	@param rho_u upper bound on density
+	@param rho (returned) solved value of density
+	@return 0 on success (1 = didn't converge within permitted iterations)
 */
-double helmholtz_betap(double T, double rho, const FluidData *data, FpropsError *err){
-	DEFINE_TD;
-	double phir_d = helm_resid_del(tau,delta,HD);
-	double phir_dd = helm_resid_deldel(tau,delta,HD);
-	return rho*(1. + (delta*phir_d + SQ(delta)*phir_dd)/(1+delta*phir_d));
+static int helm_find_rho_tp(double T, double p, double *rho
+		, const double rho_l, const double rho_u, const HelmholtzData *data
+){
+	double rho_1 = 0.5 *(rho_l + rho_u);
+	double p_1, dpdrho;
+	double niter = 0, maxiter = 100;
+	int res = 1; /* 1 = exceeded iterations, 0 = converged */
+
+#ifdef TEST
+	fprintf(stderr,"\nHELM_FIND_RHO_TP: rho_l = %f, rho_u = %f (v_u = %f, v_l = %f)\n", rho_l, rho_u, 1./rho_l, 1./rho_u);
+#endif
+
+#if 0 
+	double r;
+	for(r = rho_l; r <= rho_u; r += (rho_u-rho_l)/20.){
+		p_1 = helmholtz_p(T, r, data);
+		fprintf(stderr,"T = %f, rho = %f --> p = %f MPa\n",T, r, p_1/1e6);
+	}
+#endif
+
+	while(res){
+		if(++niter>maxiter)break;
+		p_1 = helmholtz_p(T, rho_1, data);
+		if(p_1 < p){
+			p_1 = 0.5*(p_1 + p);
+		}
+		//fprintf(stderr,"T = %f, rho = %f --> p = %f MPa, err = %f %%\n",T, rho_1, p_1/1e6, (p - p_1)/p *100);
+		dpdrho = helmholtz_dpdrho_T(T, rho_1, data);
+		if(dpdrho < 0){
+			if(rho_l < data->rho_star){
+				/* looking for gas solution */
+				rho_1 = 0.5*(*rho + rho_l);
+			}
+		}
+		rho_1 += (p - p_1)/dpdrho;
+		if(rho_1 > rho_u){
+			rho_1 = 0.5*(*rho + rho_u);
+			//fprintf(stderr,"UPPERBOUND ");
+		}
+		if(rho_1 < rho_l){
+			rho_1 = 0.5*(*rho + rho_l);
+			//fprintf(stderr,"LOWERBOUND ");
+		}
+		*rho = rho_1;
+
+		if(fabs((p - p_1)/p) < 1e-7){
+#ifdef TEST
+			fprintf(stderr,"Converged to p = %f MPa with rho = %f\n", p/1e6, rho_1);
+#endif
+			res = 0;
+		}
+	}
+
+	return res;
+}
+
+/**
+	Calculation of saturation conditions given temperature
+
+	@param T temperature [K]
+	@param rho_f (returned) saturated liquid density [kg/m³]
+	@param rho_g (returned) saturated gas density [kg/m³]
+	@param p pressure p_sat(T) [Pa]
+	@return 0 on success
+*/
+int helmholtz_sat_t(double T, double *p, double *rho_f, double *rho_g, const HelmholtzData *data){
+	double tau = data->T_star / T;
+
+	if(T >= data->T_star){
+#ifdef TEST
+		fprintf(stderr,"ERROR: temperature exceeds critical temperature in helmholtz_sat_t.\n");
+#endif
+		/* return some reasonable values */
+		*rho_f = data->rho_star;
+		*rho_g = data->rho_star;
+		*p = helmholtz_p(data->T_star, data->rho_star, data);
+		return 1; /* error status */
+	}
+
+	/* get a first estimate of saturation pressure using acentric factor */
+
+	/* critical pressure */
+#ifdef TEST
+	fprintf(stderr,"T_c = %f, rho_c = %f\n",data->T_star, data->rho_star);
+#endif
+	double p_c = helmholtz_p(data->T_star, data->rho_star, data);
+
+#ifdef TEST
+	fprintf(stderr,"Critical pressure = %f MPa\n",p_c/1.e6);
+	fprintf(stderr,"Acentric factor = %f\n",data->omega);	
+#endif
+
+
+	/* maybe use http://dx.doi.org/10.1016/S0009-2509(02)00017-9 for this part? */
+	/* FIXME need to cite this formula */
+	*p = p_c * pow(10.,(data->omega + 1.)*-7./3.*(tau - 1.));
+
+#ifdef TEST
+	fprintf(stderr,"Estimated p_sat(T=%f) = %f MPa\n",T,(*p)/1e6);
+#endif
+
+	if(tau < 1.01){
+		/* close to critical point: need a different approach */
+#ifdef TEST
+		fprintf(stderr,"ERROR: not implemented\n");
+#endif
+		return 1;
+	}else{
+		double niter = 0;
+		(void)niter;
+
+		int res = helm_find_rho_tp(T, *p, rho_f, data->rho_star,data->rho_star*10, data);
+		if(res){
+#ifdef TEST
+			fprintf(stderr,"ERROR: failed to solve rho_f\n");
+#endif
+		}
+
+		res = helm_find_rho_tp(T, *p, rho_g, 0.001*data->rho_star, data->rho_star, data);
+		if(res){
+#ifdef TEST
+			fprintf(stderr,"ERROR: failed to solve rho_g\n");
+#endif
+		}
+
+#ifdef TEST
+		fprintf(stderr,"p = %f MPa: rho_f = %f, rho_g = %f\n", *p, *rho_f, *rho_g);
+#endif
+
+		double LHS = *p/data->R/T*(1./(*rho_g) - 1./(*rho_f)) - log((*rho_f)/(*rho_g));
+		double delta_f = (*rho_f) / data->rho_star;
+		double delta_g = (*rho_g) / data->rho_star;
+		double RHS = helm_resid(delta_f,tau,data) - helm_resid(delta_g,tau,data);
+		
+		double err = LHS - RHS;
+		(void)err;
+
+#ifdef TEST
+		fprintf(stderr,"LHS = %f, RHS = %f, err = %f\n",LHS, RHS, err);
+#endif
+		/* away from critical point... */
+		*rho_f = data->rho_star;
+		*rho_g = data->rho_star;
+#ifdef TEST
+		fprintf(stderr,"ERROR: not implemented\n");
+		exit(1);
+#endif
+		return 1;
+	}
 }
 
 /*----------------------------------------------------------------------------
@@ -461,22 +442,22 @@ double helmholtz_betap(double T, double rho, const FluidData *data, FpropsError 
 /**
 	Calculate partial derivative of p with respect to T, with rho constant
 */
-double helmholtz_dpdT_rho(double T, double rho, const FluidData *data, FpropsError *err){
+double helmholtz_dpdT_rho(double T, double rho, const HelmholtzData *data){
 	DEFINE_TD;
 
-	double phir_del = helm_resid_del(tau,delta,HD);
-	double phir_deltau = helm_resid_deltau(tau,delta,HD);
+	double phir_del = helm_resid_del(tau,delta,data);
+	double phir_deltau = helm_resid_deltau(tau,delta,data);
 #ifdef TEST
 	assert(!isinf(phir_del));
 	assert(!isinf(phir_deltau));
 	assert(!isnan(phir_del));
 	assert(!isnan(phir_deltau));
-	assert(!isnan(HD_R));
+	assert(!isnan(data->R));
 	assert(!isnan(rho));
 	assert(!isnan(tau));
 #endif
 
-	double res = HD_R * rho * (1 + delta*phir_del - delta*tau*phir_deltau);
+	double res =  data->R * rho * (1 + delta*phir_del - delta*tau*phir_deltau);
 
 #ifdef TEST
 	assert(!isnan(res));
@@ -488,195 +469,71 @@ double helmholtz_dpdT_rho(double T, double rho, const FluidData *data, FpropsErr
 /**
 	Calculate partial derivative of p with respect to rho, with T constant
 */
-double helmholtz_dpdrho_T(double T, double rho, const FluidData *data, FpropsError *err){
+double helmholtz_dpdrho_T(double T, double rho, const HelmholtzData *data){
 	DEFINE_TD;
-	//MSG("...");
-	double phir_del = helm_resid_del(tau,delta,HD);
-	double phir_deldel = helm_resid_deldel(tau,delta,HD);
+
+	double phir_del = helm_resid_del(tau,delta,data);
+	double phir_deldel = helm_resid_deldel(tau,delta,data);
 #ifdef TEST
 	assert(!isinf(phir_del));
 	assert(!isinf(phir_deldel));
-#endif
-	return HD_R * T * (1 + 2*delta*phir_del + SQ(delta)*phir_deldel);
-}
-
-
-double helmholtz_d2pdrho2_T(double T, double rho, const FluidData *data, FpropsError *err){
-	DEFINE_TD;
-
-	double phir_del = helm_resid_del(tau,delta,HD);
-	double phir_deldel = helm_resid_deldel(tau,delta,HD);
-	double phir_deldeldel = helm_resid_deldeldel(tau,delta,HD);
-#ifdef TEST
-	assert(!isinf(phir_del));
-	assert(!isinf(phir_deldel));
-	assert(!isinf(phir_deldeldel));
-#endif
-
-	return HD_R * T / rho * delta * (2*phir_del + delta*(4*phir_deldel + delta*phir_deldeldel));
+#endif	
+	return data->R * T * (1 + 2*delta*phir_del + SQ(delta)*phir_deldel);
 }
 
 /**
 	Calculate partial derivative of h with respect to T, with rho constant
 */
-double helmholtz_dhdT_rho(double T, double rho, const FluidData *data, FpropsError *err){
+double helmholtz_dhdT_rho(double T, double rho, const HelmholtzData *data){
 	DEFINE_TD;
 
-	double phir_del = helm_resid_del(tau,delta,HD);
-	double phir_deltau = helm_resid_deltau(tau,delta,HD);
-	double phir_tautau = helm_resid_tautau(tau,delta,HD);
-	double phi0_tautau = ideal_phi_tautau(tau,HD_CP0);
+	double phir_del = helm_resid_del(tau,delta,data);
+	double phir_deltau = helm_resid_deltau(tau,delta,data);
+	double phir_tautau = helm_resid_tautau(tau,delta,data);
+	double phi0_tautau = helm_ideal_tautau(tau,data->ideal);
 
 	//fprintf(stderr,"phir_del = %f, phir_deltau = %f, phir_tautau = %f, phi0_tautau = %f\n",phir_del,phir_deltau,phir_tautau,phi0_tautau);
 
 	//return (helmholtz_h(T+0.01,rho,data) - helmholtz_h(T,rho,data)) / 0.01;
-	return HD_R * (1. + delta*phir_del - SQ(tau)*(phi0_tautau + phir_tautau) - delta*tau*phir_deltau);
+	return data->R * (1. + delta*phir_del - SQ(tau)*(phi0_tautau + phir_tautau) - delta*tau*phir_deltau);
 }
 
 /**
 	Calculate partial derivative of h with respect to rho, with T constant
 */
-double helmholtz_dhdrho_T(double T, double rho, const FluidData *data, FpropsError *err){
+double helmholtz_dhdrho_T(double T, double rho, const HelmholtzData *data){
 	DEFINE_TD;
 
-	double phir_del = helm_resid_del(tau,delta,HD);
-	double phir_deltau = helm_resid_deltau(tau,delta,HD);
-	double phir_deldel = helm_resid_deldel(tau,delta,HD);
-
-	return HD_R * T / rho * (tau*delta*(0 + phir_deltau) + delta * phir_del + SQ(delta)*phir_deldel);
+	double phir_del = helm_resid_del(tau,delta,data);
+	double phir_deltau = helm_resid_deltau(tau,delta,data);
+	double phir_deldel = helm_resid_deldel(tau,delta,data);
+	
+	return data->R * T / rho * (tau*delta*(0 + phir_deltau) + delta * phir_del + SQ(delta)*phir_deldel);
 }
 
 
 /**
 	Calculate partial derivative of u with respect to T, with rho constant
 */
-double helmholtz_dudT_rho(double T, double rho, const FluidData *data, FpropsError *err){
+double helmholtz_dudT_rho(double T, double rho, const HelmholtzData *data){
 	DEFINE_TD;
 
-	double phir_tautau = helm_resid_tautau(tau,delta,HD);
-	double phi0_tautau = ideal_phi_tautau(tau,HD_CP0);
+	double phir_tautau = helm_resid_tautau(tau,delta,data);
+	double phi0_tautau = helm_ideal_tautau(tau,data->ideal);
 
-	return -HD_R * SQ(tau) * (phi0_tautau + phir_tautau);
+	return -data->R * SQ(tau) * (phi0_tautau + phir_tautau);
 }
-
 
 /**
 	Calculate partial derivative of u with respect to rho, with T constant
 */
-double helmholtz_dudrho_T(double T, double rho, const FluidData *data, FpropsError *err){
+double helmholtz_dudrho_T(double T, double rho, const HelmholtzData *data){
 	DEFINE_TD;
 
-	double phir_deltau = helm_resid_deltau(tau,delta,HD);
-
-	return HD_R * T / rho * (tau * delta * phir_deltau);
+	double phir_deltau = helm_resid_deltau(tau,delta,data);
+	
+	return data->R * T / rho * (tau * delta * phir_deltau);
 }
-
-
-/**
-	Solve saturation condition for a specified temperature using approach of
-	Akasaka, but adapted for general use to non-helmholtz property correlations.
-	@param T temperature [K]
-	@param psat_out output, saturation pressure [Pa]
-	@param rhof_out output, saturated liquid density [kg/m^3]
-	@param rhog_out output, saturated vapour density [kg/m^3]
-	@param d helmholtz data object for the fluid in question.
-	@return 0 on success, non-zero on error (eg algorithm failed to converge, T out of range, etc.)
-*/
-double helmholtz_sat(double T, double *rhof_out, double * rhog_out, const FluidData *data, FpropsError *err){
-	if(T < data->T_t - 1e-8){
-		ERRMSG("Input temperature %f K is below triple-point temperature %f K",T,data->T_t);
-		return FPROPS_RANGE_ERROR;
-	}
-
-	if(T > data->T_c + 1e-8){
-		ERRMSG("Input temperature is above critical point temperature");
-		*err = FPROPS_RANGE_ERROR;
-	}
-
-	// we're at the critical point
-	if(fabs(T - data->T_c) < 1e-9){
-		*rhof_out = data->rho_c;
-		*rhog_out = data->rho_c;
-		return data->p_c;
-	}
-
-	// FIXME at present step-length multiplier is set to 0.4 just because of 
-	// ONE FLUID, ethanol. Probably our initial guess data isn't good enough,
-	// or maybe there's a problem with the acentric factor or something like
-	// that. This factor 0.4 will be slowing down the whole system, so it's not
-	// good. TODO XXX.
-
-	// initial guesses for liquid and vapour density
-	double rhof = 1.1 * fprops_rhof_T_rackett(T,data);
-	double rhog= 0.9 * fprops_rhog_T_chouaieb(T,data);
-	double R = data->R;
-	double pc = data->p_c;
-
-#ifdef SAT_DEBUG
-	MSG("initial guess rho_f = %f, rho_g = %f",rhof,rhog);
-	MSG("calculating at T = %.12e",T);
-#endif
-
-	int i = 0;
-	while(i++ < 200){
-		assert(!isnan(rhog));
-		assert(!isnan(rhof));
-#ifdef SAT_DEBUG
-		MSG("iter %d: T = %f, rhof = %f, rhog = %f",i,T, rhof, rhog);
-#endif
-
-		double pf = helmholtz_p(T,rhof,data,err);
-		double pg = helmholtz_p(T,rhog,data,err);
-		double gf = helmholtz_a(T,rhof,data,err) + pf/rhof;
-		double gg = helmholtz_a(T,rhog,data,err) + pg/rhog;
-		double dpdrf = helmholtz_dpdrho_T(T,rhof,data,err);
-		double dpdrg = helmholtz_dpdrho_T(T,rhog,data,err);
-
-		// jacobian for [F;G](rhof, rhog) --- derivatives wrt rhof and rhog
-		double F = (pf - pg)/pc;
-		double G = (gf - gg)/R/T;
-
-		if(fabs(F) + fabs(G) < 1e-12){
-			//fprintf(stderr,"%s: CONVERGED\n",__func__);
-			*rhof_out = rhof;
-			*rhog_out = rhog;
-			return helmholtz_p(T, *rhog_out, data, err);
-			/* SUCCESS */
-		}
-
-		double Ff = dpdrf/pc;
-		double Fg = -dpdrg/pc;
-		//MSG("Ff = %e, Fg = %e",Ff,Fg);
-
-		double Gf = dpdrf/rhof/R/T;
-		double Gg = -dpdrg/rhog/R/T;
-		//MSG("Gf = %e, Gg = %e",Gf,Gg);
-
-		double DET = Ff*Gg - Fg*Gf;
-		//MSG("DET = %f",DET);
-
-		// 'gamma' needs to be increased to 0.5 for water to solve correctly (see 'test/sat.c')
-		// 'gamma' needs to be not more than 0.4 for ethanol to solve correctly (see 'test/sat.c')
-#define gamma 0.40
-		rhof += gamma/DET * (Fg*G - Gg*F);
-		rhog += gamma/DET * ( Gf*F - Ff*G);
-#undef gamma
-
-		assert(!isnan(rhof));
-		assert(!isnan(rhog));
-
-		if(rhog < 0)rhog = -0.5*rhog;
-		if(rhof < 0)rhof = -0.5*rhof;
-	}
-	*rhof_out = rhof;
-	*rhog_out = rhog;
-	*err = FPROPS_SAT_CVGC_ERROR;
-	ERRMSG("Not converged: with T = %e (rhof=%f, rhog=%f).",T,*rhof_out,*rhog_out);
-	return helmholtz_p(T, rhog, data, err);
-}
-
-
-
 
 /*---------------------------------------------
   UTILITY FUNCTION(S)
@@ -702,19 +559,10 @@ static double ipow(double x, int n){
 	}while(n);      /* the last pass, but the comparison is always
 					   true _except_ on the last pass. */
 
-	return t;
+	return t; 
 }
 
-/* maxima expressions:
-	Psi(delta) := exp(-C*(delta-1)^2 -D*(tau-1)^2);
-	theta(delta) := (1-tau) + A*((delta-1)^2)^(1/(2*beta));
-	Delta(delta):= theta(delta)^2 + B*((delta-1)^2)^a;
-	n*Delta(delta)^b*delta*Psi(delta);
-	diff(%,delta,3);
-	yikes, that's scary! break down into steps.
-*/
-
-#undef HD
+//#define RESID_DEBUG
 
 /*
 	We avoid duplication by using the following #defines for common code in
@@ -725,88 +573,55 @@ static double ipow(double x, int n){
 		double t1 = tau - 1.; \
 		double d12 = SQ(d1); \
 		double theta = (1. - tau) + ct->A * pow(d12, 0.5/ct->beta); \
-		double PSI = exp(-ct->C*d12 - ct->D*SQ(t1)); \
+		double psi = exp(-ct->C*d12 - ct->D*SQ(t1)); \
 		double DELTA = SQ(theta) + ct->B* pow(d12, ct->a)
 
-#define DEFINE_DELB \
-		double DELB = pow(DELTA,ct->b)
-
 #define DEFINE_DPSIDDELTA \
-		double dPSIddelta = -2. * ct->C * d1 * PSI
+		double dpsiddelta = -2. * ct->C * d1 * psi
 
 #define DEFINE_DDELDDELTA \
 		double dDELddelta = d1 * (ct->A * theta * 2./ct->beta * pow(d12, 0.5/ct->beta - 1) + 2* ct->B * ct->a * pow(d12, ct->a - 1))
 
 #define DEFINE_DDELBDTAU \
-		double dDELbdtau = (DELTA == 0) ? 0 : -2. * theta * ct->b * (DELB/DELTA);\
-		assert(!__isnan(dDELbdtau))
+		double dDELbdtau = -2. * theta * ct->b * pow(DELTA, ct->b - 1)
 
 #define DEFINE_DPSIDTAU \
-		double dPSIdtau = -2. * ct->D * t1 * PSI
+		double dpsidtau = -2. * ct->D * t1 * psi
 
 #define DEFINE_DDELBDDELTA \
-		double dDELbddelta = (DELTA==0?0:ct->b * (DELB/DELTA) * dDELddelta)
-
-#define DEFINE_D2DELDDELTA2 \
-		double powd12bm1 = pow(d12,0.5/ct->beta-1.); \
-		double d2DELddelta2 = 1./d1*dDELddelta + d12*( \
-			4.*ct->B*ct->a*(ct->a-1.)*pow(d12,ct->a-2.) \
-			+ 2.*SQ(ct->A)*SQ(1./ct->beta)*SQ(powd12bm1) \
-			+ ct->A*theta*4./ct->beta*(0.5/ct->beta-1.)*powd12bm1/d12 \
-		)
-
-#define DEFINE_D2DELBDDELTA2 \
-		double d2DELbddelta2 = ct->b * ( (DELB/DELTA)*d2DELddelta2 + (ct->b-1.)*(DELB/SQ(DELTA)*SQ(dDELddelta)))
-
-#define DEFINE_D2PSIDDELTA2 \
-		double d2PSIddelta2 = (2.*ct->C*d12 - 1.)*2.*ct->C * PSI
-
-#define DEFINE_D3PSIDDELTA3 \
-	double d3PSIddelta3 = -4. * d1 * SQ(ct->C) * (2.*d12*ct->C - 3.) * PSI
-
-#define DEFINE_D3DELDDELTA3 \
-	double d3DELddelta3 = 1./(d1*d12*ct->beta*SQ(ct->beta)) * (\
-		4*ct->B*ct->a*(1.+ct->a*(2*ct->a-3))*SQ(ct->beta)*pow(d12,ct->a)\
-		+ ct->A * (1.+ct->beta*(2*ct->beta-3))*pow(d12,0.5/ct->beta)\
-	)
-
-#define DEFINE_D3DELBDDELTA3 \
-	double d3DELbddelta3 = ct->b / (DELTA*SQ(DELTA)) * ( \
-		(2+ct->b*(ct->b-3))*dDELddelta*SQ(dDELddelta)*DELB \
-		+ DELB*SQ(DELTA)*d3DELddelta3 \
-		+ 3*(ct->b-1) * DELB * DELTA * dDELddelta * d2DELddelta2 \
-	)
+		double dDELbddelta = (DELTA==0?0:ct->b * pow(DELTA,ct->b - 1.) * dDELddelta)
 
 /**
 	Residual part of helmholtz function.
 */
-double helm_resid(double tau, double delta, const HelmholtzRunData *HD){
-	double dell, term, sum, res = 0;
+double helm_resid(double tau, double delta, const HelmholtzData *data){
+	double dell,ldell, term, sum, res = 0;
 	unsigned n, i;
 	const HelmholtzPowTerm *pt;
 	const HelmholtzGausTerm *gt;
 	const HelmholtzCritTerm *ct;
 
-	n = HD->np;
-	pt = &(HD->pt[0]);
+	n = data->np;
+	pt = &(data->pt[0]);
 
-	//MSG("tau=%f, del=%f",tau,delta);
-	//if(isinf(tau))abort();
+#ifdef RESID_DEBUG
+		fprintf(stderr,"tau=%f, del=%f\n",tau,delta);
+#endif
 
 	/* power terms */
 	sum = 0;
 	dell = ipow(delta,pt->l);
-	//ldell = pt->l * dell;
+	ldell = pt->l * dell;
 	unsigned oldl;
 	for(i=0; i<n; ++i){
 		term = pt->a * pow(tau, pt->t) * ipow(delta, pt->d);
 		sum += term;
 #ifdef RESID_DEBUG
-		MSG("i = %d,               a=%e, t=%f, d=%d, l=%u, term = %f, sum = %f",i,pt->a,pt->t,pt->d,pt->l,term,sum);
+		fprintf(stderr,"i = %d,               a=%e, t=%f, d=%d, term = %f, sum = %f",i,pt->a,pt->t,pt->d,term,sum);
 		if(pt->l==0){
-			MSG(",row=%e\n",term);
+			fprintf(stderr,",row=%e\n",term);
 		}else{
-			MSG(",row=%e\n",term*exp(-dell));
+			fprintf(stderr,",row=%e\n,",term*exp(-dell));
 		}
 #endif
 		oldl = pt->l;
@@ -814,37 +629,31 @@ double helm_resid(double tau, double delta, const HelmholtzRunData *HD){
 		if(i+1==n || oldl != pt->l){
 			if(oldl == 0){
 #ifdef RESID_DEBUG
-				MSG("                      linear ");
+				fprintf(stderr,"linear ");
 #endif
 				res += sum;
 			}else{
 #ifdef RESID_DEBUG
-				MSG("                      %sEXP dell=%f, exp(-dell)=%f sum=%f: ",(i+1==n?"LAST ":""),dell,exp(-dell),sum);
+				fprintf(stderr,"exp dell=%f, exp(-dell)=%f sum=%f: ",dell,exp(-dell),sum);
 #endif
 				res += sum * exp(-dell);
 			}
 #ifdef RESID_DEBUG
-			MSG("i = %d, res = %f\n",i,res);
+			fprintf(stderr,"i = %d, res = %f\n",i,res);
 #endif
 			sum = 0;
-			if(i+1<n){
-#ifdef RESID_DEBUG
-				MSG("                      next delta = %.12e, l = %u\n",delta, pt->l);
-#endif
-				dell = (delta==0 ? 0 : ipow(delta,pt->l));
-				//ldell = pt->l*dell;
-			}
+			dell = ipow(delta,pt->l);
+			ldell = pt->l*dell;
 		}
 	}
-	assert(!__isnan(res));
 
 	/* gaussian terms */
-	n = HD->ng;
+	n = data->ng;
 	//fprintf(stderr,"THERE ARE %d GAUSSIAN TERMS\n",n);
-	gt = &(HD->gt[0]);
+	gt = &(data->gt[0]);
 	for(i=0; i<n; ++i){
 #ifdef RESID_DEBUG
-		MSG("i = %d, GAUSSIAN, n = %e, t = %f, d = %f, alpha = %f, beta = %f, gamma = %f, epsilon = %f",i+1, gt->n, gt->t, gt->d, gt->alpha, gt->beta, gt->gamma, gt->epsilon);
+		fprintf(stderr,"i = %d, GAUSSIAN, n = %e, t = %f, d = %f, alpha = %f, beta = %f, gamma = %f, epsilon = %f\n",i+1, gt->n, gt->t, gt->d, gt->alpha, gt->beta, gt->gamma, gt->epsilon);
 #endif
 		double d1 = delta - gt->epsilon;
 		double t1 = tau - gt->gamma;
@@ -854,24 +663,21 @@ double helm_resid(double tau, double delta, const HelmholtzRunData *HD){
 		res += sum;
 		++gt;
 	}
-	assert(!__isnan(res));
 
 	/* critical terms */
-	n = HD->nc;
-	ct = &(HD->ct[0]);
+	n = data->nc;
+	ct = &(data->ct[0]);
 	for(i=0; i<n; ++i){
 #ifdef RESID_DEBUG
-		MSG("i = %d, CRITICAL, n = %e, a = %f, b = %f, beta = %f, A = %f, B = %f, C = %f, D = %f\n",i+1, ct->n, ct->a, ct->b, ct->beta, ct->A, ct->B, ct->C, ct->D);
+		fprintf(stderr,"i = %d, CRITICAL, n = %e, a = %f, b = %f, beta = %f, A = %f, B = %f, C = %f, D = %f\n",i+1, ct->n, ct->a, ct->b, ct->beta, ct->A, ct->B, ct->C, ct->D);
 #endif
 
 		DEFINE_DELTA;
-		DEFINE_DELB;
 
-		sum = ct->n * DELB * delta * PSI;
+		sum = ct->n * pow(DELTA, ct->b) * delta * psi;
 		res += sum;
 		++ct;
 	}
-	assert(!__isnan(res));
 
 #ifdef RESID_DEBUG
 	fprintf(stderr,"CALCULATED RESULT FOR phir = %f\n",res);
@@ -884,8 +690,8 @@ double helm_resid(double tau, double delta, const HelmholtzRunData *HD){
 /**
 	Derivative of the helmholtz residual function with respect to
 	delta.
-*/
-double helm_resid_del(double tau,double delta, const HelmholtzRunData *HD){
+*/	
+double helm_resid_del(double tau,double delta, const HelmholtzData *data){
 	double sum = 0, res = 0;
 	double dell, ldell;
 	unsigned n, i;
@@ -898,8 +704,8 @@ double helm_resid_del(double tau,double delta, const HelmholtzRunData *HD){
 #endif
 
 	/* power terms */
-	n = HD->np;
-	pt = &(HD->pt[0]);
+	n = data->np;
+	pt = &(data->pt[0]);
 	dell = ipow(delta,pt->l);
 	ldell = pt->l * dell;
 	unsigned oldl;
@@ -914,16 +720,14 @@ double helm_resid_del(double tau,double delta, const HelmholtzRunData *HD){
 				res += sum * exp(-dell);
 			}
 			sum = 0;
-			if(i+1<n){
-				dell = (delta==0 ? 0 : ipow(delta,pt->l));
-				ldell = pt->l*dell;
-			}
+			dell = ipow(delta,pt->l);
+			ldell = pt->l*dell;
 		}
 	}
 
 	/* gaussian terms */
-	n = HD->ng;
-	gt = &(HD->gt[0]);
+	n = data->ng;
+	gt = &(data->gt[0]);
 	for(i=0; i<n; ++i){
 #ifdef RESID_DEBUG
 		fprintf(stderr,"i = %d, GAUSSIAN, n = %e, t = %f, d = %f, alpha = %f, beta = %f, gamma = %f, epsilon = %f\n",i+1, gt->n, gt->t, gt->d, gt->alpha, gt->beta, gt->gamma, gt->epsilon);
@@ -939,14 +743,13 @@ double helm_resid_del(double tau,double delta, const HelmholtzRunData *HD){
 	}
 
 	/* critical terms */
-	n = HD->nc;
-	ct = &(HD->ct[0]);
+	n = data->nc;
+	ct = &(data->ct[0]);
 	for(i=0; i<n; ++i){
 #ifdef RESID_DEBUG
 		fprintf(stderr,"i = %d, CRITICAL, n = %e, a = %f, b = %f, beta = %f, A = %f, B = %f, C = %f, D = %f\n",i+1, ct->n, ct->a, ct->b, ct->beta, ct->A, ct->B, ct->C, ct->D);
 #endif
 		DEFINE_DELTA;
-		DEFINE_DELB;
 		DEFINE_DPSIDDELTA;
 		DEFINE_DDELDDELTA;
 		DEFINE_DDELBDDELTA;
@@ -967,7 +770,7 @@ double helm_resid_del(double tau,double delta, const HelmholtzRunData *HD){
 		fprintf(stderr,"sum = %f\n",sum);
 		if(isnan(sum))fprintf(stderr,"ERROR: sum isnan with i=%d at %d\n",i,__LINE__);
 #endif
-		sum = ct->n * (DELB * (PSI + delta * dPSIddelta) + dDELbddelta * delta * PSI);
+		sum = ct->n * (pow(DELTA, ct->b) * (psi + delta * dpsiddelta) + dDELbddelta * delta * psi);
 		res += sum;
 
 		++ct;
@@ -979,9 +782,9 @@ double helm_resid_del(double tau,double delta, const HelmholtzRunData *HD){
 /**
 	Derivative of the helmholtz residual function with respect to
 	tau.
-*/
-double helm_resid_tau(double tau,double delta,const HelmholtzRunData *HD){
-
+*/			
+double helm_resid_tau(double tau,double delta,const HelmholtzData *data){
+	
 	double sum;
 	double res = 0;
 	double delX;
@@ -991,8 +794,8 @@ double helm_resid_tau(double tau,double delta,const HelmholtzRunData *HD){
 	const HelmholtzGausTerm *gt;
 	const HelmholtzCritTerm *ct;
 
-	n = HD->np;
-	pt = &(HD->pt[0]);
+	n = data->np;
+	pt = &(data->pt[0]);
 
 	delX = 1;
 
@@ -1022,12 +825,11 @@ double helm_resid_tau(double tau,double delta,const HelmholtzRunData *HD){
 			}
 		}
 	}
-	assert(!__isnan(res));
 
 //#define RESID_DEBUG
 	/* gaussian terms */
-	n = HD->ng;
-	gt = &(HD->gt[0]);
+	n = data->ng;
+	gt = &(data->gt[0]);
 	for(i=0; i<n; ++i){
 #ifdef RESID_DEBUG
 		fprintf(stderr,"i = %d, GAUSSIAN, n = %e, t = %f, d = %f, alpha = %f, beta = %f, gamma = %f, epsilon = %f\n",i+1, gt->n, gt->t, gt->d, gt->alpha, gt->beta, gt->gamma, gt->epsilon);
@@ -1041,31 +843,28 @@ double helm_resid_tau(double tau,double delta,const HelmholtzRunData *HD){
 #ifdef RESID_DEBUG
 		fprintf(stderr,"res = %f\n",res);
 #endif
-
+			
 		++gt;
 	}
-	assert(!__isnan(res));
 
 	/* critical terms */
-	n = HD->nc;
-	ct = &(HD->ct[0]);
+	n = data->nc;
+	ct = &(data->ct[0]);
 	for(i=0; i<n; ++i){
 #ifdef RESID_DEBUG
 		fprintf(stderr,"i = %d, CRITICAL, n = %e, a = %f, b = %f, beta = %f, A = %f, B = %f, C = %f, D = %f\n",i+1, ct->n, ct->a, ct->b, ct->beta, ct->A, ct->B, ct->C, ct->D);
 #endif
 		DEFINE_DELTA;
-		DEFINE_DELB;
 		DEFINE_DDELBDTAU;
 		DEFINE_DPSIDTAU;
 
-		sum = ct->n * delta * (dDELbdtau * PSI + DELB * dPSIdtau);
+		sum = ct->n * delta * (dDELbdtau * psi + pow(DELTA, ct->b) * dpsidtau);
 		res += sum;
 		++ct;
 	}
-	assert(!__isnan(res));
 
 	return res;
-}
+}	
 
 
 /*=================== SECOND DERIVATIVES =======================*/
@@ -1074,16 +873,16 @@ double helm_resid_tau(double tau,double delta,const HelmholtzRunData *HD){
 	Mixed derivative of the helmholtz residual function with respect to
 	delta and tau.
 */
-double helm_resid_deltau(double tau,double delta,const HelmholtzRunData *HD){
-	double dell,ldell, sum = 0, res = 0;
+double helm_resid_deltau(double tau,double delta,const HelmholtzData *data){
+	double dell,ldell, term, sum = 0, res = 0;
 	unsigned n, i;
 	const HelmholtzPowTerm *pt;
 	const HelmholtzGausTerm *gt;
 	const HelmholtzCritTerm *ct;
 
 	/* power terms */
-	n = HD->np;
-	pt = &(HD->pt[0]);
+	n = data->np;
+	pt = &(data->pt[0]);
 	dell = ipow(delta,pt->l);
 	ldell = pt->l * dell;
 	unsigned oldl;
@@ -1098,10 +897,8 @@ double helm_resid_deltau(double tau,double delta,const HelmholtzRunData *HD){
 				res += sum * exp(-dell);
 			}
 			sum = 0;
-			if(i+1<n){
-				dell = ipow(delta,pt->l);
-				ldell = pt->l*dell;
-			}
+			dell = ipow(delta,pt->l);
+			ldell = pt->l*dell;
 		}
 	}
 
@@ -1110,8 +907,8 @@ double helm_resid_deltau(double tau,double delta,const HelmholtzRunData *HD){
 #endif
 
 	/* gaussian terms */
-	n = HD->ng;
-	gt = &(HD->gt[0]);
+	n = data->ng;
+	gt = &(data->gt[0]);
 	for(i=0; i<n; ++i){
 #ifdef RESID_DEBUG
 		fprintf(stderr,"i = %d, GAUSSIAN, n = %e, t = %f, d = %f, alpha = %f, beta = %f, gamma = %f, epsilon = %f\n",i+1, gt->n, gt->t, gt->d, gt->alpha, gt->beta, gt->gamma, gt->epsilon);
@@ -1134,29 +931,28 @@ double helm_resid_deltau(double tau,double delta,const HelmholtzRunData *HD){
 	}
 
 	/* critical terms */
-	n = HD->nc;
-	ct = &(HD->ct[0]);
+	n = data->nc;
+	ct = &(data->ct[0]);
 	for(i=0; i<n; ++i){
 #ifdef RESID_DEBUG
 		fprintf(stderr,"i = %d, CRITICAL, n = %e, a = %f, b = %f, beta = %f, A = %f, B = %f, C = %f, D = %f\n",i+1, ct->n, ct->a, ct->b, ct->beta, ct->A, ct->B, ct->C, ct->D);
 #endif
 		DEFINE_DELTA;
-		DEFINE_DELB;
 		DEFINE_DPSIDDELTA;
 		DEFINE_DDELBDTAU;
 		DEFINE_DDELDDELTA;
 
-		double d2DELbddeldtau = -ct->A * ct->b * 2./ct->beta * (DELB/DELTA)*d1*pow(d12,0.5/ct->beta-1) \
-			- 2. * theta * ct->b * (ct->b - 1) * (DELB/SQ(DELTA)) * dDELddelta;
+		double d2DELbddeldtau = -ct->A * ct->b * 2./ct->beta * pow(DELTA,ct->b-1)*d1*pow(d12,0.5/ct->beta-1) \
+			- 2. * theta * ct->b * (ct->b - 1) * pow(DELTA,ct->b-2.) * dDELddelta;
 
-		double d2PSIddeldtau = 4. * ct->C*ct->D*d1*t1*PSI;
+		double d2psiddeldtau = 4. * ct->C*ct->D*d1*t1*psi;
 
 		DEFINE_DPSIDTAU;
 
-		sum = ct->n * (DELB * (dPSIdtau + delta * d2PSIddeldtau) \
-			+ delta *dDELbdtau*dPSIdtau \
-			+ dDELbdtau*(PSI+delta*dPSIddelta) \
-			+ d2DELbddeldtau*delta*PSI
+		sum = ct->n * (pow(DELTA, ct->b) * (dpsidtau + delta * d2psiddeldtau) \
+			+ delta *dDELbdtau*dpsidtau \
+			+ dDELbdtau*(psi+delta*dpsiddelta) \
+			+ d2DELbddeldtau*delta*psi
 		);
 		res += sum;
 		++ct;
@@ -1177,7 +973,7 @@ double helm_resid_deltau(double tau,double delta,const HelmholtzRunData *HD){
 	Second derivative of helmholtz residual function with respect to
 	delta (twice).
 */
-double helm_resid_deldel(double tau,double delta,const HelmholtzRunData *HD){
+double helm_resid_deldel(double tau,double delta,const HelmholtzData *data){
 	double sum = 0, res = 0;
 	double dell, ldell;
 	unsigned n, i;
@@ -1190,8 +986,8 @@ double helm_resid_deldel(double tau,double delta,const HelmholtzRunData *HD){
 #endif
 
 	/* power terms */
-	n = HD->np;
-	pt = &(HD->pt[0]);
+	n = data->np;
+	pt = &(data->pt[0]);
 	dell = ipow(delta,pt->l);
 	ldell = pt->l * dell;
 	unsigned oldl;
@@ -1207,28 +1003,20 @@ double helm_resid_deldel(double tau,double delta,const HelmholtzRunData *HD){
 				res += sum * exp(-dell);
 			}
 			sum = 0;
-			if(i+1<n){
-				dell = ipow(delta,pt->l);
-				ldell = pt->l*dell;
-			}
+			dell = ipow(delta,pt->l);
+			ldell = pt->l*dell;
 		}
 	}
-#if RESID_DEBUG
-	if(isnan(res)){
-		fprintf(stderr,"got NAN in %s: tau = %.12e, del = %.12e\n",__func__,tau,delta);
-	}
-	assert(!__isnan(res));
-#endif
 
 	/* gaussian terms */
-	n = HD->ng;
+	n = data->ng;
 	//fprintf(stderr,"THERE ARE %d GAUSSIAN TERMS\n",n);
-	gt = &(HD->gt[0]);
+	gt = &(data->gt[0]);
 	for(i=0; i<n; ++i){
 		double s1 = SQ(delta - gt->epsilon);
-		double f1 = gt->d*(gt->d - 1)
+		double f1 = gt->d*(gt->d - 1) 
 			+ 2.*gt->alpha*delta * (
-				delta * (2. * gt->alpha * s1 - 1)
+				delta * (2. * gt->alpha * s1 - 1) 
 				- 2. * gt->d * (delta - gt->epsilon)
 			);
 		res += gt->n * pow(tau,gt->t) * pow(delta, gt->d - 2.)
@@ -1236,33 +1024,37 @@ double helm_resid_deldel(double tau,double delta,const HelmholtzRunData *HD){
 			* exp(-(gt->alpha * s1 + gt->beta*SQ(tau-gt->gamma)));
 		++gt;
 	}
-	assert(!__isnan(res));
 
 	/* critical terms */
-	n = HD->nc;
-	ct = &(HD->ct[0]);
+	n = data->nc;
+	ct = &(data->ct[0]);
 	for(i=0; i<n; ++i){
 #ifdef RESID_DEBUG
 		fprintf(stderr,"i = %d, CRITICAL, n = %e, a = %f, b = %f, beta = %f, A = %f, B = %f, C = %f, D = %f\n",i+1, ct->n, ct->a, ct->b, ct->beta, ct->A, ct->B, ct->C, ct->D);
 #endif
 
 		DEFINE_DELTA;
-		DEFINE_DELB;
 		DEFINE_DPSIDDELTA;
 		DEFINE_DDELDDELTA;
 		DEFINE_DDELBDDELTA;
 
-		DEFINE_D2DELDDELTA2;
-		DEFINE_D2DELBDDELTA2;
+		double powd12bm1 = pow(d12,0.5/ct->beta-1.);
 
-		DEFINE_D2PSIDDELTA2;
+		double d2psiddel2 = (2.*ct->C*d12 - 1.)*2.*ct->C*psi;
 
-		sum = ct->n * (DELB*(2.*dPSIddelta + delta*d2PSIddelta2) + 2.*dDELbddelta*(PSI+delta*dPSIddelta) + d2DELbddelta2*delta*PSI);
+		double d2DELddel2 = 1./d1*dDELddelta + d12*(
+			4.*ct->B*ct->a*(ct->a-1.)*pow(d12,ct->a-2.) \
+			+ 2.*SQ(ct->A)*SQ(1./ct->beta)*SQ(powd12bm1) \
+			+ ct->A*theta*4./ct->beta*(0.5/ct->beta-1.)*powd12bm1/d12
+		);
+
+		double d2DELbddel2 = ct->b * (pow(DELTA,ct->b - 1.)*d2DELddel2 + (ct->b-1.)*pow(DELTA,ct->b-2.)*SQ(dDELddelta));
+
+		sum = ct->n * (pow(DELTA,ct->b)*(2.*dpsiddelta + delta*d2psiddel2) + 2.*dDELbddelta*(psi+delta*dpsiddelta) + d2DELbddel2*delta*psi);
 
 		res += sum;
 		++ct;
 	}
-	assert(!__isnan(res));
 
 	return res;
 }
@@ -1272,15 +1064,15 @@ double helm_resid_deldel(double tau,double delta,const HelmholtzRunData *HD){
 /**
 	Residual part of helmholtz function.
 */
-double helm_resid_tautau(double tau, double delta, const HelmholtzRunData *HD){
-	double dell, term, sum, res = 0;
+double helm_resid_tautau(double tau, double delta, const HelmholtzData *data){
+	double dell,ldell, term, sum, res = 0;
 	unsigned n, i;
 	const HelmholtzPowTerm *pt;
 	const HelmholtzGausTerm *gt;
 	const HelmholtzCritTerm *ct;
 
-	n = HD->np;
-	pt = &(HD->pt[0]);
+	n = data->np;
+	pt = &(data->pt[0]);
 
 #ifdef RESID_DEBUG
 		fprintf(stderr,"tau=%f, del=%f\n",tau,delta);
@@ -1289,7 +1081,7 @@ double helm_resid_tautau(double tau, double delta, const HelmholtzRunData *HD){
 	/* power terms */
 	sum = 0;
 	dell = ipow(delta,pt->l);
-	//ldell = pt->l * dell;
+	ldell = pt->l * dell;
 	unsigned oldl;
 	for(i=0; i<n; ++i){
 		term = pt->a * pt->t * (pt->t - 1) * pow(tau, pt->t - 2) * ipow(delta, pt->d);
@@ -1320,17 +1112,15 @@ double helm_resid_tautau(double tau, double delta, const HelmholtzRunData *HD){
 			fprintf(stderr,"i = %d, res = %f\n",i,res);
 #endif
 			sum = 0;
-			if(i+1<n){
-				dell = ipow(delta,pt->l);
-				//ldell = pt->l*dell;
-			}
+			dell = ipow(delta,pt->l);
+			ldell = pt->l*dell;
 		}
 	}
 
 	/* gaussian terms */
-	n = HD->ng;
+	n = data->ng;
 	//fprintf(stderr,"THERE ARE %d GAUSSIAN TERMS\n",n);
-	gt = &(HD->gt[0]);
+	gt = &(data->gt[0]);
 	for(i=0; i<n; ++i){
 #ifdef RESID_DEBUG
 		fprintf(stderr,"i = %d, GAUSSIAN, n = %e, t = %f, d = %f, alpha = %f, beta = %f, gamma = %f, epsilon = %f\n",i+1, gt->n, gt->t, gt->d, gt->alpha, gt->beta, gt->gamma, gt->epsilon);
@@ -1346,22 +1136,21 @@ double helm_resid_tautau(double tau, double delta, const HelmholtzRunData *HD){
 	}
 
 	/* critical terms */
-	n = HD->nc;
-	ct = &(HD->ct[0]);
+	n = data->nc;
+	ct = &(data->ct[0]);
 	for(i=0; i<n; ++i){
 #ifdef RESID_DEBUG
 		fprintf(stderr,"i = %d, CRITICAL, n = %e, a = %f, b = %f, beta = %f, A = %f, B = %f, C = %f, D = %f\n",i+1, ct->n, ct->a, ct->b, ct->beta, ct->A, ct->B, ct->C, ct->D);
 #endif
 		DEFINE_DELTA;
-		DEFINE_DELB;
 		DEFINE_DDELBDTAU;
 		DEFINE_DPSIDTAU;
 
-		double d2DELbdtau2 = 2. * ct->b * (DELB/DELTA) + 4. * SQ(theta) * ct->b * (ct->b - 1) * (DELB/SQ(DELTA));
+		double d2DELbdtau2 = 2. * ct->b * pow(DELTA, ct->b - 1) + 4. * SQ(theta) * ct->b * (ct->b - 1) * pow(DELTA, ct->b - 2);	
 
-		double d2PSIdtau2 = 2. * ct->D * PSI * (2. * ct->D * SQ(t1) -1.);
+		double d2psidtau2 = 2. * ct->D * psi * (2. * ct->D * SQ(t1) -1.);
 
-		sum = ct->n * delta * (d2DELbdtau2 * PSI + 2 * dDELbdtau*dPSIdtau + DELB * d2PSIdtau2);
+		sum = ct->n * delta * (d2DELbdtau2 * psi + 2 * dDELbdtau*dpsidtau + pow(DELTA, ct->b) * d2psidtau2);
 		res += sum;
 		++ct;
 	}
@@ -1371,134 +1160,4 @@ double helm_resid_tautau(double tau, double delta, const HelmholtzRunData *HD){
 #endif
 	return res;
 }
-
-/* === THIRD DERIVATIVES (this is getting boring now) === */
-
-#ifdef INCLUDE_THIRD_DERIV_CODE
-/**
-	Third derivative of helmholtz residual function, with respect to
-	delta (thrice).
-*/
-double helm_resid_deldeldel(double tau,double delta,const HelmholtzRunData *HD){
-	double sum = 0, res = 0;
-	double D;
-	unsigned n, i;
-	const HelmholtzPowTerm *pt;
-	const HelmholtzGausTerm *gt;
-	const HelmholtzCritTerm *ct;
-
-#ifdef RESID_DEBUG
-		fprintf(stderr,"tau=%f, del=%f\n",tau,delta);
-#endif
-
-#if 1
-	/* major shortcut, but not efficient */
-	double ddel = 0.0000000001;
-	return (helm_resid_deldel(tau,delta+ddel,HD) - helm_resid_deldel(tau,delta,HD))/ddel;
-#endif
-
-	/* seem to be errors in the following, still haven't tracked them all down. */
-
-#if 1
-	/* wxmaxima code:
-		a*delta^d*%e^(-delta^l)*tau^t
-		diff(%,delta,3);
-	*/
-	/* power terms */
-	n = HD->np;
-	pt = &(HD->pt[0]);
-	D = ipow(delta,pt->l);
-	unsigned oldl;
-	for(i=0; i<n; ++i){
-		double d = pt->d;
-		double l = pt->l;
-		double lpart = pt->l
-			? D*((D-1)*(D-2)-1)   * l*SQ(l)
-				+ 3*D*(1-d)*(D-1) * SQ(l)
-				+ D*(3*SQ(d-1)-1) * l
-			: 0;
-		sum += pt->a * pow(tau,pt->t) * ipow(delta, d-3) * (d*(d-1)*(d-2) + lpart);
-		oldl = pt->l;
-		++pt;
-		if(i+1==n || oldl != pt->l){
-			if(oldl == 0){
-				res += sum; // note special meaning of l==0 case: no exponential
-			}else{
-				res += sum * exp(-D);
-			}
-			sum = 0;
-			D = ipow(delta,pt->l);
-		}
-	}
-
-	//fprintf(stderr,"DELDELDEL fiff = %f, sum = %f  ",fdiff, res);
-#endif
-
-#if 1
-	/* gaussian terms */
-	n = HD->ng;
-	//fprintf(stderr,"THERE ARE %d GAUSSIAN TERMS\n",n);
-	gt = &(HD->gt[0]);
-	for(i=0; i<n; ++i){
-		double D = delta - gt->epsilon;
-		double D2 = SQ(D);
-		double T2 = SQ(tau - gt->gamma);
-		double A = gt->alpha * delta;
-		double A2 = SQ(A);
-		double d = gt->d;
-		double d2 = SQ(d);
-
-		// this expression calculated from wxMaxima using subsitutions for
-		// D=delta-epsilon and A=alpha*delta.
-		double f1 =
-			- (8*A*A2) * D*D2
-			+ (12*d * A2) * D2
-			+ (12 * delta * A2 + (6*d - 6*d2)*A) * D
-			- (6 * d * delta * A + d*d2 - 3*d2 + 2*d);
-
-		res += gt->n * pow(tau,gt->t) * pow(delta, d - 3.)
-			* f1
-			* exp(-(gt->alpha * D2 + gt->beta * T2));
-		++gt;
-	}
-#endif
-
-#if 1
-	/* critical terms */
-	n = HD->nc;
-	ct = &(HD->ct[0]);
-	for(i=0; i<n; ++i){
-#ifdef RESID_DEBUG
-		fprintf(stderr,"i = %d, CRITICAL, n = %e, a = %f, b = %f, beta = %f, A = %f, B = %f, C = %f, D = %f\n",i+1, ct->n, ct->a, ct->b, ct->beta, ct->A, ct->B, ct->C, ct->D);
-#endif
-
-		DEFINE_DELTA;
-		DEFINE_DELB;
-		DEFINE_DPSIDDELTA;
-		DEFINE_DDELDDELTA;
-		DEFINE_DDELBDDELTA;
-
-		DEFINE_D2PSIDDELTA2;
-		DEFINE_D2DELDDELTA2;
-		DEFINE_D2DELBDDELTA2;
-
-		DEFINE_D3PSIDDELTA3;
-		DEFINE_D3DELDDELTA3;
-		DEFINE_D3DELBDDELTA3;
-
-		sum = ct->n * (
-			delta * (DELB*d3PSIddelta3 + 3 * dDELbddelta * d2PSIddelta2 + 3 * d2DELbddelta2 * dPSIddelta + PSI * d3DELbddelta3)
-			+ 3 * (DELB*d2PSIddelta2 +  2 *  dDELbddelta * dPSIddelta + d2DELbddelta2 * PSI)
-		);
-
-		res += sum;
-		++ct;
-	}
-#endif
-
-	return res;
-}
-
-#endif
-
 

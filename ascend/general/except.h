@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//* @file
 	Some nice syntax for exceptions in C.
 	See http://www.swig.org/Doc1.1/HTML/Exceptions.html#n3
@@ -40,12 +42,8 @@
 #ifndef ASC_EXCEPT_H
 #define ASC_EXCEPT_H
 
+/* File : except.h */
 #include <setjmp.h>
-
-/**	@addtogroup general_except General Exception Handling
-	@{
-*/
-
 extern jmp_buf exception_buffer;
 extern int exception_status;
 
@@ -89,7 +87,5 @@ typedef struct{
 #define JMP_BUF asc_jmp_buf
 #define SIGNAL(SIG,HANDLER) (CONSOLE_DEBUG("SIGNAL(%d,%s)",SIG,#HANDLER),signal(SIG,HANDLER))
 #endif
-
-/* @} */
 
 #endif

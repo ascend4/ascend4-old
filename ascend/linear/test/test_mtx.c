@@ -12,17 +12,19 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Unit test functions for linear/linsolqr.c
 */
 #include <string.h>
+#include <CUnit/CUnit.h>
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/linear/mtx_csparse.h>
 
-#include <test/common.h>
 #include <test/assertimpl.h>
 
 
@@ -80,8 +82,18 @@ static void test_csparse(void){
 /*===========================================================================*/
 /* Registration information */
 
-#define TESTS(T) \
-	T(csparse)
+static CU_TestInfo mtx_test_list[] = {
+	{"csparse", test_csparse},
+	CU_TEST_INFO_NULL
+};
 
-REGISTER_TESTS_SIMPLE(linear_mtx, TESTS)
+static CU_SuiteInfo suites[] = {
+	{"linear_mtx", NULL, NULL, mtx_test_list},
+	CU_SUITE_INFO_NULL
+};
+
+/*-------------------------------------------------------------------*/
+CU_ErrorCode test_register_linear_mtx(void){
+	return CU_register_suites(suites);
+}
 

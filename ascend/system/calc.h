@@ -15,8 +15,11 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @defgroup system_calc System Calculation
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//** @file
+	Calculation module
 
 	Operations are provided for computing unary and binary
 	functions.  First, second, and nth derivatives may
@@ -44,10 +47,10 @@
 #define ASC_SLV_CALC_H
 
 #include <ascend/utilities/config.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/compiler/func.h>
 
-/**	@addtogroup system_calc
+/**	@addtogroup solver Solver
 	@{
 */
 

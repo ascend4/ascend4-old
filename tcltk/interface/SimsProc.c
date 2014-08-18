@@ -1,5 +1,5 @@
 /*	ASCEND modelling environment
-	Copyright (C) 1997, 2009, 2010 Carnegie Mellon University
+	Copyright (C) 1997, 2009 Carnegie Mellon University
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//*
  *  SimsProc.c
  *  by Kirk Abbott and Ben Allan
@@ -28,7 +30,7 @@
 #include <tcl.h>
 #include "config.h"
 
-#include <ascend/utilities/bit.h>
+#include <ascend/compiler/bit.h>
 #include <ascend/compiler/pending.h>
 #include <ascend/compiler/simlist.h>
 #include <ascend/compiler/library.h>
@@ -45,7 +47,7 @@
 #include <ascend/compiler/statement.h>
 #include <ascend/compiler/bintoken.h>
 
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/tm_time.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>

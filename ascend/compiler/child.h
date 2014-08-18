@@ -14,7 +14,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	This is a package of routines to process child lists.
@@ -36,15 +38,15 @@
 #ifndef ASC_CHILD_H
 #define ASC_CHILD_H
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/general/list.h>
 #include "compiler.h"
 
-/**	@addtogroup compiler_inst Compiler Instance Hierarchy
+/**	@addtogroup compiler Compiler
 	@{
 */
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 
 /**
  *  The ChildListStructure is a private implementation detail.
@@ -259,7 +261,7 @@ ASC_DLLSPEC void ChildSetBoolean(ChildListPtr cl, unsigned long n,
  *  @param n  unsigned long
  */
 
-ASC_DLLSPEC const struct TypeDescription *ChildBaseTypePtr(ChildListPtr cl,
+extern CONST struct TypeDescription *ChildBaseTypePtr(ChildListPtr cl,
                                                       unsigned long n);
 /**<
  *  Return child number n type determinable at parse time.
@@ -298,6 +300,13 @@ extern int CompareChildLists(ChildListPtr cl, ChildListPtr c2, unsigned long *di
  * Returns -1/0/1 as d1 <,==,> d2 (0). If cmp != 0, diff = position
  * in child list d2 of first difference, i.e. if the lists are m and n
  * long (m > n) and OTHERWISE equivalent, diff = n + 1.
+ */
+
+extern void WriteChildList(FILE *fp, ChildListPtr cl);
+/**<
+ *  Write what is known at parse time about the children in the child list
+ *  given.  What is known may be surprising. It may be only mildly
+ *  accurate.
  */
 
 /* @} */

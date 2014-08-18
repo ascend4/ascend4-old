@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	The following functions give an automatic, default form for the
 	'default_all' and 'default_self' methods usually written as explicit
@@ -26,9 +28,9 @@
 #include <ascend/compiler/proc.h>
 #include <ascend/compiler/name.h>
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/utilities/ascPrint.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascPanic.h>
 
 #include <ascend/compiler/instquery.h>
 #include <ascend/compiler/child.h>
@@ -40,12 +42,7 @@
 #include <ascend/compiler/library.h>
 #include <ascend/compiler/initialize.h>
 
-#define DEFAULT_DEBUG
-
-#ifdef DEFAULT_DEBUG
-# include <ascend/compiler/instance_io.h>
-# include <ascend/general/ascMalloc.h>
-#endif
+/* #define DEFAULT_DEBUG */
 
 /*------------------------------------------------------------------------------
   visit child atoms of the current model (don't visit sub models) and set
@@ -135,12 +132,6 @@ int defaultself_visit_submodels(struct Instance *root
 ){
 	struct DefaultAll_data data;
 	data.method_name = AddSymbol("default_self");
-
-#ifdef DEFAULT_DEBUG
-	char *name1 = WriteInstanceNameString(root,NULL);
-	CONSOLE_DEBUG("Running on '%s'",name1);
-	ASC_FREE(name1);
-#endif
 	
 	/* arglist is a list of gllist of instances */
 	if (arglist == NULL ||
@@ -183,9 +174,7 @@ int defaultself_visit_submodels1(struct Instance *inst
 			method = FindMethod(type,data->method_name);
 			if(method){
 #ifdef DEFAULT_DEBUG
-				char *name1 = WriteInstanceNameString(c,NULL);
-				CONSOLE_DEBUG("Running METHOD %s on '%s'",SCP(data->method_name),name1);
-				ASC_FREE(name1);
+				CONSOLE_DEBUG("Running METHOD %s on '%s'",SCP(data->method_name),SCP(GetName(type)));
 #endif
 				pe = Initialize(c , CreateIdName(ProcName(method))
 					, SCP(data->method_name)
@@ -206,7 +195,7 @@ int defaultself_visit_submodels1(struct Instance *inst
 	}
 
 #ifdef DEFAULT_DEBUG
-	CONSOLE_DEBUG("defaultself_visit_submodels1 returning %d",err);
+	CONSOLE_DEBUG("defaultself_visit_submodels1 return ing %d",err);
 #endif
 	return err;
 }

@@ -1,7 +1,7 @@
 (*
 	ASCEND model library: radiation heat transfer model
 	Copyright (C) John Pye 2006
-	http://jpye.dyndns.org/
+	http://pye.dyndns.org/
 
 	This program is free software; you can redistribute it
 	and/or modify it under the terms of the GNU General Public
@@ -15,14 +15,16 @@
 	PURPOSE.  See the GNU General Public License for more
 	details.
 
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public
+	License along with this program; if not, write to the Free
+	Software Foundation, Inc., 59 Temple Place, Suite 330,
+	Boston, MA 02111-1307  USA
 	-------------------------------------------------------------------
 
 	This is a radiation heat transfer model that is being used
 	to simulate (just a rough model) the absorber of a large solar
 	thermal energy system. For more information see 
-	http://jpye.dyndns.org or google for 'CLFR'. This is a linear
+	http://pye.dyndns.org or google for 'CLFR'. This is a linear
 	concentrator, so the cavity is simulated with a two-dimensional 
 	model. The cavity is trapezoidal in shape, wider at the base
 	through which radiation enters.
@@ -47,7 +49,7 @@ MODEL cavity_base;
 	n    "surfaces in the cavity"         IS_A set OF symbol_constant;
 	A[n] "length of the surfaces (in 2D)" IS_A distance;
 
-	F[n][n] IS_A fraction;
+	F[n][n] IS_A factor;
 
 	(* Radiation equations *)
 	q[n] "net heat transfer from each surface" IS_A energy_rate_per_length;
@@ -55,7 +57,7 @@ MODEL cavity_base;
 	E_b[n] IS_A energy_flux;
 	J[n] IS_A energy_flux;	
 	T[n] IS_A temperature;
-	eps[n] IS_A fraction; (* emissivity *)
+	eps[n] IS_A factor; (* emissivity *)
 	
 	FOR i IN n CREATE
 		z_q[i]: q[i] =  SUM[ (J[i]-J[j])*(A[i]*F[i][j]) | j IN n];
@@ -75,9 +77,9 @@ MODEL cavity REFINES cavity_base;
 	W,B,S,N,C,E,D IS_A distance;
 	theta, phi, psi IS_A angle;
 	
-	F_WN, F_WW, F_WB IS_A fraction;
-	F_NB, F_NW, F_NN, F_BW, F_BN IS_A fraction;
-	F_WS IS_A fraction;
+	F_WN, F_WW, F_WB IS_A factor;
+	F_NB, F_NW, F_NN, F_BW, F_BN IS_A factor;
+	F_WS IS_A factor;
 	
 	z_N: N * sin(theta) = D;
 	z_S: S * tan(theta) = D;
@@ -170,7 +172,7 @@ END cavity;
 	the model, and an ambient temperature.
 	
 	We also calculate the 'F_rad' correlation parameter (see
-	http://jpye.dyndns.org for more information).
+	http://pye.dyndns.org for more information).
 *)
 MODEL cavity_losses REFINES cavity;
 	h_B, h_N IS_A heat_transfer_coefficient;

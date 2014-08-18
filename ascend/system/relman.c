@@ -15,7 +15,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Relation manipulator module for the SLV solver.
 *//*
@@ -26,9 +28,9 @@
 #include "relman.h"
 
 #include <math.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/list.h>
 #include <ascend/general/mathmacros.h>
 
@@ -52,8 +54,8 @@
 
 #include "slv_server.h"
 
-//#define DIFF_DEBUG
-//#define EVAL_DEBUG
+/* #define DIFF_DEBUG */
+/* #define EVAL_DEBUG */
 /* #define DSOLVE_DEBUG */
 
 #define IPTR(i) ((struct Instance *)(i))
@@ -69,30 +71,26 @@
 	Calling with nbytes==0 will free any memory allocated.
 */
 static
-void *rel_tmpalloc(int nbytes){
-	static char *ptr = NULL;
-	static int cap = 0;
+void *rel_tmpalloc( int nbytes){
+  static char *ptr = NULL;
+  static int cap = 0;
 
-	if(nbytes){
-		if(nbytes > cap){
-			if(ptr != NULL){
-				ASC_FREE(ptr);
-			}
-			ptr = ASC_NEW_ARRAY(char,nbytes);
-			cap = nbytes;
-		}
-	}else{
-		if(ptr){
-			ASC_FREE(ptr);
-		}
-		ptr=NULL;
-		cap=0;
-	}
-	if(cap > 0){
-		return(ptr);
-	} else  {
-		return NULL;
-	}
+  if (nbytes) {
+    if( nbytes > cap ) {
+      if( ptr != NULL ) ascfree(ptr);
+      ptr = ASC_NEW_ARRAY(char,nbytes);
+      cap = nbytes;
+    }
+  }else{
+    if (ptr) ascfree(ptr);
+    ptr=NULL;
+    cap=0;
+  }
+  if ( cap >0) {
+    return(ptr);
+  } else  {
+    return NULL;
+  }
 }
 
 
@@ -104,7 +102,7 @@ void *rel_tmpalloc(int nbytes){
 
 
 void relman_free_reused_mem(void){
-  rel_tmpalloc(0); /* restoring this call, to avoid minor memory leaks; not sure why it was commented out ages ago -- JP*/
+  /* rel_tmpalloc(0); */
   RelationFindRoots(NULL,0,0,0,0,NULL,NULL,NULL);
 }
 
@@ -378,12 +376,10 @@ real64 relman_eval(struct rel_relation *rel, int32 *calc_ok, int safe){
 	asc_assert(calc_ok!=NULL);
 	asc_assert(rel!=NULL);
 	if(rel->type == e_rel_token){
-		//CONSOLE_DEBUG("token relation");
 		if(!RelationCalcResidualBinary(
-			GetInstanceRelationOnly(IPTR(rel->instance)
-		),&res)){
-			/* yes, it actually worked ok */
-			*calc_ok = 1;
+		        GetInstanceRelationOnly(IPTR(rel->instance)),&res)
+		){
+			*calc_ok = 1; /* calc_ok */
 			rel_set_residual(rel,res);
 			return res;
 		}/* else {
@@ -393,10 +389,9 @@ real64 relman_eval(struct rel_relation *rel, int32 *calc_ok, int safe){
 	}
 
 	if(safe){
-		//CONSOLE_DEBUG("safe relation");
-		*calc_ok = RelationCalcResidualSafe(rel_instance(rel),&res); /* returns zero on success */
+		*calc_ok = RelationCalcResidualSafe(rel_instance(rel),&res);
 		if(*calc_ok){
-			/* ie *NOT* OK, there was an error */
+			/* this actually means there was an ERROR due to return protocol of ^^^ */
 #ifdef EVAL_DEBUG
 			CONSOLE_DEBUG("residual error, res = %g",res);
 #endif
@@ -407,10 +402,10 @@ real64 relman_eval(struct rel_relation *rel, int32 *calc_ok, int safe){
 		}
 		/* always set the relation residual when using safe functions */
 		rel_set_residual(rel,res);
+		if(!(*calc_ok))CONSOLE_DEBUG("RELMAN_EVAL WAS NOT OK");
 		return res;
 	}
 
-	//CONSOLE_DEBUG("regular relation");
 	*calc_ok = RelationCalcResidual(rel_instance(rel),&res);
 	if(*calc_ok){
 		/* an error occured */
@@ -455,7 +450,7 @@ real64 relman_scale(struct rel_relation *rel){
 real64 relman_diff(struct rel_relation *rel, struct var_variable *var,
                    int safe
 ){
-		/* FIX FIX FIX meaning kirk couldn't be bothered... */
+		/* FIX FIX FIX meaning kirk couldn't be botghered... */
    real64 res = 0.0;
    switch(rel->type) {
    case e_glassbox:
@@ -488,16 +483,14 @@ int relman_diff2(struct rel_relation *rel, const var_filter_t *filter
   *count = 0;
   if(safe){
     //CONSOLE_DEBUG("Derivative Type: Safe");
-    status =(int32)RelationCalcGradientSafe(rel_instance(rel),gradient);
+    status =(int32)RelationCalcGradientSafe(rel_instance(rel),gradient); 
     safe_error_to_stderr( (enum safe_err *)&status );
     /* always map when using safe functions */
     for (c=0; c < len; c++) {
       if (var_apply_filter(vlist[c],filter)) {
         variables[*count] = var_sindex(vlist[c]);
         derivatives[*count] = gradient[c];
-#ifdef DIFF_DEBUG
         CONSOLE_DEBUG("Var %d = %g",var_sindex(vlist[c]),gradient[c]);
-#endif
         (*count)++;
       }
     }
@@ -530,18 +523,19 @@ int relman_diff2_rev(struct rel_relation *rel, const var_filter_t *filter
 	real64 *gradient;
 	int32 len,c;
 	int status;
+	//CONSOLE_DEBUG("In Function: relman_diff2");
 	assert(rel!=NULL && filter!=NULL);
 	len = rel_n_incidences(rel);
 //	CONSOLE_DEBUG("In Function relman_diff2_rev");
 	vlist = rel_incidence_list(rel);
-
+	
 	gradient = (real64 *)rel_tmpalloc(len*sizeof(real64));
 	assert(gradient !=NULL);
 	*count = 0;
 	if(safe){
 		//CONSOLE_DEBUG("Derivative Type: Safe");
 		//PrintGradients(rel_instance(rel));
-		status =(int32)RelationCalcGradientRevSafe(rel_instance(rel),gradient);
+		status =(int32)RelationCalcGradientRevSafe(rel_instance(rel),gradient); 
 		safe_error_to_stderr( (enum safe_err *)&status );
 		/* always map when using safe functions */
 		for (c=0; c < len; c++) {
@@ -553,14 +547,12 @@ int relman_diff2_rev(struct rel_relation *rel, const var_filter_t *filter
 				(*count)++;
 			}
 		}
-//		CONSOLE_DEBUG("RETURNING (SAFE) calc_ok=%d",status);
+//		CONSOLE_DEBUG("RETURNING (SAFE) calc_ok=%d",status); 
 		return status;
 	}else{
 		//CONSOLE_DEBUG("Derivative Type: Not SAFE");
-		if(
-			(status = (int32)RelationCalcGradientRev(rel_instance(rel),gradient))
-			== 0
-		){
+		if((status =(int32)RelationCalcGradientRev(rel_instance(rel),gradient))
+== 0) {
 			/* successful */
 			for (c=0; c < len; c++) {
 				if (var_apply_filter(vlist[c],filter)) {
@@ -570,13 +562,14 @@ int relman_diff2_rev(struct rel_relation *rel, const var_filter_t *filter
 				}
 			}
 		}
-		/* CONSOLE_DEBUG("RETURNING (NON-SAFE) calc_ok=%d",status); */
+		/* SOLE_DEBUG("RETURNING (NON-SAFE) calc_ok=%d",status); */
 		return status;
 	}
 }
 
-/* ---------------------Hessian Calculations------------------------------ */
 
+
+/** ---------------------Hessian Calculations------------------------------ */
 /* return 0 on success (derivatives, variables and count are output vars too) */
 int relman_hess(struct rel_relation *rel, const var_filter_t *filter
 		,hessian_mtx *hess_matrix,int32 *count,unsigned long max_dimension, int32 safe)
@@ -585,34 +578,31 @@ int relman_hess(struct rel_relation *rel, const var_filter_t *filter
 	hessian_mtx *matrix;
 	int32 len,i,j;
 	int status;
-
+	
 	assert(rel!=NULL && filter!=NULL);
-
+	
 	len = rel_n_incidences(rel);
-#if 0
-	/* we can't apply this assertion because there may be unfiltered incidences making len
-	greater than max_dimension! */
+
 	asc_assert(len<=max_dimension); //Checking if Index is out of bounds
-#endif
-
+	
 	vlist = rel_incidence_list(rel);
-
+	
 //	CONSOLE_DEBUG("IN FUNCTION relman_hess");
-
+	
 	matrix = Hessian_Mtx_create(hess_matrix->access_type,len);	// As Hessians may be (rarely) unsymmetrical
-																	// type of Hessian matrix should be decided from
+																	// type of Hessian matrix should be decided from 
 																	// type of relation
 	asc_assert(matrix !=NULL);
 	*count = 0;
-
+	
 
 
 	if(safe){
-		status =(int32)RelationCalcHessianMtxSafe(rel_instance(rel),matrix,len);
+		status =(int32)RelationCalcHessianMtxSafe(rel_instance(rel),matrix,len); 
 		safe_error_to_stderr( (enum safe_err *)&status );
 		/* always map when using safe functions */
 		for(i=0;i<len;i++){
-			if(var_apply_filter(vlist[i],filter)){
+			if(var_apply_filter(vlist[i],filter)){	
 				for(j=0;j<=i;j++){
 					if (var_apply_filter(vlist[j],filter)) {
 						Hessian_Mtx_set_element(hess_matrix,i,j,Hessian_Mtx_get_element(matrix,i,j));
@@ -621,13 +611,13 @@ int relman_hess(struct rel_relation *rel, const var_filter_t *filter
 				}
 			}
 		}
-//		CONSOLE_DEBUG("RETURNING (SAFE) calc_ok=%d",status);
+//		CONSOLE_DEBUG("RETURNING (SAFE) calc_ok=%d",status); 
 	}else{
 		if((status =(int32)RelationCalcHessianMtx(rel_instance(rel),matrix,len)) == 0) {
 
 			/* successful */
 			for(i=0;i<len;i++){
-				if(var_apply_filter(vlist[i],filter)){
+				if(var_apply_filter(vlist[i],filter)){	
 					for(j=0;j<=i;j++){
 						if (var_apply_filter(vlist[j],filter)) {
 							Hessian_Mtx_set_element(hess_matrix,i,j,Hessian_Mtx_get_element(matrix,i,j));
@@ -635,12 +625,12 @@ int relman_hess(struct rel_relation *rel, const var_filter_t *filter
 						}
 					}
 				}
-			}
+			}	
 		}
 	}
-
+	
 	Hessian_Mtx_destroy(matrix);
-
+	
 	return status;
 }
 
@@ -879,7 +869,7 @@ int32 relman_hessian_count(struct rel_relation **rlist, int32 rlen
 
 	CONSOLE_DEBUG("r1 = %p",r1);
 	r2 = RelDerivative(r1,0,&AllVariables);
-
+		
 	return 0;
 }
 
@@ -1065,7 +1055,7 @@ real64 *relman_directly_solve_new( struct rel_relation *rel,
 			case e_rel_glassbox:
 				/* I think glassbox functionality might be dead at the moment? */
 				break;
-#endif
+#endif 
 			default:
 				/* anything else? */
 				break;
@@ -1073,7 +1063,7 @@ real64 *relman_directly_solve_new( struct rel_relation *rel,
 	}
 	*able = FALSE;
 	*nsolns = 0;
-	return(NULL);
+	return(NULL);	
 }
 
 

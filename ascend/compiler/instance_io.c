@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Instance output routines
@@ -24,14 +26,13 @@
 */
 
 #include <stdarg.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/pool.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
 #include <ascend/general/table.h>
-#include <ascend/utilities/bit.h>
 
 #include "functype.h"
 #include "expr_types.h"
@@ -60,6 +61,7 @@
 #include "sets.h"
 #include "setio.h"
 #include "setinst_io.h"
+#include "bit.h"
 #include "child.h"
 #include "type_desc.h"
 #include "copyinst.h"
@@ -86,7 +88,7 @@ static const struct InstanceEnumLookup g_instancetypenames[] = {
 	LIST_X {DUMMY_INST,NULL}
 #undef LIST_D
 #undef LIST_X
-
+	
 };
 
 /*------------------------------------------------------------------------------
@@ -104,7 +106,7 @@ CONST char *instance_typename(CONST struct Instance *inst){
 		}
 	}
 	CONSOLE_DEBUG("No match");
-	ASC_PANIC("Invalid instance type (inst_t '%d' not found in list)",(int)inst->t);
+	Asc_Panic(2,__FUNCTION__,"Invalid instance type (inst_t '%d' not found in list)",(int)inst->t);
 }
 
 /*------------------------------------------------------------------------------
@@ -120,65 +122,65 @@ struct gl_list_t *ShortestPath(CONST struct Instance *i,
   struct gl_list_t *path,*shortest=NULL;
   unsigned long c,len;
   unsigned mybest= UINT_MAX;
-  if(height>=best) return NULL;
-  if(i==ref){
+  if (height>=best) return NULL;
+  if (i==ref) {
     shortest = gl_create(1L);
     gl_append_ptr(shortest,(VOIDPTR)ref);
     return shortest;
   }
-  if(0 != (len=NumberParents(i))){
+  if (0 != (len=NumberParents(i))){
     for(c=len;c>=1;c--){
       path = ShortestPath(InstanceParent(i,c),ref,height+1,mybest);
       if (path!=NULL){
 	if (shortest==NULL){
 	  shortest=path;
 	  mybest = height+gl_length(path);
-	}else{
-	  if(gl_length(path)<gl_length(shortest)){
+	} else{
+	  if (gl_length(path)<gl_length(shortest)){
 	    gl_destroy(shortest);
 	    shortest = path;
 	    mybest = height+gl_length(path);
-	  }else{
+	  } else {
             gl_destroy(path);
           }
 	}
       }
     }
-    if(shortest){
+    if (shortest){
       gl_append_ptr(shortest,NULL);
       for(c=gl_length(shortest);c>1;c--) {
 	gl_store(shortest,c,gl_fetch(shortest,c-1));
       }
-      gl_store(shortest,1,(VOIDPTR)i);
+      gl_store(shortest,1,(char *)i);
       assert((ref!=NULL)||(gl_length(shortest)==InstanceShortDepth(i)));
     }
-  }else{
-    if(ref==NULL) {
+  } else {
+    if (ref==NULL) {
       shortest = gl_create(1L);
       gl_append_ptr(shortest,(VOIDPTR)i);
       assert(gl_length(shortest)==InstanceShortDepth(i));
-    }else{
+    } else {
       return NULL;
     }
   }
   return shortest;
 }
 
-
-int WritePath(FILE *f, CONST struct gl_list_t *path){
+int WritePath(FILE *f, CONST struct gl_list_t *path)
+{
   CONST struct Instance *parent,*child;
   struct InstanceName name;
   unsigned long c;
   int count = 0;
 
-  if(path!=NULL){
+  if (path!=NULL){
     parent = gl_fetch(path,gl_length(path));
     for(c=gl_length(path)-1;c>=1;c--){
       child = gl_fetch(path,c);
       name = ParentsName(parent,child);
       switch (InstanceNameType(name)){
       case StrName:
-	if(c<(gl_length(path)-1)) PUTC('.',f);
+	if (c<(gl_length(path)-1)) PUTC('.',f);
 	FPRINTF(f,SCP(InstanceNameStr(name)));
 	count += SCLEN(InstanceNameStr(name));
 	break;
@@ -191,7 +193,8 @@ int WritePath(FILE *f, CONST struct gl_list_t *path){
       }
       parent = child;
     }
-  }else{
+  }
+  else{
     FPRINTF(ASCERR,"Cannot print name.\n");
     FPRINTF(f,"?????");
   }
@@ -232,8 +235,8 @@ static void WritePathDS(Asc_DString *dsPtr,CONST struct gl_list_t *path){
   }
 }
 
-
-char *WritePathString(CONST struct gl_list_t *path){
+char *WritePathString(CONST struct gl_list_t *path)
+{
   char *result;
   Asc_DString ds, *dsPtr;
   dsPtr = &ds;
@@ -298,7 +301,7 @@ char *WriteInstanceNameString(CONST struct Instance *i,
   writing of data.
   KAA
 
-  Ref is completely irrelevant. If it is not, one should use a
+  Ref is completely irrelevant. If it is not, one should use a 
   indexed visit tree so that the paths can be computed properly.
   Prototype code never dies. As expected, this is a production
   function now.
@@ -322,7 +325,7 @@ void InstanceAnyPath(struct Instance *i, struct gl_list_t *path)
 }
 
 int WriteAnyInstanceName(FILE *f, struct Instance *i)
-
+		       
 {
   struct gl_list_t *path_list;
   int count;
@@ -331,7 +334,7 @@ int WriteAnyInstanceName(FILE *f, struct Instance *i)
   count = WritePath(f,path_list);
   gl_destroy(path_list);
   /* costs nothing. lists are recycled */
-  return count;
+  return count; 
 }
 
 
@@ -844,7 +847,7 @@ void WriteTypeOrValue(FILE *f, CONST struct Instance *i)
 		SCP(GetName(GetArrayBaseType(InstanceTypeDesc(i)))));
     break;
   default:
-    ASC_PANIC("Unknown instance type in WriteTypeOrValue.");
+    ASC_PANIC("Unknown instance type in WriteTypeOrValue.\n");
     break;
   }
 }
@@ -1082,7 +1085,7 @@ void WriteInstance(FILE *f, CONST struct Instance *i)
     FPRINTF(f,"GlobalDummyInstance\n");
     break;
   default:
-    ASC_PANIC("Unknown instance type in WriteInstance.");
+    ASC_PANIC("Unknown instance type in WriteInstance.\n");
   }
 }
 
@@ -1190,7 +1193,6 @@ int ProcessArrayDesc(struct gl_list_t *arraytypelist,
 {
   struct TypeDescription *tmp;
 
-  /* FIXME how can you cast an array index to a pointer??? */
   tmp = (struct TypeDescription *)gl_search(arraytypelist,(VOIDPTR)desc,
                                             (CmpFunc)CmpDescPtrs);
   if (tmp==NULL) {
@@ -1206,13 +1208,13 @@ int ProcessArrayDesc(struct gl_list_t *arraytypelist,
 	typedescriptions, with NULL names; This can happen in the case
 	of array types. We could probably filter here for all fundamental
 	types in fact.
-
+	
 	At this time we are doing a hack in type_desc.c to *ensure*
 	that the arrays have names. This means that name should not
 	come up NULL *ever* in the type table. If it does, its an
 	error. We now instead scan for base_types, so that we can
 	write out some index stuff for arrays.
-
+	
 	(BAA: the hack has been institutionalized as MAKEARRAYNAMES
 	in type_desc.h)
 */
@@ -1339,8 +1341,8 @@ void SaveIndexList(FILE *fp, struct IndexType *itype)
 </pre>
 	This code appropriately deals with these odd cases.
 	@ENDNOTE
-
-	@NOTE (is that you, Ben?)
+	
+	@NOTE (is that you, Ben?) 
 	You would not believe the stuff that is returned as a
 	result of this code. Yep the above note about evaluation
 	is rubbish. What is saved is the index set as found verbatim.
@@ -1512,7 +1514,7 @@ void Save__ComplexInsts(FILE *fp, struct Instance *inst)
     FPRINTF(fp,"UNSELECTED;\n");
     break;
   default:
-    ASC_PANIC("Unknown instance kind in Save__ComplexInsts.");
+    ASC_PANIC("Unknown instance kind in Save__ComplexInsts.\n");
     break;
   }
 }

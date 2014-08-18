@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 */
 
 #include "env.h"
@@ -58,9 +60,9 @@ on the compile line. renamed to NOISY.*/
 
 #define ENV_MAX_VAR_NAME 64 /* arbitrarily*/
 
-char *env_subst_level(const char *path,GetEnvFn *getenvptr, int level);
+char * env_subst_level(const char *path,GetEnvFn *getenvptr, int level);
 
-char *env_subst(const char *path,GetEnvFn *getenvptr){
+char * env_subst(const char *path,GetEnvFn *getenvptr){
 	char *dest;
 
 	X(path);
@@ -87,7 +89,7 @@ int env_import(const char *varname,GetEnvFn *getenvptr,PutEnvFn *putenvptr){
 	return -1;
 }
 
-char *env_subst_level(const char *path,GetEnvFn *getenvptr, int level){
+char * env_subst_level(const char *path,GetEnvFn *getenvptr, int level){
 	char *dest, *dest1;
 	char *msg;
 	char *p, *q, *i, *j, *val;
@@ -232,5 +234,29 @@ char *env_subst_level(const char *path,GetEnvFn *getenvptr, int level){
 	return dest;
 }
 
-/* test code has been moved to test/test_env.c */
+/*--------------------------------
+	some simple test routines...
+*/
+#ifdef TEST
 
+#include <assert.h>
+
+/* switch to boldface for messages in 'main' */
+#undef D
+#define D DD
+#undef M
+#define M MM
+
+int main(void){
+	char s1[]="$ASCENDTK/bitmaps";
+	char *r;
+
+	M(s1);
+
+	r = env_subst(s1,getenv);
+	M(r);
+
+	/*assert(strcmp(r,"C:/msys/1.0/share/ascend/share")==0);*/
+}
+
+#endif

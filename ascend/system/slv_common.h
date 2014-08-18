@@ -16,9 +16,11 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
-	@defgroup solver_common Solver Common
+	@file
 	SLV common utilities & structures for ASCEND solvers.
 
 	Routines in this header are applicable to both the system API (as accessed
@@ -66,7 +68,7 @@
 
 #include <stdio.h>
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/general/list.h>
 
 #include <ascend/linear/mtx.h>
@@ -75,7 +77,7 @@
 #include "rel.h"
 #include "logrel.h"
 
-/**	@addtogroup solver_common
+/**	@addtogroup solver Solver
 	@{
 */
 

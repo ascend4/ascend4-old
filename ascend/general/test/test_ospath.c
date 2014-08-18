@@ -12,16 +12,16 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	CUnit tests for the ospath.c module.
-	by John Pye.
 */
 
 #include <ascend/general/ospath.h>
-
-#include <test/common.h>
+#include <CUnit/CUnit.h>
 
 FilePathTestFn ospath_searchpath_testexists;
 
@@ -30,13 +30,13 @@ FilePathTestFn ospath_searchpath_testexists;
 #ifndef NDEBUG
 # include <assert.h>
 # define M(MSG) fprintf(stderr,"%s:%d: (%s) %s\n",__FILE__,__LINE__,__FUNCTION__,MSG);fflush(stderr);fflush(stderr)
-# define MC(CLR,MSG) color_on(stderr,CLR);fprintf(stderr,"%s:%d: (%s) %s\n",__FILE__,__LINE__,__FUNCTION__,MSG);color_off(stderr);fflush(stderr)
-# define MM(MSG) MC(ASC_FG_MAGENTA,MSG)
+# define MC(CLR,MSG) fprintf(stderr,"%c[%sm%s:%d: (%s) %s%c[0m\n",27,CLR,__FILE__,__LINE__,__FUNCTION__,MSG,27);fflush(stderr)
+# define MM(MSG) MC("34",MSG)
 # define X(VAR) fprintf(stderr,"%s:%d: (%s) %s=%s\n",__FILE__,__LINE__,__FUNCTION__,#VAR,VAR);fflush(stderr)
 # define C(VAR) fprintf(stderr,"%s:%d: (%s) %s=%c\n",__FILE__,__LINE__,__FUNCTION__,#VAR,VAR);fflush(stderr)
 # define V(VAR) fprintf(stderr,"%s:%d: (%s) %s=%d\n",__FILE__,__LINE__,__FUNCTION__,#VAR,(VAR));fflush(stderr)
 # define D(VAR) fprintf(stderr,"%s:%d: (%s) %s=",__FILE__,__LINE__,__FUNCTION__,#VAR);ospath_debug(VAR);fflush(stderr)
-# define DD(VAR) color_on(stderr,ASC_FG_BRIGHTBLUE);fprintf(stderr,"%s:%d: (%s)",__FILE__, __LINE__,__FUNCTION__);color_off(stderr);fprintf(stderr,"%s=",#VAR);ospath_debug(VAR);fflush(stderr)
+# define DD(VAR) fprintf(stderr,"\033[34;1m%s:%d: (%s)\033[0m %s=",__FILE__, __LINE__,__FUNCTION__, #VAR);ospath_debug(VAR);fflush(stderr)
 #else
 # include <assert.h>
 # define M(MSG) ((void)0)
@@ -73,20 +73,20 @@ int ospath_searchpath_testexists(struct FilePath *path,void *file){
 #endif
 
 	char *t=ospath_str(fp1);
-	MC(ASC_FG_BRIGHT,t);
+	MC("1",t);
 	FREE(t);
 
 	t=ospath_str(fp2);
-	MC(ASC_FG_BRIGHTRED,t);
+	MC("31;1",t);
 	FREE(t);
 
 	if(ospath_cmp(fp1,fp2)==0){
-		MC(ASC_FG_GREEN,"MATCH");
+		MC("32","MATCH");
 		ospath_free(fp1);
 		ospath_free(fp2);
 		return 1;
 	}
-	MC(ASC_FG_RED,"NO MATCH");
+	MC("31","NO MATCH");
 	ospath_free(fp1);
 	ospath_free(fp2);
 	return 0;
@@ -99,7 +99,7 @@ int ospath_searchpath_testexists(struct FilePath *path,void *file){
 #undef M
 #define M MM
 
-static void test_getparent(void){
+static void test_ospath_getparent(void){
 	struct FilePath *fp1, *fp2, *fp3;
 
 	//------------------------
@@ -112,7 +112,7 @@ static void test_getparent(void){
 	D(fp2);
 	D(fp3);
 	CU_TEST(ospath_cmp(fp2,fp3)==0);
-	if(ospath_cmp(fp2,fp3)==0)M("Passed 'getparent' test\n");
+	M("Passed 'getparent' test\n");
 
 	ospath_free(fp1); ospath_free(fp2); ospath_free(fp3);
 
@@ -120,7 +120,7 @@ static void test_getparent(void){
 }
 	//------------------------
 
-static void test_cleanup(void){
+static void test_ospath_cleanup(void){
 	struct FilePath *fp1, *fp2;
 
 	fp1 = ospath_new_from_posix("/usr/include/../local");
@@ -136,7 +136,7 @@ static void test_cleanup(void){
 }
 	//------------------------
 
-static void test_newfromposix(void){
+static void test_ospath_newfromposix(void){
 
 	struct FilePath *fp1, *fp2;
 
@@ -154,7 +154,7 @@ static void test_newfromposix(void){
 }
 	//------------------------
 
-static void test_secondcleanup(void){
+static void test_ospath_secondcleanup(void){
 	struct FilePath *fp1, *fp2, *fp3;
 	fp1 = ospath_new(".\\src/.\\images\\..\\\\movies\\");
 	fp2 = ospath_new(".\\src\\movies");
@@ -183,7 +183,7 @@ static void test_secondcleanup(void){
 }
 	//------------------------
 
-static void test_append(void){
+static void test_ospath_append(void){
 
 	struct FilePath *fp2, *fp3, *fp4;
 
@@ -210,7 +210,7 @@ static void test_append(void){
 }
 	//---------------------------
 
-static void test_appendupup(void){
+static void test_ospath_appendupup(void){
 
 	struct FilePath *fp2, *fp3, *fp4;
 
@@ -240,7 +240,7 @@ static void test_appendupup(void){
 }
 	//-------------------------
 
-static void test_up(void){
+static void test_ospath_up(void){
 
 	struct FilePath *fp1, *fp2;
 
@@ -269,9 +269,9 @@ static void test_up(void){
 }
 	//---------------------------
 
-static void test_concat(void){
+static void test_ospath_concat(void){
 
-	struct FilePath *fp1, *fp2, *fp3, *fp4, *fp5;
+	struct FilePath *fp1, *fp2, *fp3, *fp4;
 
 	fp1 = ospath_new("/home");
 	fp2 = ospath_new("john");
@@ -294,34 +294,11 @@ static void test_concat(void){
 	M("Passed 'ospath_concat' test\n");
 
 	ospath_free(fp1); ospath_free(fp2); ospath_free(fp3); ospath_free(fp4);
-
-	M("TESTING CONCAT WITH ..");
-
-	fp1 = ospath_new_from_posix("/usr/bin/less");
-	fp2 = ospath_getdir(fp1);
-	fp3 = ospath_new_noclean("../share/icons/pkgconfig");
-	fp4 = ospath_concat(fp2,fp3);
-	ospath_cleanup(fp4);
-
-	fp5 = ospath_new_from_posix("/usr/share/icons/pkgconfig");
-
-#if 0
-	M("FP4:");
-	ospath_fwrite(fp4,stderr);
-	M("\nFP5:");
-	ospath_fwrite(fp5,stderr);
-	M("");
-#endif
-	
-	CU_TEST(ospath_cmp(fp4,fp5)==0);
-
-	ospath_free(fp1); ospath_free(fp2); ospath_free(fp3); ospath_free(fp4); ospath_free(fp5);
-
 	MEMUSED(0);
 }
 	//---------------------------
 
-static void test_concatmixedslash(void){
+static void test_ospath_concatmixedslash(void){
 
 	struct FilePath *fp1, *fp2, *fp3, *fp4;
 
@@ -339,7 +316,7 @@ static void test_concatmixedslash(void){
 }
 	//---------------------------
 
-static void test_trailingslash(void){
+static void test_ospath_trailingslash(void){
 
 	struct FilePath *fp1, *fp2, *fp3, *fp4;
 
@@ -357,7 +334,7 @@ static void test_trailingslash(void){
 }
 	//---------------------------
 
-static void test_searchpath(void){
+static void test_ospath_searchpath(void){
 
 	struct FilePath *fp1, *fp2, *fp3;
 	struct FilePath **pp, **p1;// will be returned null-terminated
@@ -409,7 +386,7 @@ static void test_searchpath(void){
 }
 	//-------------------------------
 
-static void test_searchpath2(void){
+static void test_ospath_searchpath2(void){
 
 	struct FilePath *fp2, *fp3;
 	struct FilePath **pp, **p1;// will be returned null-terminated
@@ -444,7 +421,7 @@ static void test_searchpath2(void){
 }
 	//-------------------------------
 
-static void test_basefilename(void){
+static void test_ospath_basefilename(void){
 
 	struct FilePath *fp1;
 	char *s1;
@@ -494,7 +471,7 @@ static void test_basefilename(void){
 }
 	//-------------------------------
 
-static void test_getfilestem(void){
+static void test_ospath_getfilestem(void){
 
 	struct FilePath *fp1;
 	char *s1;
@@ -562,7 +539,7 @@ static void test_getfilestem(void){
 }
 	//-------------------------------
 
-static void test_getbasefileext(void){
+static void test_ospath_getbasefileext(void){
 
 	struct FilePath *fp1;
 	char *s1;
@@ -600,7 +577,7 @@ static void test_getbasefileext(void){
 }
 	//-------------------------------
 
-static void test_getdir(void){
+static void test_ospath_getdir(void){
 
 	struct FilePath *fp1, *fp2, *fp3;
 
@@ -639,23 +616,35 @@ static void test_getdir(void){
 /*===========================================================================*/
 /* Registration information */
 
-#define TESTS(T) \
-	T(getparent) \
-	T(cleanup) \
-	T(newfromposix) \
-	T(secondcleanup) \
-	T(append) \
-	T(appendupup) \
-	T(up) \
-	T(concat) \
-	T(concatmixedslash) \
-	T(trailingslash) \
-	T(searchpath) \
-	T(searchpath2) \
-	T(basefilename) \
-	T(getfilestem) \
-	T(getbasefileext) \
-	T(getdir)
+#define T(N) {#N, test_ospath_##N }
+static CU_TestInfo ospath_test_list[] = {
+	T(getparent)
+	,T(cleanup)
+	,T(newfromposix)
+	,T(secondcleanup)
+	,T(append)
+	,T(appendupup)
+	,T(up)
+	,T(concat)
+	,T(concatmixedslash)
+	,T(trailingslash)
+	,T(searchpath)
+	,T(searchpath2)
+	,T(basefilename)
+	,T(getfilestem)
+	,T(getbasefileext)
+	,T(getdir)
+	,CU_TEST_INFO_NULL
+};
+#undef T
 
-REGISTER_TESTS_SIMPLE(general_ospath, TESTS);
+static CU_SuiteInfo suites[] = {
+  {"general_ospath", NULL, NULL, ospath_test_list},
+  CU_SUITE_INFO_NULL
+};
 
+/*-------------------------------------------------------------------*/
+CU_ErrorCode test_register_general_ospath(void)
+{
+  return CU_register_suites(suites);
+}

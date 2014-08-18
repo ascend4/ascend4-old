@@ -1,5 +1,16 @@
-/*	ASCEND modelling environment
- *  Copyright (C) 1998-2010 Carnegie Mellon University
+/*
+ *  watchpt.h: An API to ascend methods
+ *  by Benjamin Allan                          
+ *  March 17, 1998
+ *  Part of ASCEND
+ *  Version: $Revision: 1.2 $
+ *  Version control file: $RCSfile: watchpt.h,v $
+ *  Date last modified: $Date: 1998/06/16 16:38:51 $
+ *  Last modified by: $Author: mthomas $
+ *
+ *  This file is part of the Ascend Language Interpreter.
+ *
+ *  Copyright (C) 1998 Carnegie Mellon University
  *
  *  The Ascend Language Interpreter is free software; you can
  *  redistribute it and/or modify it under the terms of the GNU
@@ -13,30 +24,27 @@
  *  See the GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *//** @file
+ *  along with the program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check
+ *  the file named COPYING.
+ */
+
+/** @file
  *  An API to
  *  ascend methods via an interactive or external interface
  *  without knowing about ascend compiler internals.
- *//*
- *  watchpt.h: An API to ascend methods
- *  by Benjamin Allan                          
- *  March 17, 1998
- *  Part of ASCEND
- *  Version: $Revision: 1.2 $
- *  Version control file: $RCSfile: watchpt.h,v $
- *  Date last modified: $Date: 1998/06/16 16:38:51 $
- *  Last modified by: $Author: mthomas $
-*/
+ *  <pre>
+ *  When #including watchpt.h, make sure these files are #included first:
+ *         #include "utilities/ascConfig.h"
+ *         #include "general/list.h"
+ *         #include "compiler/instance_enum.h"
+ *  </pre>
+ */
 
 #ifndef ASC_WATCHPT_H
 #define ASC_WATCHPT_H
 
-#include <ascend/general/platform.h>
-#include <ascend/general/list.h>
-#include <ascend/compiler/instance_enum.h>
-
-/**	@addtogroup compiler_proc Compiler Methods
+/**	@addtogroup compiler Compiler
 	@{
 */
 
@@ -116,18 +124,6 @@ enum Proc_enum {
   Proc_nonsymbol_assignment,
   Proc_lhs_error,
   Proc_rhs_error,
-
-  Proc_slvreq_unhooked,
-  Proc_slvreq_unknown_solver,
-  Proc_slvreq_invalid_option_name,
-  Proc_slvreq_option_invalid_type,
-  Proc_slvreq_no_system,
-  Proc_slvreq_no_solver_selected,
-  Proc_slvreq_presolve_fail,
-  Proc_slvreq_solve_fail,
-  Proc_slvreq_not_implemented,
-  Proc_slvreq_error,
-
   Proc_unknown_error
 };
 
@@ -203,12 +199,14 @@ ASC_DLLSPEC void Asc_SetMethodUserInterrupt(int value);
 
 
 /** 
- * @return a watchlist *wl of size n.
+ * <!--  wl = Asc_CreateWatchList(size);                               -->
+ * Return a watchlist *wl of size n.
  * Adding more entries to the list than anticipated at creation is ok.
  */
 #define Asc_CreateWatchList(n) (gl_create(n))
 
 /** 
+ * <!--  Asc_WatchLeafName(wl,leafname,output);                        -->
  * Add a local name of var to watch for assignments to wl.
  * E.g. to watch all things named T being assigned via
  * that name, Asc_WatchLeafName(wl,"T",wp_log);
@@ -218,6 +216,7 @@ extern int Asc_WatchLeafName(watchlist *wl,
                              enum wpdest output);
 
 /** 
+ * <!--  Asc_WatchProc(wl,typename,procname,output);                   -->
  * Add a method named in type named to watch for execution to wl.
  * E.g. to watch all things named T being assigned via
  * that name, Asc_WatchProc(wl,"column","scale",wp_log);
@@ -226,6 +225,7 @@ extern int Asc_WatchProc(watchlist *wl, char *type_name,
                          char *procname, enum wpdest output);
 
 /** 
+ * <!--  Asc_WatchInstance(wl,i,dest);                                 -->
  * Add a variable instance to watch for assignments to the watchlist.
  */
 extern int Asc_WatchInstance(watchlist *wl,
@@ -233,17 +233,20 @@ extern int Asc_WatchInstance(watchlist *wl,
                              enum wpdest dest);
 
 /** 
+ * <!--  Asc_WatchStat(wl,modulename,linenum,dest);                    -->
  * Add a statement to watch for execution to the watchlist.
  */
 extern int Asc_WatchStat(watchlist *wl, char *modulename,
                          int linenum, enum wpdest dest);
 
 /** 
+ * <!--  Asc_WatchType(wl,typename);                                   -->
  * Add a type of var to watch for assignments to the watchlist.
  */
 extern int Asc_WatchType(watchlist *wl, char *type_name, enum wpdest dest);
 
 /** 
+ * <!--  Asc_WatchRefinements(wl,typename);                            -->
  * Add a type of var to watch for assignments of to the watchlist.
  * type and all its refinements are watched.
  */

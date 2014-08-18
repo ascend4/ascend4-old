@@ -1,9 +1,6 @@
 from gaphas import Canvas
 from gaphas.item import Line
 import re
-from blockitem import DefaultBlockItem, GraphicalBlockItem
-from blockline import BlockLine
-from blockstream import BlockStream
 
 UNITS_RE = re.compile("([-+]?(\d+(\.\d*)?|\d*\.d+)([eE][-+]?\d+)?)\s*(.*)");
 
@@ -15,10 +12,9 @@ class BlockCanvas(Canvas):
 		super(BlockCanvas, self).__init__()
 		self.filestate = 0
 		self.canvasmodelstate = 'Unsolved'
-		self.model_library = ''
+		self.model_library = 'test/canvas/blocktypes.a4c'
 		self.saved_data = None
 		self.filename = None
-		self.user_code = ''
 	
 	def update_constraints(self, items):
 		"""
@@ -36,7 +32,7 @@ class BlockCanvas(Canvas):
 
 		super(BlockCanvas,self).update_constraints(items)
 
-	def reattach_ascend(self, ascwrap, notesdb):
+	def reattach_ascend(self, library, notesdb):
 		"""
 		After unpickling a canvas, this method gives a way of reattaching
 		the model to an ASCEND library, by connecting the types named in the
@@ -49,92 +45,74 @@ class BlockCanvas(Canvas):
 			if not hasattr(item, 'blockinstance'):
 				continue
 			bi = item.blockinstance
-			bi.reattach_ascend(ascwrap,notesdb)
-			
-			#if bi.blocktype.type is None:
-			#	bi.blocktype.reattach_ascend(ascwrap, notesdb)
-	'''		
-	def set_stream(self,stream):
-		items = self.get_all_items()
-		for item in items:
-			if type(item)==DefaultBlockItem:
-				bi = item.blockinstance
-				bi.stream=stream
-	'''
-	
+			if bi.blocktype.type is None:
+				bi.blocktype.reattach_ascend(library, notesdb)
+
 	def __str__(self):
 		"""
 		Create ASCEND code corresponding to canvas model, return the
 		code as a string.
-		Note: This function uses Python's advanced string formatting capability.
 		"""
 
 		# FIXME it should be possible to perform this function at an
 		# application layer, without using routines from Gaphas...
-			
-		string = '''
-(* automatically generated model*)
-REQUIRE "{lib_name}";
-
-MODEL canvasmodel;
-    {is_a}
-    {streams}
-    {are_the_same}
-    {canvas_user_code} 
-METHODS
-METHOD canvas_user_code;
-END canvas_user_code;
-METHOD parameter_code;
-    {parameter_code} 
-END parameter_code;
-METHOD on_load;
-    RUN canvas_user_code;
-    RUN parameter_code;
-END on_load;
-END canvasmodel;
-'''
-		replacement_fields = {'lib_name':str(self.model_library),'is_a':'','are_the_same':'',
-		                      'canvas_user_code':'','parameter_code':'','block_user_code':''
-		                      ,'streams':''}
+		s = "\n(* automatically generated model from blocklist.py *)\n";
+		s += 'REQUIRE "blocktypes.a4c";\n'
+		s += "MODEL canvasmodel;\n"
 	
-		items = self.get_all_items()
-	
-		def parse(item):
-			if type(item)==DefaultBlockItem or type(item)==GraphicalBlockItem:
-				bi = item.blockinstance
-				replacement_fields['is_a']+=str(bi)
-				specify = filter(lambda param:bi.params[param].value != None,bi.params)
-				fix = filter(lambda param:bi.params[param].fix == True,bi.params)
-				specify = filter(lambda x:not (x in fix),specify)
-				specify = map(lambda param:'\t{0}.{1}:={2};\n'.
-				              format(bi.name,param,bi.params[param].value),specify)
-				fix = map(lambda param:'\tFIX {0}.{1};\n\t{0}.{1}:={2}{4}{3}{5};\n'.
-				          format(bi.name,param,bi.params[param].value,
-				                 bi.params[param].units,'{','}'),fix)
-				try:
-					replacement_fields['parameter_code']+=\
-					                  reduce(lambda x,y:x+y,specify)
-				except TypeError:
-					pass
-				try:
-					replacement_fields['parameter_code']+=\
-					                  reduce(lambda x,y:x+y,fix)
-				except TypeError:
-					pass
+		# Add blocks to the model via IS_A statements
+		for item in self.get_all_items():
+			if not hasattr(item, 'blockinstance'):
+				continue
+			s += str(item.blockinstance)
 
-			if type(item)==BlockLine:
-				replacement_fields['are_the_same']+=str(item.lineinstance)
+		# Add LINES as ARE_THE_SAME statements
+		for line in self.get_all_items():
+			if not isinstance(line, Line):
+				continue
+			s += str(line.lineinstance)
 
-		map(parse,items)
+		# Set PARAMETERS using the ON_LOAD METHOD.
+		p = ""
+		uc = ""
+		s += "METHODS\nMETHOD on_load;\n";
+		for item in self.get_all_items():
+			if not hasattr(item, 'blockinstance'):
+				continue
+			n = item.blockinstance.name
+			uc += item.blockinstance.usercode	
+			for k,v in item.blockinstance.params.iteritems():
+				if v.fix == 1:
+					p += "\tFIX %s.%s;\n" % (n,v.name)
+					_param_value = self.checkEntry(v.value)
+					p += "\t%s.%s := %s;\n" % (n,v.name,_param_value)
+						
+		if not p == "":
+			s += p
+		#if ucflag == 1:
+		#	s += "RUN user_code;\n"	
+		#if ucflag == 1:
+		#	s += usercode 
+				
+		if uc == "":
+			s += "END on_load;\n"
+		else:
+			s += "RUN user_code;\n"
+			s += "END on_load;\n"
+			s += "METHOD user_code;\n"
+			s += uc
+			s += "END user_code;"		
 		
-		replacement_fields['canvas_user_code'] = self.user_code
-		return string.format(**replacement_fields)
+		
+		s += "\nEND canvasmodel;\n";
+		return s
 
 	def __getstate__(self):
 		"""
 		Placeholder for any special pickling stuff that we want to do with
 		our canvas.
 		"""
+
 		return super(BlockCanvas,self).__getstate__()
 	
 	def __setstate__(self, state):
@@ -144,4 +122,19 @@ END canvasmodel;
 		"""
 		super(BlockCanvas,self).__setstate__(state)
 
-# vim: set ts=4 noet:
+	def checkEntry(self, _param_value):
+
+		try:
+			# match a float with option text afterwards, optionally separated by whitespace
+			_match = re.match(UNITS_RE,_param_value)
+			print "done"
+			if not _match:
+				print _param_val
+				#raise InputError("Not a valid value-and-optional-units")
+				#parent.reporter.reportError("Not a valid value-and-optional-units")
+			_val = _match.group(1) # the numerical part of the input
+			_units = _match.group(5) # the text entered for units
+			return str(_val)+'{'+str(_units)+'}'
+				
+		except:
+			print  "Unable to generate Model Code. Please re-check parameter values."

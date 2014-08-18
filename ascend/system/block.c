@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//* @file
 	Block partitioning implementation (for real-valued variables)
 *//*
@@ -23,9 +25,9 @@
 */
 
 #include "block.h"
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/utilities/ascPrint.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/mathmacros.h>
 #include "slv_client.h"
 #include "slv_stdcalls.h"
@@ -975,9 +977,9 @@ extern int system_block_debug(slv_system_t sys, FILE *fp){
 	dof = slv_get_dofdata(sys);
 	char s[80];
 	char color;
-
+	
 	fprintf(fp,"\n\nSLV_SYSTEM BLOCK INFO\n\n");
-
+	
 	fprintf(fp,"Structural rank: %d\n",dof->structural_rank);
 	fprintf(fp,"Included rels: %d\n",dof->n_rows);
 	fprintf(fp,"Incident, free vars: %d\n",dof->n_cols);
@@ -990,15 +992,15 @@ extern int system_block_debug(slv_system_t sys, FILE *fp){
 	color = (fp == stderr || fp==stdout);
 	for(i=0;i<dof->blocks.nblocks;++i){
 		if(color){
-			if(i%2)color_on(fp,ASC_FG_BROWN);
-			else color_on(fp,ASC_FG_BLACK);
+			if(i%2)color_on(fp,"0;33");
+			else color_on(fp,"0;30");
 		}
 		b = dof->blocks.block[i];
 		nr = b.row.high - b.row.low + 1;
 		nc = b.col.high - b.col.low + 1;
-		SNPRINTF(s,80,"BLOCK %d (%d x %d)",i,nr,nc);
+		snprintf(s,80,"BLOCK %d (%d x %d)",i,nr,nc);
 		fprintf(fp,"%-18s",s);
-		SNPRINTF(s,80,"%-18s","");
+		snprintf(s,80,"%-18s","");
 		for(j=0;j<MAX(nr,nc); ++j){
 			fprintf(fp,"%s%d",(j?s:""),j);
 			if(j<nr){
@@ -1017,9 +1019,9 @@ extern int system_block_debug(slv_system_t sys, FILE *fp){
 		}
 	}
 	if(color)color_off(fp);
-	return 0;
+	return 0;				
 }
-
+	
 /*------------------------------------------------------------------------------
   PARTITIONING for DIFFERENTIAL/ALGEBRAIC SYSTEMS
 */
@@ -1057,14 +1059,13 @@ LIST_DEBUG(rel,rel_relation)
 # define MAYBE_CONSOLE_DEBUG(MSG,...)
 #endif
 
-/* we define system_cut_vars and system_cut_rels with this macro... */
 /**
 	This is a big durtie macro to perform cuts on our solvers_*_lists.
 	The function will start at position 'begin' and move through all elements
 	of the list from that point to the end. Any 'good' items matching the filter
 	are	moved to the start of the range traversed. And 'bad' ones that dont
 	get moved to the end. At the end, the number of items found matching the
-	filter is returned in 'numgood'. There will be that many 'good' items
+	filter is returned in 'numgood'. There will be that many 'good' items 
 	in place from position 'begin' onwards.
 */
 #define SYSTEM_CUT_LIST(TYPE,FULLTYPE) \
@@ -1121,7 +1122,7 @@ LIST_DEBUG(rel,rel_relation)
 		MAYBE_CONSOLE_DEBUG("numgood = %d",*numgood); \
 		 \
 		return 0; \
-	}
+	} 
 
 SYSTEM_CUT_LIST(var,var_variable);
 SYSTEM_CUT_LIST(rel,rel_relation);

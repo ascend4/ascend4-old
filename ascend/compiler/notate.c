@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	This file defines and manages a little (we hope) database system for
 	storing NOTES in-core in a variety of quickly accessible ways.
@@ -25,8 +27,8 @@
 	Last in CVS: $Revision: 1.9 $ $Date: 1998/06/18 18:44:58 $ $Author: ballan $
 */
 
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
 #include <ascend/general/pool.h>
 
@@ -86,7 +88,7 @@ struct note_bucket {
 #define GNT db->note_tokens
 
 #define NTAB 1024
-#define PTRHASH(p) (((((asc_intptr_t) (p))*1103515245) >> 20) & 1023)
+#define PTRHASH(p) (((((long) (p))*1103515245) >> 20) & 1023)
 
 /**
 	This module manages possibly several databases of this sort.
@@ -498,8 +500,9 @@ struct gl_list_t *GetNotes(symchar *dbid,
         (id == NOTESWILD || id == n->id) &&
         (method == NOTESWILD || method == n->method) &&
         (lang == NOTESWILD || lang == n->lang) &&
-        (nd == nd_wild || nd == n->kind))
-	if(n->id!=NULL) gl_append_ptr(result,n);
+        (nd == nd_wild || nd == n->kind)) {
+      gl_append_ptr(result,n);
+    }
     n = n->next;
   }
   return result;
@@ -893,7 +896,7 @@ struct Note *CreateNote(symchar *type, symchar *lang,
   return n;
 }
 
-/**
+/** 
 	does not copy vlist data and nd, if found.
 	OTHERWISE copies everything about the note.
 	The text t is copied by reference.

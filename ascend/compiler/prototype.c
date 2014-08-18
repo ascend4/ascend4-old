@@ -21,18 +21,19 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-/** @file
+ *  You should have received a copy of the GNU General Public License along
+ *  with the program; if not, write to the Free Software Foundation, Inc., 675
+ *  Mass Ave, Cambridge, MA 02139 USA.  Check the file named COPYING.
+ *
+ *
  *  This is a standard hash table for storing prototypes.
  */
 
 #include<string.h>
 #include<stdio.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include "symtab.h"
 #include "instance_enum.h"
 #include "prototype.h"
@@ -40,7 +41,7 @@
 #include "destroyinst.h"
 
 #define PROTOTYPEHASHSIZE 1024
-#define PROTOHASH(p) (((((asc_intptr_t) (p))*1103515245) >> 20) & 1023)
+#define PROTOHASH(p) (((((long) (p))*1103515245) >> 20) & 1023)
 
 struct ProtoRec {
   struct ProtoRec *next;
@@ -77,7 +78,7 @@ void AddPrototype(struct Instance *i)
 {
   register unsigned long bucket;
   register struct ProtoRec *p;
-  //register struct ProtoRec *prev;
+  register struct ProtoRec *prev;
   register symchar *t;
 
   t = InstanceType(i);
@@ -93,12 +94,12 @@ void AddPrototype(struct Instance *i)
   }
 
   /* search down the list */
-  //prev = p;
+  prev = p;
   p = p->next;
   while (p!=NULL) {
     if (t == p->t) /* found a match */
       break;
-    //prev = p;
+    prev = p;
     p = p->next;
   }
   if (!p) { /* reached the end of the chain */

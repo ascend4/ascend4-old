@@ -13,34 +13,29 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	Central registration 'base/generic' test routines in ASCEND
-*/
-
+*/
 #include <stdio.h>
 
 #include <ascend/utilities/config.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 
 #include <ascend/general/test/test_register_general.h>
 #include <ascend/utilities/test/test_register_utilities.h>
 #include <ascend/solver/test/test_register_solver.h>
 #include <ascend/compiler/test/test_register_compiler.h>
 #include <ascend/linear/test/test_register_linear.h>
-#include <ascend/system/test/test_register_system.h>
-#include <ascend/packages/test/test_register_packages.h>
-#include <ascend/integrator/test/test_register_integrator.h>
 
-int register_cunit_tests(){
+ASC_EXPORT int register_cunit_tests(){
 	test_register_general();
 	test_register_utilities();
 	test_register_solver();
  	test_register_linear();
 	test_register_compiler();
-	test_register_system();
-	test_register_packages();
-	test_register_integrator();
 	fprintf(stderr,"Registered ASCEND test suites\n");
 	return 0;
 }

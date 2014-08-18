@@ -1,64 +1,43 @@
 from fprops import *
 
-D = fluid("isohexane")
+D = helmholtz_data_carbondioxide;
 
 from pylab import *
 hold(1)
 
-T_min = D.T_t
-
-if T_min == 0:
-	print "WARNING: no triple point specified, using 0.4*T_c"
-	T_min = 0.4 * D.T_c
-
+T_min = 206.
 TT = linspace(T_min, D.T_c, 1000)
 
-rhog = array([D.rhog_T_chouaieb(T) for T in TT])
-rhof = array([D.rhof_T_rackett(T) for T in TT])
-psat = array([D.psat_T_xiang(T) for T in TT])
-psata = array([D.psat_T_acentric(T) for T in TT])
+rhog = array([fprops_rhog_T_chouaieb(T,D) for T in TT])
+rhof = array([fprops_rhof_T_rackett(T,D) for T in TT])
+psat = array([fprops_psat_T_xiang(T,D) for T in TT])
 
-rhof2 = []
-rhog2 = []
-psat2 = []
-TT2 = []
+rhof1 = []
+rhog1 = []
+psat1 = []
 
-TT_src = linspace(T_min, D.T_c, 4000)
+TT2 = linspace(T_min, D.T_c, 50)
 TT1 = []
-failcount = 0
-for T in TT_src:
-	try:
-		p1, rf1, rg1 = D.sat_T(T)
-	except Exception,e:
-		print "error '%s' in %s saturation function T = %0.10e " % (str(e),D.name,T)
-		failcount += 1
-		TT1.append(T)
-		continue
-	rhof2.append(rf1)
-	rhog2.append(rg1)
-	psat2.append(p1)
-	TT2.append(T)
-
-print "failcount =",failcount
-
-TT = array(TT)
-TT1 = array(TT1)
-psat2 = array(psat2)
-psat = array(psat)
-psata = array(psata)
+for T in TT2:
+	res, p1, rf1, rg1 = phase_solve(T,D)
+	#if res:
+	#	continue
+	rhof1.append(rf1)
+	rhog1.append(rg1)
+	psat1.append(p1)
+	print "T=%f, psat=%f, rhof=%f, rhog=%f" % (T,p1,rf1,rg1)
+	TT1.append(T)
 
 plot(rhog,TT,label="vapour (Chouaieb)")
 plot(rhof,TT,label="liquid (Rackett)")
 
-#plot(rhog1,TT1,'rx',label="vapour (unconverged)")
-#plot(rhof1,TT1,'bx',label="liquid (unconverged)")
-plot(rhog2,TT2,'r.',label="vapour (OK, converged)")
-plot(rhof2,TT2,'b.',label="liquid (OK, converged)")
+plot(rhog1,TT1,'rx',label="vapour (Maxwell)")
+plot(rhof1,TT1,'bx',label="liquid (Maxwell)")
 
 
 legend(loc=8)
-xlabel('Density / [kg/m3]')
-ylabel("Temperature / K");
+xlabel('Density')
+ylabel('Temperature')
 #legend(L)
 #axis([10,1200,1.,1e6 * D.p_c])
 #axis([0,1000,0,100e6])
@@ -66,13 +45,8 @@ ylabel("Temperature / K");
 figure()
 hold(1)
 
-plot(TT,psat/1e5,label="Xiang")
-plot(TT,psata/1e5,label="Acentric")
-#plot(TT1,psat1/1e5,'rx',label="Maxwell (error)")
-plot(TT2,psat2/1e5,'g.',label="FPROPS (OK)")
-legend(loc=2)
-xlabel("Temperature / K");
-ylabel(r"$p_\mathrm{sat}(T)$ / [bar]");
-axis([T_min, D.T_c, 0, D.p_c/1e5])
+plot(TT,psat,label="Xiang")
+plot(TT1,psat1,'rx',label="Maxwell")
+
 show()
 

@@ -2,6 +2,7 @@ import ascpy
 import time
 import sys
 import gtk
+import gtk.glade
 import time
 from varentry import *
 from preferences import *
@@ -28,13 +29,13 @@ class IntegratorReporterPython(ascpy.IntegratorReporterCxx):
 	 	ascpy.IntegratorReporterCxx.__init__(self,integrator)
 		
 		# GUI elements
-		self.browser.builder.add_objects_from_file(self.browser.glade_file, ["integratorstatusdialog"])
-		self.browser.builder.connect_signals(self)
-		self.window=self.browser.builder.get_object("integratorstatusdialog")
+		_xml = gtk.glade.XML(browser.glade_file,"integratorstatusdialog")
+		_xml.signal_autoconnect(self)
+		self.window=_xml.get_widget("integratorstatusdialog")
 		self.window.set_transient_for(self.browser.window)
-		self.label=self.browser.builder.get_object("integratorlabel")
+		self.label=_xml.get_widget("integratorlabel")
 		self.label.set_text("Solving with "+self.getIntegrator().getName())
-		self.progress=self.browser.builder.get_object("integratorprogress")
+		self.progress=_xml.get_widget("integratorprogress")
 		self.data = None
 
 		self.cancelrequested=False
@@ -57,7 +58,7 @@ class IntegratorReporterPython(ascpy.IntegratorReporterCxx):
 				_fp = file(_fn,"w")
 				try:
 					try: 
-						self.getIntegrator().writeMatrix(_fp,None)
+						self.getIntegrator().writeMatrix(_fp)
 					except RuntimeError,e:
 						self.browser.reporter.reportError(str(e))
 				finally:
@@ -85,20 +86,12 @@ class IntegratorReporterPython(ascpy.IntegratorReporterCxx):
 		integrator = self.getIntegrator()
 		# create an empty observer
 		try:
+			_xml = gtk.glade.XML(self.browser.glade_file,"observervbox")
 			_label = gtk.Label();
 			INTEGRATOR_NUM = INTEGRATOR_NUM + 1
 			_name = "Integrator %d" % INTEGRATOR_NUM
-			self.browser.builder.add_objects_from_file(self.browser.glade_file,
-				["observervbox","observercontext"] + ["image%d"%n for n in range(7,12)]
-			)
-			_vbox = self.browser.builder.get_object("observervbox")
-			toolbar_list = _vbox.get_children()
-			toolbar = toolbar_list.__getitem__(0)
-			toolitem6 = toolbar.get_nth_item(3)
-			toolitem6_label = toolitem6.get_child()
-			toolitem6_label.set_text('')
-			_tab = self.browser.maintabs.append_page(_vbox,_label)
-			_obs = ObserverTab(name=_name, browser=self.browser, tab=_tab, alive=False)
+			_tab = self.browser.maintabs.append_page(_xml.get_widget("observervbox"),_label)
+			_obs = ObserverTab(xml=_xml, name=_name, browser=self.browser, tab=_tab, alive=False)
 			_label.set_text(_obs.name)
 			self.browser.observers.append(_obs)
 			self.browser.tabs[_tab]=_obs
@@ -111,7 +104,7 @@ class IntegratorReporterPython(ascpy.IntegratorReporterCxx):
 			for _time,_vals in self.data:
 				_obs.do_add_row([_time]+[_v for _v in _vals])
 		except Exception,e:
-			sys.stderr.write("\n\n\nIntegratorReporter::closeOutput: error: %s: %s\n\n\n" % (e.__class__,str(e)))
+			sys.stderr.write("\n\n\nIntegratorReporter::closeOutput: error: %s\n\n\n" % str(e))
 			return 1
 		return 0
 

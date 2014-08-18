@@ -12,7 +12,8 @@
  *  See the GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139 USA.
  *)
 REQUIRE "system.a4l";   (* => system.a4l, basemodel.a4l *)
 REQUIRE "measures.a4l"; (* => measures.a4l *)
@@ -55,17 +56,6 @@ PROVIDE "atoms.a4l";
     CONSTANT vapor_pressure_constant REFINES real_constant;
 
     CONSTANT factor_constant REFINES real_constant DIMENSIONLESS;
-
-	(* angles *)
-    CONSTANT angle_constant
-    REFINES real_constant DIMENSION P;
-
-    CONSTANT solid_angle_constant
-    REFINES real_constant DIMENSION S;
-
-	(* time *)
-	CONSTANT time_constant
-	REFINES real_constant DIMENSION T;
 
     (* molecular weight *)
     CONSTANT molar_weight_constant
@@ -642,14 +632,6 @@ END length_parameter;
         nominal := 100000.0{BTU};
     END energy;
 
-    ATOM energy_per_area REFINES solver_var
-        DIMENSION M/T^2
-        DEFAULT 1000{kJ/m^2};
-        lower_bound := -1e50{kJ/m^2};
-        upper_bound := 1e50{kJ/m^2};
-        nominal := 1000{kJ/m^2};
-    END energy_per_area;
-
     ATOM energy_per_volume REFINES solver_var
         DIMENSION M/L/T^2
         DEFAULT 1000{kJ/L};
@@ -688,9 +670,9 @@ END length_parameter;
 	ATOM power_per_area REFINES solver_var
         DIMENSION M/T^3
         DEFAULT 1.0{kW/m^2};
-        lower_bound := -1e50{kW/m^2};
-        upper_bound := 1e50{kW/m^2};
-        nominal := 1.0{kW/m^2};
+        lower_bound := -1e50{kW/m^3};
+        upper_bound := 1e50{kW/m^3};
+        nominal := 1.0{kW/m^3};
 	END power_per_area;
 
 	ATOM power_per_temperature REFINES solver_var
@@ -932,13 +914,6 @@ END length_parameter;
 		nominal := 1 {N/m};
 	END stiffness;
 
-    ATOM damping_coefficient REFINES solver_var
-		DIMENSION M/T
-		DEFAULT 1 {N*s/m};
-		lower_bound := 0 {N*s/m};
-		upper_bound := 1e12 {N*s/m};
-		nominal := 1 {N*s/m};
-	END damping_coefficient;
 		
 
 (*  T R A N S P O R T   Q U A N T I T I E S
@@ -996,14 +971,6 @@ END length_parameter;
         nominal := 10.0{ohm};
     END resistance;
 
-    ATOM conductance REFINES solver_var
-        DIMENSION (E^2*T^3)/(M*L^2)
-        DEFAULT 0.01{siemens};
-        lower_bound := -1e50{siemens};
-        upper_bound := 1e50{siemens};
-        nominal := 0.01{siemens};
-    END conductance;
-
     ATOM current REFINES solver_var
         DIMENSION E
         DEFAULT 1.0{amp};
@@ -1043,31 +1010,6 @@ END length_parameter;
         upper_bound := 1e50{volt/m};
         nominal := 1.0{volt/m};
     END electric_field;
-
-	ATOM electrical_conductivity REFINES solver_var
-		DIMENSION E^2*T^3/M/L^3
-		DEFAULT 1000 {S/m};
-		lower_bound := 1e-50 {S/m};
-		upper_bound := 1e50 {S/m};
-		nominal := 1000 {S/m};
-	END electrical_conductivity;
-
-	ATOM thermoelectric_power_factor REFINES solver_var
-		DIMENSION M*L/T^3/TMP^2
-		DEFAULT 10e-5 {W/m/K^2};
-		lower_bound := 1e-50 {W/m/K^2};
-		upper_bound := 1e50 {W/m/K^2};
-		nominal := 10e-5 {W/m/K^2};
-	END thermoelectric_power_factor;
-
-	ATOM seebeck_coefficient REFINES solver_var
-		DIMENSION M*L^2/T^3/E/TMP
-		DEFAULT 200 {micro*V/K};
-		lower_bound := 1e-50 {micro*V/K};
-		upper_bound := 1e50 {micro*V/K};
-		nominal := 200 {micro*V/K};
-	END seebeck_coefficient;
-
 
 (*  D I F F E R E N T I A L  Q U A N T I T I E S
     -------------------------------------------  *)

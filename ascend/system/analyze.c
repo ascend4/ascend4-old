@@ -13,18 +13,21 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @addtogroup system_analysis
-	<b>Problem Analysis Routines</b>
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//**
+	@file
+	Problem Analysis Routines
 
-	@note 'ip' signifies 'interface pointer' @endnote
+	@NOTE 'ip' signifies 'interface pointer' @ENDNOTE
 
 	The intent here is to do away with the old persistent interface pointer
-	scheme by making the struct rel_relation * individually keep track of the
+	scheme by making the struct rel_relation* individually keep track of the
 	map between the ascend RelationVariable list position and the
 	solver's var list index (and hence the column in jacobian for jacobian
 	involved clients).
-	In this mapping each struct relation * has its var list and this list
+	In this mapping each struct relation* has its var list and this list
 	may contain RealAtomInstances that we don't consider variables.
 	In the rel_relation we will have the variable index list
 	which is an array of int32 the same length as the RelationVariable list.
@@ -65,12 +68,19 @@
 	Last in CVS: $Revision: 1.56 $ $Date: 2003/08/23 18:43:12 $ $Author: ballan $
 */
 
+/**	@addtogroup analyse Analyse
+	@{
+*/
+
 #include "analyze.h"
 
-#include <ascend/general/panic.h>
-#include <ascend/general/ascMalloc.h>
+#include <stdarg.h>
+
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/utilities/error.h>
 #include <ascend/general/list.h>
+#include <ascend/general/dstring.h>
 #include <ascend/general/mathmacros.h>
 
 #include <ascend/compiler/atomvalue.h>
@@ -78,10 +88,12 @@
 #include <ascend/compiler/visitinst.h>
 #include <ascend/compiler/expr_types.h>
 #include <ascend/compiler/exprs.h>
+#include <ascend/compiler/sets.h>
 #include <ascend/compiler/mathinst.h>
 #include <ascend/compiler/instquery.h>
 #include <ascend/compiler/instance_io.h>
 #include <ascend/compiler/find.h>
+#include <ascend/compiler/extfunc.h>
 #include <ascend/compiler/extcall.h>
 #include <ascend/compiler/rel_blackbox.h>
 #include <ascend/compiler/vlist.h>
@@ -90,10 +102,12 @@
 #include <ascend/compiler/safe.h>
 #include <ascend/compiler/relation_util.h>
 #include <ascend/compiler/logical_relation.h>
+#include <ascend/compiler/logrelation.h>
 #include <ascend/compiler/logrel_util.h>
 #include <ascend/compiler/case.h>
 #include <ascend/compiler/when_util.h>
-#include <ascend/compiler/link.h>
+
+#include <ascend/linear/mtx.h>
 
 #include "slv_server.h"
 #include "cond_config.h"
@@ -120,6 +134,11 @@ static symchar *g_strings[6];
 #define DERIV_A g_strings[3]
 #define ODEID_A g_strings[4]
 #define OBSID_A g_strings[5]
+
+/*
+	Global variable. Set to true by classify if need be
+*/
+static int g_bad_rel_in_list;
 
 /*
 	a bridge buffer used so much we aren't going to free it, just reuse it
@@ -324,7 +343,7 @@ int IntegerChildValue(struct Instance *i,symchar *sc){
 }
 
 
-static
+static 
 void CollectArrayRelsAndWhens(struct Instance *i, long modindex
 		,struct problem_t *p_data
 ){
@@ -495,7 +514,7 @@ static void analyze_CountRelation(struct Instance *inst
 
 /**
 	Obtain an integer value from a symbol value
-	Used for a WHEN statement. Each symbol value is stored in a symbol list.
+	Used for a WHEN statement. Each symbol value is storaged in a symbol list.
 	It checks if the symval is already in the solver symbol list,
 	if it is, returns the integer corresponding to the position of symval
 	if it is not, appends the symval to the list and then returns the int
@@ -538,22 +557,21 @@ int GetIntFromSymbol(CONST char *symval
   return value;
 }
 
-
-void DestroySymbolValuesList(struct gl_list_t *symbol_list){
+void DestroySymbolValuesList(struct gl_list_t *symbol_list)
+{
   struct SymbolValues *entry;
   int len,c;
-  if(symbol_list != NULL) {
-    len = gl_length(symbol_list);
-    for (c=1; c<= len; c++) {
-      entry = (struct SymbolValues *)(gl_fetch(symbol_list,c));
-      ascfree((char *)entry->name); /* Do I need this ? */
-      ascfree((char *)entry);
+    if(symbol_list != NULL) {
+      len = gl_length(symbol_list);
+      for (c=1; c<= len; c++) {
+        entry = (struct SymbolValues *)(gl_fetch(symbol_list,c));
+        ascfree((char *)entry->name); /* Do I need this ? */
+        ascfree((char *)entry);
+      }
+      gl_destroy(symbol_list);
+      symbol_list = NULL;
     }
-    gl_destroy(symbol_list);
-    symbol_list = NULL;
-  }
 }
-
 
 /*------------------------------------------------------------------------------
   CLASSIFICATION OF INSTANCES, CREATING INTERFACE POINTERS
@@ -587,20 +605,13 @@ void *classify_instance(struct Instance *inst, VOIDPTR vp){
     ip->u.v.index = 0;
     ip->u.v.active = 0;
     if(solver_var(inst)){
-	  //printf("\n Variable name:%s \n",WriteInstanceNameString(inst,p_data->root));
       ip->u.v.solvervar = 1; /* must set this regardless of what list */
       ip->u.v.fixed = BooleanChildValue(inst,FIXED_A);
       ip->u.v.basis = BooleanChildValue(inst,BASIS_A);
       ip->u.v.deriv = IntegerChildValue(inst,DERIV_A);
       ip->u.v.odeid = IntegerChildValue(inst,ODEID_A);
-      ip->u.v.obsid = IntegerChildValue(inst,OBSID_A);
+	  ip->u.v.obsid = IntegerChildValue(inst,OBSID_A);
 	  /* CONSOLE_DEBUG("FOUND A VAR: deriv = %d, %s = %d",ip->u.v.deriv,SCP(ODEID_A),ip->u.v.odeid); */
-
-	  if(ip->u.v.deriv == 0){
-		ip->u.v.deriv = getOdeType(p_data->root,inst);
-		ip->u.v.odeid = getOdeId(p_data->root,inst);
-	  }
-	  //printf("\n ode_type: %d, ode_id: %d \n",ip->u.v.deriv,ip->u.v.odeid);
 
       if(RelationsCount(inst)) {
         asc_assert(ip!=(void *)0x1);
@@ -609,32 +620,18 @@ void *classify_instance(struct Instance *inst, VOIDPTR vp){
         gl_append_ptr(p_data->unas,(POINTER)ip);
       }
 
-	if(ip->u.v.obsid){
-	gl_append_ptr(p_data->obsvars,(POINTER)ip);
-	/* CONSOLE_DEBUG("Added to obsvars"); */
-      	  }
-	/* make the algebraic/differential/derivative cut */
-	if(ip->u.v.odeid){
-            gl_append_ptr(p_data->diffvars,(POINTER)ip);
-	/* CONSOLE_DEBUG("Added var to diffvars"); */
-          }else{
-	if(ip->u.v.deriv==-1){
-		//printf("\n smth smth \n");
-		struct solver_ipdata *original_indep_var;
-		if(gl_length(p_data->indepvars) != 0) {
-			original_indep_var = (struct solver_ipdata *)gl_fetch(p_data->indepvars,1);
-			//printf("\n asadada %d \n",original_indep_var->i == inst);
-		  }
-		  /*>>DS: Checking that the independent variable is the same one in each derivative chains */
-		  if(gl_length(p_data->indepvars) == 0 || strcmp(WriteInstanceNameString(original_indep_var->i,p_data->root),WriteInstanceNameString(inst,p_data->root))== 0 ) {
-			//printf("\n ttttttt %ld %s \n",gl_length(p_data->indepvars),WriteInstanceNameString(inst,p_data->root));
-		        gl_append_ptr(p_data->indepvars,(POINTER)ip);
-			/* CONSOLE_DEBUG("Added to indep vars"); */
-		  }else{
-		    ERROR_REPORTER_HERE(ASC_USER_ERROR,"Set the same independent variable for all derivative chains!" );
-			FPRINTF(ASCERR,"All derivative chains must contain one and the same independent variable \n");
-			/* ASC_PANIC("Set the same independent variable for all derivative chains!.\n"); */
-		  }
+	  if(ip->u.v.obsid){
+		gl_append_ptr(p_data->obsvars,(POINTER)ip);
+		/* CONSOLE_DEBUG("Added to obsvars"); */
+      }
+	  /* make the algebraic/differential/derivative cut */
+	  if(ip->u.v.odeid){
+        gl_append_ptr(p_data->diffvars,(POINTER)ip);
+		/* CONSOLE_DEBUG("Added var to diffvars"); */
+      }else{
+		if(ip->u.v.deriv==-1){
+		  gl_append_ptr(p_data->indepvars,(POINTER)ip);
+		  /* CONSOLE_DEBUG("Added to indep vars"); */
 		}else{
 		  gl_append_ptr(p_data->algebvars,(POINTER)ip);
 		  /* CONSOLE_DEBUG("Added var to algebvars"); */
@@ -658,7 +655,7 @@ void *classify_instance(struct Instance *inst, VOIDPTR vp){
     ip->u.dv.incident = 0;
     ip->u.dv.index = 0;
     ip->u.dv.active = 0;
-    ip->u.dv.value = GetBooleanAtomValue(inst);
+      ip->u.dv.value = GetBooleanAtomValue(inst);
     if(boolean_var(inst) ) {
       ip->u.dv.booleanvar = 1;
       ip->u.dv.fixed = BooleanChildValue(inst,FIXED_A);
@@ -843,9 +840,9 @@ void *classify_instance(struct Instance *inst, VOIDPTR vp){
 */
 
 /*
-	This function sets p_data->bad_rel_in_list TRUE if it finds any unhappy
+	This function sets g_bad_rel_in_list TRUE if it finds any unhappy
 	relations. All the rest of the code depends on ALL relations being
-	good, so don't disable the p_data->bad_rel_in_list feature.
+	good, so don't disable the g_bad_rel_in_list feature.
 */
 static
 void CountStuffInTree(struct Instance *inst, struct problem_t *p_data){
@@ -855,13 +852,13 @@ void CountStuffInTree(struct Instance *inst, struct problem_t *p_data){
     case REL_INST:
       if( GetInstanceRelationOnly(inst) == NULL ||
           GetInstanceRelationType(inst) == e_undefined) {
-        /* guard against null relations, unfinished ones */
+	/* guard against null relations, unfinished ones */
         ERROR_REPORTER_START_NOLINE(ASC_USER_ERROR);
-        FPRINTF(ASCERR,"Found bad (unfinished?) relation '");
+		FPRINTF(ASCERR,"Found bad (unfinished?) relation '");
         WriteInstanceName(ASCERR,inst,p_data->root);
         FPRINTF(ASCERR,"' (in CountStuffInTree)");
-        error_reporter_end_flush();
-        p_data->bad_rel_in_list = TRUE;
+		error_reporter_end_flush();
+        g_bad_rel_in_list = TRUE;
         return;
       }
       /* increment according to classification */
@@ -907,7 +904,7 @@ void CountStuffInTree(struct Instance *inst, struct problem_t *p_data){
           FPRINTF(ASCERR,"CountStuffInTree found undefined symbol or symbol_constant in WHEN.\n");
           WriteInstanceName(ASCERR,inst,p_data->root);
           error_reporter_end_flush();
-          p_data->bad_rel_in_list = TRUE;
+          g_bad_rel_in_list = TRUE;
           return;
         }
         p_data->ndv++;
@@ -919,7 +916,7 @@ void CountStuffInTree(struct Instance *inst, struct problem_t *p_data){
         FPRINTF(ASCERR,"CountStuffInTree found bad logrel.\n");
         WriteInstanceName(ASCERR,inst,p_data->root);
         error_reporter_end_flush();
-        p_data->bad_rel_in_list = TRUE;
+        g_bad_rel_in_list = TRUE;
         return;
       }
       if( LogRelIsCond(GetInstanceLogRel(inst)) ) {
@@ -1074,7 +1071,7 @@ int analyze_make_master_lists(struct problem_t *p_data){
       (long)gl_length(p_data->whens) != p_data->nw
   ){
     ERROR_REPORTER_START_HERE(ASC_PROG_WARNING);
-    FPRINTF(ASCERR,"Warning: Mismatch in problem census and problem found\n");
+	FPRINTF(ASCERR,"Warning: Mismatch in problem census and problem found\n");
     FPRINTF(ASCERR,"Rels: Counted %lu\t Found %ld\n",gl_length(p_data->rels), p_data->nr);
     FPRINTF(ASCERR,"Objs: Counted %lu\t Found %ld\n",gl_length(p_data->objrels), p_data->no);
     FPRINTF(ASCERR,"LogRels: Counted %lu\t Found %ld\n",gl_length(p_data->logrels),p_data->nl);
@@ -1480,9 +1477,9 @@ void ProcessModelsInWhens(struct Instance *cur_inst, struct gl_list_t *rels
 
 /**
 	Fill in the list of cases and variables of a w_when structure with
-	the appropriate data.
+	the appropriate data. 
 
-	The information required is provided by the corresponding when Instance
+	The information required is provided by the corresponding when Instance 
 	generated in the compilation time. So, what we do is:
 	1) Obtain the list of variables and the list of cases from each
 	   WHEN intance.
@@ -1594,8 +1591,8 @@ void ProcessSolverWhens(struct w_when *when,struct Instance *i){
 /**
 	Is this (discrete) variable inside a WHEN?
 
-	@return
-		1 if discrete var is a member of the when var list,
+	@return 
+		1 if discrete var is a member of the when var list, 
 		else 0
 
 	@DEPRECATED we want to get rid of this in order to clean up the
@@ -1695,7 +1692,7 @@ void GetTolerance(struct bnd_boundary *bnd){
 	logrelation/conditional/when etc. lists for the consumer.
 	Includes fixing up rel caches and initing flagbits as best we can.
 	includes setting master indices on rel/var/logrel/when etc.
-
+	
 	@returns 0 on success, 1 on out-of-memory, or 2 if the problem does not
 	contain at least one variable in one equation
 */
@@ -1716,12 +1713,12 @@ int analyze_make_solvers_lists(struct problem_t *p_data){
   struct logrel_relation *lrel;
   struct bnd_boundary *bnd;
   struct w_when *when;
-  int nnzold;
-  int lognnzold;
+  int order,nnzold;
+  int logorder,lognnzold;
   int c,len,v,vlen,r,found;
   uint32 flags;
 
-  //order = MAX(gl_length(p_data->vars),gl_length(p_data->rels));
+  order = MAX(gl_length(p_data->vars),gl_length(p_data->rels));
   nnzold = p_data->nnz = p_data->nnztot
          = p_data->nnzobj = p_data->nnzcond = 0;
   p_data->nrow = 0; /* number of included relations */
@@ -1792,7 +1789,7 @@ int analyze_make_solvers_lists(struct problem_t *p_data){
   */
 
   /* count the incidences of bool vars and logrels */
-  //logorder = MAX((asc_intptr_t)p_data->lrelinc,gl_length(p_data->logrels));
+  logorder = MAX((unsigned long)p_data->lrelinc,gl_length(p_data->logrels));
   lognnzold = p_data->lognnz = p_data->lrelincsize = 0;
   p_data->lognrow = 0; /* number of included logrelations */
   for (c=1,len = gl_length(p_data->logrels); c <= len; c++) {
@@ -1860,7 +1857,7 @@ int analyze_make_solvers_lists(struct problem_t *p_data){
 #define ALLOC_OR_NULL(T,N) ((N) > 0 ? ASC_NEW_ARRAY(T,N) : (T*)NULL)
 
 #define AL(P,N,T) p_data->P##data = ALLOC_OR_NULL(struct T,p_data->N)
-  AL(var,nv,var_variable);  AL(par,np,var_variable);  AL(un,nu,var_variable);
+  AL(var,nv,var_variable);  AL(par,np,var_variable);  AL(un,nu,var_variable);  
   AL(dis,ndv,dis_discrete);  AL(undis,nud,dis_discrete);
   AL(rel,nr,rel_relation);  AL(obj,no,rel_relation);  AL(con,nc,rel_relation);
   AL(lr,nl,logrel_relation);  AL(logcon,ncl,logrel_relation);
@@ -1869,7 +1866,7 @@ int analyze_make_solvers_lists(struct problem_t *p_data){
 #undef AL
 
 #define AL(P,N,T) p_data->master##P=ALLOC_OR_NULL(struct T*,p_data->N + 1)
-  AL(vl,nv,var_variable);  AL(pl,np,var_variable);  AL(ul,nu,var_variable);
+  AL(vl,nv,var_variable);  AL(pl,np,var_variable);  AL(ul,nu,var_variable);  
   AL(dl,ndv,dis_discrete);  AL(dul,nud,dis_discrete);
   AL(rl,nr,rel_relation);  AL(ol,no,rel_relation);  AL(cl,nc,rel_relation);
   AL(ll,nl,logrel_relation);  AL(cll,ncl,logrel_relation);
@@ -1878,7 +1875,7 @@ int analyze_make_solvers_lists(struct problem_t *p_data){
 #undef AL
 
 #define AL(P,N,T) p_data->solver##P=ALLOC_OR_NULL(struct T*,p_data->N + 1)
-  AL(vl,nv,var_variable);  AL(pl,np,var_variable);  AL(ul,nu,var_variable);
+  AL(vl,nv,var_variable);  AL(pl,np,var_variable);  AL(ul,nu,var_variable);  
   AL(dl,ndv,dis_discrete);  AL(dul,nud,dis_discrete);
   AL(rl,nr,rel_relation);  AL(ol,no,rel_relation);  AL(cl,nc,rel_relation);
   AL(ll,nl,logrel_relation);  AL(cll,ncl,logrel_relation);
@@ -1887,7 +1884,7 @@ int analyze_make_solvers_lists(struct problem_t *p_data){
 #undef AL
 
 #ifdef ANALYSE_DEBUG
-  CONSOLE_DEBUG("For relincidence, size will be %d",p_data->nnztot + p_data->nnzobj + p_data->nnzcond);
+  CONSOLE_DEBUG("For relincidence, size will be %d",p_data->nnztot + p_data->nnzobj + p_data->nnzcond); 
 #endif
 
   p_data->relincidence = ALLOC_OR_NULL(struct var_variable*
@@ -2590,7 +2587,7 @@ int analyze_make_solvers_lists(struct problem_t *p_data){
 	@TODO this code is really repetitive, can't we clean it up with some
 	nice macros? The whole problem is that the naming isn't quite consistent
 	enough. eg.
-		slv_set_solvers_condlogrel_list(sys,p_data->solvercll,gl_length(p_data->logcnds));
+		slv_set_solvers_condlogrel_list(sys,p_data->solvercll,gl_length(p_data->logcnds));	
 	could be better written
 		slv_set_solvers_condlogrel_list(sys,p_data->solver_condlogrel,gl_length(p_data->condlogrel_list));
 
@@ -2671,7 +2668,7 @@ int analyze_configure_system(slv_system_t sys,struct problem_t *p_data){
 	This is the entry point for problem analysis. It takes the compiler
 	Instance, visits it with the 'CountStuffInTree' method, then constructs
 	lists of all the different types of variables and relations etc, then
-	conveys them to the solver using the slv_ interface (i.e. methods that act
+	convey them to the solver using the slv_ interface (i.e. methods that act
 	on the slv_system_t we've been given).
 
 	We're also establishing any any protocols needed to communicate with the
@@ -2703,12 +2700,12 @@ int analyze_make_problem(slv_system_t sys, struct Instance *inst){
   OBSID_A = AddSymbol("obs_id");
 
   p_data = &thisproblem;
-  p_data->bad_rel_in_list = FALSE;
+  g_bad_rel_in_list = FALSE;
   InitTreeCounts(inst,p_data);
   /* take the census */
   VisitInstanceTreeTwo(inst,(VisitTwoProc)CountStuffInTree,TRUE,FALSE,
                        (VOIDPTR)p_data);
-  if(p_data->bad_rel_in_list) {
+  if(g_bad_rel_in_list) {
     p_data->root = NULL;
     return 2;
   }
@@ -2755,4 +2752,5 @@ extern void analyze_free_reused_mem(void){
   resize_ipbuf((size_t)0,0);
 }
 
+/* @} */
 /* :ex: set ts=4 : */

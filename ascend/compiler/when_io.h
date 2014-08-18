@@ -21,7 +21,10 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
  */
 
 /** @file
@@ -37,7 +40,7 @@
 #ifndef ASC_WHENINST_IO_H
 #define ASC_WHENINST_IO_H
 
-/**	@addtogroup compiler_inst Compiler Instance Hierarchy
+/**	@addtogroup compiler Compiler
 	@{
 */
 
@@ -46,12 +49,20 @@
 extern void WriteWhen(FILE *f, CONST struct Instance *wheninst,
                       CONST struct Instance *ref);
 /**<
+ *  <!--  void WriteWhen(f,wheninst,ref);                              -->
+ *  <!--  FILE *f;                                                     -->
+ *  <!--  CONST struct Instance *wheninst;                             -->
+ *  <!--  CONST struct Instance *ref;                                  -->
  *  Write a when instance to the file f
  */
 
 ASC_DLLSPEC char *WriteWhenString(CONST struct Instance *wheninst,
                              CONST struct Instance *ref);
 /**<
+ *  <!--  char WriteWhenString(wheninst,ref);                          -->
+ *  <!--  char *result;                                                -->
+ *  <!--  CONST struct Instance *wheninst;                             -->
+ *  <!--  CONST struct Instance *ref;                                  -->
  *  Write a when instance to a char
  */
 

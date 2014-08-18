@@ -13,8 +13,10 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @defgroup system_modelreorder Solver Model reordering
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//** @file
 	Model-based Reordering Routines
 
 	These functions are part of a new design for feeding
@@ -34,12 +36,13 @@
 #ifndef ASC_MODEL_REORDER_H
 #define ASC_MODEL_REORDER_H
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/linear/mtx.h>
 
 #include <ascend/system/slv_types.h>
 
-/**	@addtogroup system_modelreorder
+
+/**	@addtogroup solver Solver
 	@{
 */
 
@@ -85,8 +88,8 @@ typedef struct mr_bisection_structure{
  *    - Nblts is the number of BLT permutations we do.
  */
 
-extern mr_reorder_t *mr_reorder_create(slv_system_t slvsys,
-                                       mtx_matrix_t mtx,
+extern mr_reorder_t *mr_reorder_create(slv_system_t slvsys, 
+                                       mtx_matrix_t mtx, 
                                        int32 nmodels);
 /**<
  *  Returns a mr_reorder_t all set up with cutoff set to CUTOFFDEFAULT (see .c)
@@ -122,7 +125,7 @@ typedef int (MRBlockReorderF)(slv_system_t,mtx_matrix_t,mtx_region_t *);
  */
 
 extern int mr_bisect_partition(mr_reorder_t *sys,
-                               mtx_region_t *reg,
+                               mtx_region_t *reg, 
                                int top,
                                MRBlockReorderF rfunc);
 /**<

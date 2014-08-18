@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Dynamic library routines.
@@ -34,16 +36,10 @@
 #ifndef ASC_ASCDYNALOAD_H
 #define ASC_ASCDYNALOAD_H
 
-#include <ascend/general/platform.h>
-
-/**	@addtogroup utilities_dl Utilities Dynamic Library Loading
-	@{
-*/
+#include <ascend/utilities/ascConfig.h>
 
 ASC_DLLSPEC char *SearchArchiveLibraryPath(const char *name, char *dpath, const char *envv);
 /**<
-	@deprecated Try ospath_searchpath_iterate or importhandler_findinpath.
-
 	Search the archive library path for a file matching the given
 	(platform specific, with extension?) library filename.
 
@@ -58,7 +54,7 @@ ASC_DLLSPEC char *SearchArchiveLibraryPath(const char *name, char *dpath, const 
 	FREEd when no longer needed.
 
 	@NOTE
-	This function has been moved out of compiler/packages.c into
+	This function has been moved out of compiler/packages.c into 
 	utilities/ascDynaLoad.c so that it can be shared with the solver for use
 	in dynamic loading of external solver DLLs.
 */
@@ -173,7 +169,5 @@ ASC_DLLSPEC DynamicF Asc_DynamicFunction(CONST char *libraryname,
  *  We don't know about aix, and others.
  */
 #endif /* gnu,hp,alpha,win,solaris,sunos,irix */
-
-/* @} */
 
 #endif /* ASC_ASCDYNALOAD_H */

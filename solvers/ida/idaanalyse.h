@@ -1,35 +1,9 @@
-/*	ASCEND modelling environment
-	Copyright (C) 2006-2011 Carnegie Mellon University
-
-	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; either version 2, or (at your option)
-	any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @file
-	Analysis routines for the ASCEND wrapper of the IDA integrator.
-	These functions perform sorting of variables and relations and create
-	additional lists of variables as required for use by our ida.c code.
-*/
-
 #ifndef ASC_IDAANALYSE_H
 #define ASC_IDAANALYSE_H
 
 #include <ascend/integrator/integrator.h>
-#include <ascend/system/var.h>
-#include <ascend/system/rel.h>
 
-/**
-	The top-level analysis function, called by the Integrator API.
-*/
-IntegratorAnalyseFn integrator_ida_analyse;
+IntegratorAnalyseFn integrator_ida_analyse; /* for new approach -- JP Jan 2007 */
 
 /**
 	Given a derivative variable, return the index of its corresponding differential
@@ -41,6 +15,11 @@ int integrator_ida_diffindex(const IntegratorSystem *sys, const struct var_varia
 	Same as integrator_ida_diffindex but returns -1 instead of aborting
 */
 int integrator_ida_diffindex1(const IntegratorSystem *sys, const struct var_variable *deriv);
+
+/**
+	Lots of helpful advice to help you mend your evil inclinations.
+*/
+int integrator_ida_analyse_debug(const IntegratorSystem *sys,FILE *fp);
 
 /**
 	Filter that will match all our 'y' variables (and only those)

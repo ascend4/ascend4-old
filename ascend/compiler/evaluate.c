@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//*
 	@file
 	Evaluation Routines
@@ -28,11 +30,13 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdarg.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/dstring.h>
 #include <ascend/general/list.h>
+
+
 
 #include "functype.h"
 #include "expr_types.h"
@@ -61,7 +65,7 @@ static struct gl_list_t *g_names_needed = NULL;
 struct stack_t {
   struct value_t *ptr; 	/* data pointer */
   unsigned capacity;	/* length of data */
-  asc_intptr_t size;	/* pointer while recycled and data while in use */
+  unsigned long size;	/* pointer while recycled and data while in use */
 };
 
 #define SMALLOC(x) x=ASC_NEW(struct stack_t);
@@ -115,7 +119,7 @@ static void DestroyStack(struct stack_t *stack)
   if (stack==NULL) return;
   if (stack->capacity < RECYCLESTACKSIZE) {
     /* the recycle list NEXT pointer has to be cast into the size slot */
-    stack->size =(asc_intptr_t)(g_recycle_expreval_stacks[stack->capacity]);
+    stack->size =(unsigned long)(g_recycle_expreval_stacks[stack->capacity]);
     /* push stack on LIFO recycle list */
     g_recycle_expreval_stacks[stack->capacity] = stack;
     return;

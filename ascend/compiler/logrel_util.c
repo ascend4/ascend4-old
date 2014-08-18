@@ -19,13 +19,16 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
  */
 #include <math.h>
 #include <stdarg.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/panic.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
 
@@ -192,8 +195,7 @@ LogTermSatisfied(CONST struct logrelation *lrel,
   satisfied = 1;
   not_satisfied = 0;
 
-  /* perturb == 1 is the trigger for CMSlv perturbations */
-  if ( (perturb == 1) && (instances!=NULL)) {
+  if (perturb && (instances!=NULL)) {
     len = gl_length(instances);
     for (n=1;n<=len;n++) {
       relname = (struct Instance *)(gl_fetch(instances,n));
@@ -204,19 +206,6 @@ LogTermSatisfied(CONST struct logrelation *lrel,
       }
     }
   }
-
-  /* perturb == 2 or 3 implies IDA wants true or false */
-  if( ( (perturb == 2) || (perturb == 3) ) && (instances!=NULL) ) {
-	  relname = (struct Instance *)(gl_fetch(instances,1));
-	  if (inst == relname) {
-		  if(perturb == 2) {
-			  return satisfied;
-		  } else {
-			  return not_satisfied;
-		  }
-	  }
-  }
-
   switch (InstanceKind(inst)) {
   case REL_INST:
     status = RelationCalcResidualPostfixSafe(inst,&res);
@@ -755,7 +744,7 @@ LogRelEvaluatePostfixBranch(CONST struct logrelation *lrel,
     Asc_Panic(2, NULL,
               "Don't know this type of logical relation term\n"
               "in function LogRelEvaluatePostfixBranch\n");
-
+    
   }
 }
 

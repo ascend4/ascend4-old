@@ -1,5 +1,5 @@
 /*  ASCEND modelling environment
-	Copyright (C) 2006-2011 Carnegie Mellon University
+	Copyright (C) 2006 Carnegie Mellon University
 	Copyright (C) 1998 Carnegie Mellon University
 
 	This program is free software; you can redistribute it and/or modify
@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//*
 	By Benjamin A. Allan
 	Jan 7, 1998.
@@ -28,16 +30,16 @@ TIMESTAMP = -DTIMESTAMP="\"by `whoami`@`hostname`\""
  * much of this goes in bintoken.h.
  */
 
-#include <ascend/utilities/config.h>
 #include "bintoken.h"
 
 #include <unistd.h> /* for getpid() */
 
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/config.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/utilities/ascPrint.h>
 #include <ascend/utilities/ascSignal.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/utilities/ascDynaLoad.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
@@ -58,8 +60,6 @@ TIMESTAMP = -DTIMESTAMP="\"by `whoami`@`hostname`\""
 /* last */
 
 #include <ascend/bintokens/btprolog.h>
-
-//#define BINTOKEN_VERBOSE
 
 #define CLINE(a) FPRINTF(fp,"%s\n",(a))
 
@@ -146,7 +146,7 @@ int BinTokenSetOptions(CONST char *srcname,
                        int verbose,
                        int housekeep)
 {
-  /*CONSOLE_DEBUG("...");*/
+	CONSOLE_DEBUG("...");
   int err = 0;
   err += bt_string_replace(srcname,&(g_bt_data.srcname));
   err += bt_string_replace(objname,&(g_bt_data.objname));
@@ -156,9 +156,6 @@ int BinTokenSetOptions(CONST char *srcname,
   g_bt_data.maxrels = maxrels;
   g_bt_data.verbose = verbose;
   g_bt_data.housekeep = housekeep;
-#ifdef BINTOKEN_VERBOSE
-  CONSOLE_DEBUG("make command = %s",buildcommand);
-#endif
   return err;
 }
 
@@ -390,7 +387,7 @@ void WritePrologue(FILE *fp, struct Instance *root,
                    unsigned long len, int verbose)
 {
   if (verbose) {
-    CLINE("/*\n\tAuto-generated code from" __FILE__);
+    CLINE("/*\n\tBinTokenSharesToC $Revision: 1.12 $");
     FPRINTF(fp,"\t%lu relations in instance '",len);
     WriteInstanceName(fp,root,NULL);
     CLINE("'\n\t(possibly fewer C functions required)\n*/");
@@ -469,11 +466,6 @@ enum bintoken_error WriteResidualCode(FILE *fp, struct Instance *i,
   } else {
     CLINE("  ;");
   }
-#ifdef BINTOKEN_VERBOSE
-  FPRINTF(fp,"  fprintf(stderr,\"%%s:%%d: residual for '%%s' is %%f.\\n\", __FILE__, __LINE__, \"");
-  WriteAnyInstanceName(fp,i);
-  FPRINTF(fp,"\", *residual);\n");
-#endif
   CLINE("}");
   return BTE_ok;
 }
@@ -633,7 +625,7 @@ enum bintoken_error BinTokenSharesToC(struct Instance *root,
   /** @TODO FIXME win32 has getpid but it is bogus as uniquifier. */
   /* so long as makefile deletes previous dll, windows is ok though */
   sprintf(g_bt_data.regname,"BinTokenArch_%d_%d",++(g_bt_data.nextid),(int)pid);
-  FPRINTF(fp,"\n\nint ASC_EXPORT %s(){\n",g_bt_data.regname);
+  FPRINTF(fp,"int ASC_EXPORT %s(){\n",g_bt_data.regname);
   CLINE("\tint status;");
   FPRINTF(fp,"\tstatic struct TableC g_ctable[%lu] =\n",len+1);
   CLINE("\t\t{ {NULL, NULL},");
@@ -673,12 +665,9 @@ enum bintoken_error BinTokenCompileC(char *buildcommand)
   ERROR_REPORTER_NOLINE(ASC_PROG_NOTE,"Starting build, command:\n%s\n",buildcommand);
   status = system(buildcommand);
   if (status) {
-    CONSOLE_DEBUG("BUILD returned %d",status);
+    FPRINTF(ASCERR,"\nBUILD returned %d\n",status);
     return BTE_build;
   }
-#ifdef BINTOKEN_VERBOSE
-  CONSOLE_DEBUG("Build command returned OK, status=%d",status);
-#endif
   return BTE_ok;
 }
 
@@ -784,20 +773,14 @@ void BinTokensCreate(struct Instance *root, enum bintoken_kind method){
   char *unlinkcommand = g_bt_data.unlinkcommand;
   int verbose = g_bt_data.verbose;
 
-#ifdef BINTOKEN_VERBOSE
-  CONSOLE_DEBUG("...");
-#endif
+	CONSOLE_DEBUG("...");
 
   if (g_bt_data.maxrels == 0) {
-#ifdef BINTOKEN_VERBOSE
     ERROR_REPORTER_HERE(ASC_PROG_NOTE,"BinTokensCreate disabled (maxrels=0)\n");
-#endif
     return;
   }
   if (srcname == NULL || buildcommand == NULL || unlinkcommand == NULL) {
-#ifdef BINTOKEN_VERBOSE
     ERROR_REPORTER_HERE(ASC_PROG_WARNING,"BinaryTokensCreate called with no options set: ignoring");
-#endif
     return;
   }
 

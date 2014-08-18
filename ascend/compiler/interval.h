@@ -21,20 +21,23 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  You should have received a copy of the GNU General Public License along
+ *  with the program; if not, write to the Free Software Foundation, Inc., 675
+ *  Mass Ave, Cambridge, MA 02139 USA.  Check the file named COPYING.
  */
 
 /** @file
  *  Interval Arithmetic Routines.
+ *  <pre>
+ *  When #including interval.h, make sure these files are #included first:
+ *         #include "utilities/ascConfig.h"
+ *  </pre>
  */
 
 #ifndef ASC_INTERVAL_H
 #define ASC_INTERVAL_H
 
-#include <ascend/general/platform.h>
-
-/**	@addtogroup compiler_interval Compiler Interval Arithmetic
+/**	@addtogroup compiler Compiler
 	@{
 */
 
@@ -46,21 +49,29 @@ struct Interval {
 
 extern struct Interval CreateInterval(double low, double high);
 /**< 
+ *  <!--  struct Interval CreateInterval(low,high)                     -->
+ *  <!--  double low,high;                                             -->
  *  Create an interval from low to high.
  */
 
 extern struct Interval IntervalFromIntegers(long low, long high);
 /**< 
+ *  <!--  struct Interval IntervalFromIntegers(low,high)               -->
+ *  <!--  long low,high;                                               -->
  *  Create an interval from low to high where the endpoints are integers.
  */
 
 extern struct Interval CreateThin(double v);
 /**< 
+ *  <!--  struct Interval CreateThin(v)                                -->
+ *  <!--  double v;                                                    -->
  *  Create an interval with lower and upper bound equal to v.
  */
 
 extern struct Interval CreateThinInteger(long l);
 /**< 
+ *  <!--  struct Interval CreateThingInteger(l)                        -->
+ *  <!--  long l;                                                      -->
  *  Create an interval with lower and upper bound equal to the integer l.
  */
 
@@ -166,6 +177,8 @@ extern struct Interval PowerInterval(struct Interval i, long power);
 
 extern struct Interval PowInterval(struct Interval i1, struct Interval i2);
 /**< 
+ *  <!--  struct Interval PowInterval(x,y)                             -->
+ *  <!--  struct Interval x,y;                                         -->
  *  Return x^y  or x**y.
  */
 

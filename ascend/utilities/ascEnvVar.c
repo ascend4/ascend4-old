@@ -22,7 +22,9 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  *
  *  This file exists because win32, among others, can't keep their
  *  POSIX compliance up. In particular, getting and setting
@@ -32,9 +34,9 @@
  */
 
 #include <ctype.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/panic.h>
-#include <ascend/general/ascMalloc.h>
+#include "ascConfig.h"
+#include "ascPanic.h"
+#include "ascMalloc.h"
 #include "ascEnvVar.h"
 #include <ascend/general/list.h>
 
@@ -105,7 +107,7 @@ void DestroyEnvVar(struct asc_env_t *ev)
 
 CmpFunc CmpEv;
 
-static
+static 
 int CmpEV(struct asc_env_t *ev1, struct asc_env_t *ev2)
 {
   if (ev1==ev2) {
@@ -215,7 +217,7 @@ int Asc_SetPathList(CONST char *envvar, CONST char *pathstring)
    * transform envvar into a string w/out lead/trail blanks and copy.
    */
   putenvstring = g_path_var;
-  SNPRINTF(putenvstring, MAX_ENV_VAR_LENGTH, "%s", envvar);
+  snprintf(putenvstring, MAX_ENV_VAR_LENGTH, "%s", envvar);
   /* trim leading whitespace */
   while (isspace(putenvstring[0])) {
     putenvstring++;
@@ -310,54 +312,44 @@ int Asc_PutEnv(CONST char *envstring)
   }
 
   putenvstring = g_path_var;
-  SNPRINTF(putenvstring, MAX_ENV_VAR_LENGTH, "%s", envstring);
-
+  snprintf(putenvstring, MAX_ENV_VAR_LENGTH, "%s", envstring);
   /* trim leading whitespace */
-  while(isspace(putenvstring[0])) {
+  while (isspace(putenvstring[0])) {
     putenvstring++;
   }
-
   /* locate '=' or EOS, counting whitespace along the way */
-  for(c = 0; putenvstring[c] !='\0' && putenvstring[c] != '='; c++){
-    if(isspace(putenvstring[c])){
+  for (c = 0; putenvstring[c] !='\0' && putenvstring[c] != '='; c++) {
+    if (isspace(putenvstring[c])) {
       spcseen++;
     }
   }
-
   /* check for empty rhs */
-  if(putenvstring[c] == '\0'){
+  if (putenvstring[c] == '\0') {
     return 1;
   }
   rhs = c;
-
-  if(c == 0){
-    /* '=' is at start of string */
-    return 1;
-  }
-
   /* backup space before = */
-  while(isspace(putenvstring[c-1])){
+  while (isspace(putenvstring[c-1])) {
     c--;
     spcseen--;
   }
   /* check for no spaces in keepname */
-  if(spcseen){
+  if (spcseen) {
     return 1;
   }
   keepname = ASC_NEW_ARRAY(char,c+1);
-  if(keepname == NULL){
+  if (keepname == NULL) {
     return 1;
   }
   strncpy(keepname,putenvstring,c);
   keepname[c] = '\0';
   /* delete the old variable if it was already assigned */
   ev = FindEnvVar(keepname);
-  if(ev!=NULL){
+  if (ev!=NULL) {
     DeleteEnvVar(keepname);
   }
   ev = CreateEnvVar(keepname);
-
-  if(ev == NULL){
+  if (ev == NULL) {
     ascfree(keepname);
     return 1;
   }
@@ -365,25 +357,25 @@ int Asc_PutEnv(CONST char *envstring)
   AppendEnvVar(g_env_list,ev);
   path = putenvstring + rhs + 1; /* got past the '=' */
 
-  while(isspace(*path)){
+  while( isspace( *path ) ) {
     path++;
   }
-  while(*path != '\0'){
+  while( *path != '\0' ) {
     length = 0;
     /* copy the directory from path to the g_path_var */
-    while((*path != PATHDIV) && (*path != '\0')){
+    while(( *path != PATHDIV ) && ( *path != '\0' )) {
       g_path_var[length++] = *(path++);
     }
-    while((length > 0) && isspace(g_path_var[length-1])){
+    while (( length > 0 ) && isspace(g_path_var[length-1])) {
       length--;
     }
-    if(length > 0){
+    if ( length > 0) {
       g_path_var[length++] = '\0';
-      if(Asc_AppendPath(keepname,g_path_var)!=0) {
+      if (Asc_AppendPath(keepname,g_path_var)!=0) {
         return 1;
       }
     }
-    while(isspace(*path) || ( *path == PATHDIV))path++;
+    while( isspace(*path) || ( *path == PATHDIV ) ) path++;
   }
   return 0;
 }
@@ -451,7 +443,7 @@ const char **Asc_GetPathList(const char *envvar, int *argc){
   }
   if (( g_env_list == NULL ) ||
       ( envvar == NULL )) {
-  	//FPRINTF(ASCERR,"G_ENV_LIST IS NULL LOOKING FOR %s\n",envvar);
+  	FPRINTF(ASCERR,"G_ENV_LIST IS NULL LOOKING FOR %s\n",envvar);
     *argc = -1;
     return NULL;
   }
@@ -461,7 +453,7 @@ const char **Asc_GetPathList(const char *envvar, int *argc){
   }
   ev = FindEnvVar(envvar);
   if (ev==NULL ) {
-  	//FPRINTF(ASCERR,"UNABLE TO FINDENVVAR %s\n",envvar);
+  	FPRINTF(ASCERR,"UNABLE TO FINDENVVAR %s\n",envvar);
 
     *argc = 0;
     return NULL;

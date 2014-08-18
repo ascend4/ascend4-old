@@ -22,21 +22,29 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
  */
 #include <stdarg.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/panic.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
 
 #include "symtab.h"
 #include "instance_enum.h"
 #include "cmpfunc.h"
 
+
 #include "functype.h"
 #include "value_type.h"
 #include "temp.h"
+
+#ifndef lint
+static CONST char TemporaryRCSid[] = "$Id: temp.c,v 1.8 1998/04/19 18:45:34 ballan Exp $";
+#endif
 
 struct gl_list_t *g_temporary_var_list = NULL;
 /* a list of active vars */

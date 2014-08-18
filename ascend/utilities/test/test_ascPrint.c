@@ -16,19 +16,21 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  */
 
 #include <stdio.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #ifdef __WIN32__
 #include <io.h>
 #endif
 #include <stdarg.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/utilities/ascPrint.h>
-
-#include <test/common.h>
+#include "CUnit/CUnit.h"
+#include "test_ascPrint.h"
 #include "test/printutil.h"
 
 #undef STR_LEN
@@ -318,7 +320,7 @@ static void test_ascPrint(void)
   test_print2_str[0] = '\0';
   test_print2_fp = NULL;
 
-  nchars = SNPRINTF(str, STR_LEN, "%s%d%c%s%f", "my_float[", 7, ']', " = ", 8.12);
+  nchars = snprintf(str, STR_LEN, "%s%d%c%s%f", "my_float[", 7, ']', " = ", 8.12);
   CU_TEST(0 == Asc_Printf("%s%d%c%s%f", "my_float[", 7, ']', " = ", 8.12)); /* no vtables registered */
   CU_TEST(FALSE == test_print1_called);
   CU_TEST('\0' == test_print1_str[0]);
@@ -337,7 +339,7 @@ static void test_ascPrint(void)
   test_print2_str[0] = '\0';
   test_print2_fp = NULL;
 
-  nchars = SNPRINTF(str, STR_LEN, "%s%d%c%s%f", "my_float[", 7, ']', " = ", 8.12);
+  nchars = snprintf(str, STR_LEN, "%s%d%c%s%f", "my_float[", 7, ']', " = ", 8.12);
   CU_TEST(nchars == Asc_Printf("%s%d%c%s%f", "my_float[", 7, ']', " = ", 8.12)); /* print something */
   CU_TEST(TRUE == test_print1_called);
   CU_TEST(0 == strcmp(test_print1_str, str));
@@ -360,7 +362,7 @@ static void test_ascPrint(void)
   test_print2_str[0] = '\0';
   test_print2_fp = NULL;
 
-  nchars = SNPRINTF(str, STR_LEN, "%s%d%c%s%f", "my_float[", 7, ']', " = ", 8.12);
+  nchars = snprintf(str, STR_LEN, "%s%d%c%s%f", "my_float[", 7, ']', " = ", 8.12);
   CU_TEST(0 == Asc_FPrintf((FILE *)10, "%s%d%c%s%f", "my_float[", 7, ']', " = ", 8.12)); /* no vtables registered */
   CU_TEST(FALSE == test_print1_called);
   CU_TEST('\0' == test_print1_str[0]);
@@ -396,7 +398,7 @@ static void test_ascPrint(void)
   test_print2_str[0] = '\0';
   test_print2_fp = NULL;
 
-  nchars = SNPRINTF(str, STR_LEN, "%s%d%c%s%f", "my_float[", 7, ']', " = ", 8.12);
+  nchars = snprintf(str, STR_LEN, "%s%d%c%s%f", "my_float[", 7, ']', " = ", 8.12);
   CU_TEST(nchars == Asc_FPrintf((FILE *)10, "%s%d%c%s%f", "my_float[", 7, ']', " = ", 8.12)); /* print something */
   CU_TEST(TRUE == test_print1_called);
   CU_TEST(0 == strcmp(test_print1_str, str));
@@ -532,8 +534,18 @@ static void test_ascPrint(void)
 /*===========================================================================*/
 /* Registration information */
 
-#define TESTS(T) \
-	T(ascPrint)
+static CU_TestInfo ascPrint_test_list[] = {
+  {"ascPrint", test_ascPrint},
+  CU_TEST_INFO_NULL
+};
 
-REGISTER_TESTS_SIMPLE(utilities_ascPrint, TESTS)
+static CU_SuiteInfo suites[] = {
+  {"utilities_ascPrint", NULL, NULL, ascPrint_test_list},
+  CU_SUITE_INFO_NULL
+};
 
+/*-------------------------------------------------------------------*/
+CU_ErrorCode test_register_utilities_ascPrint(void)
+{
+  return CU_register_suites(suites);
+}

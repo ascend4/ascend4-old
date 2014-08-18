@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Code to support dynamic and static loading of user packages.
@@ -38,7 +40,7 @@
 #include <math.h>
 #include <ctype.h>  /* was compiler/actype.h */
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/utilities/config.h> /* NEW */
 
 #ifndef ASC_DEFAULT_ASCENDLIBRARY
@@ -48,10 +50,10 @@
 #include <ascend/general/ospath.h>
 
 
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/utilities/ascEnvVar.h>
 #include <ascend/compiler/importhandler.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/list.h>
 #include "symtab.h"
 
@@ -70,13 +72,14 @@
 #include "safe.h"
 #include "relation_util.h"
 #include "extfunc.h"
+#include <ascend/packages/sensitivity.h>
 #include <ascend/packages/ascFreeAllVars.h>
 #include <ascend/packages/defaultall.h>
 #include "module.h"
 #include "packages.h"
 #include "defaultpaths.h"
 
-//#define PACKAGES_DEBUG
+/* #define PACKAGE_DEBUG */
 
 /*
 	Initialise the slv data structures used when calling external fns
@@ -112,9 +115,7 @@ int Builtins_Init(void){
 		,NULL /* destroy fn */
   );
 
-#ifdef PACKAGES_DEBUG
-  CONSOLE_DEBUG("Registering EXTERNAL defaultself_visit_childatoms");
-#endif
+  /* ERROR_REPORTER_DEBUG("Registering EXTERNAL asc_default_self"); */
   result = CreateUserFunctionMethod("defaultself_visit_childatoms"
 		,defaultself_visit_childatoms
 		,1 /* num of args */
@@ -123,9 +124,7 @@ int Builtins_Init(void){
 		,NULL /* destroy fn */
   );
 
-#ifdef PACKAGES_DEBUG
-  CONSOLE_DEBUG("Registering EXTERNAL defaultself_visit_submodels");
-#endif
+  /* ERROR_REPORTER_DEBUG("Registering EXTERNAL asc_default_all"); */
   result = CreateUserFunctionMethod("defaultself_visit_submodels"
 		,defaultself_visit_submodels
 		,1 /* num of args */
@@ -147,14 +146,14 @@ int package_load(CONST char *partialpath, CONST char *initfunc){
 	static const char *default_library_path = NULL;
 	if(!default_solvers_path){
 		default_solvers_path = get_default_solvers_path();
-		/*CONSOLE_DEBUG("Default ASCENDSOLVERS set to '%s'", default_solvers_path);*/
+		CONSOLE_DEBUG("Default ASCENDSOLVERS set to '%s'", default_solvers_path);
 	}
 	if(!default_library_path){
 		default_library_path = get_default_library_path();
-		/*CONSOLE_DEBUG("Default ASCENDLIBRARY set to '%s'", default_library_path);*/
+		CONSOLE_DEBUG("Default ASCENDLIBRARY set to '%s'", default_library_path);
 	}
 
-#ifdef PACKAGES_DEBUG
+#ifdef PACKAGE_DEBUG
 	CONSOLE_DEBUG("Searching for external library '%s'",partialpath);
 #endif
 
@@ -164,11 +163,6 @@ int package_load(CONST char *partialpath, CONST char *initfunc){
 	fp1 = importhandler_findinpath(
 		partialpath, default_solvers_path, ASC_ENV_SOLVERS,&handler
 	);
-#ifdef PACKAGES_DEBUG
-	char *solversstr = Asc_GetEnv(ASC_ENV_SOLVERS);
-	CONSOLE_DEBUG("Not found in %s = \"%s\"",ASC_ENV_SOLVERS,solversstr);
-	ASC_FREE(solversstr);
-#endif
 
 	/* next, search in the ASCENDLIBRARY */
 	if(fp1==NULL){
@@ -176,13 +170,11 @@ int package_load(CONST char *partialpath, CONST char *initfunc){
 			partialpath, default_library_path, ASC_ENV_LIBRARY,&handler
 		);
 		if(fp1==NULL){
-#ifdef PACKAGES_DEBUG
 			CONSOLE_DEBUG("External library '%s' not found",partialpath);
-#endif
-			//ERROR_REPORTER_NOLINE(ASC_USER_ERROR,"External library '%s' not found.",partialpath);
+			ERROR_REPORTER_NOLINE(ASC_USER_ERROR,"External library '%s' not found.",partialpath);
 			return 1; /* failure */
 		}
-#ifdef PACKAGES_DEBUG
+#ifdef PACKAGE_DEBUG
 		else{
 			CONSOLE_DEBUG("FOUND in $ASCENDLIBRARY");
 		}
@@ -193,14 +185,14 @@ int package_load(CONST char *partialpath, CONST char *initfunc){
 
 	asc_assert(handler!=NULL);
 
-#ifdef PACKAGES_DEBUG
+#ifdef PACKAGE_DEBUG
 	CONSOLE_DEBUG("About to import external library...");
 #endif
 
 	/* run the import handlers' importfn to do the actual loading, registration etc. */
 	result = (*(handler->importfn))(fp1,initfunc,partialpath);
 	if(result){
-#ifdef PACKAGES_DEBUG
+#ifdef PACKAGE_DEBUG
 		CONSOLE_DEBUG("Error %d when importing external library of type '%s'",result,handler->name);
 #endif
 		ERROR_REPORTER_HERE(ASC_PROG_ERROR,"Error importing external library '%s'",partialpath);

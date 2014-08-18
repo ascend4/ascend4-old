@@ -22,13 +22,16 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
  */
 
 #include <stdarg.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/panic.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
 
@@ -46,14 +49,18 @@
 #include "instance_types.h"
 #include "visitlink.h"
 
+#ifndef lint
+static CONST char NameVisitModuleID[] = "$Id: visitlink.c,v 1.3 1997/12/20 17:51:57 ballan Exp $";
+#endif
+
 static
 void SlowVisitTreeTwo(struct Instance *inst,
                       VisitNameTwoProc proc,
-                      int depth, int leaf, int anon_flags,
+                      int depth, int leaf, int anon_flags, 
                       struct gl_list_t *path,
                       VOIDPTR userdata)
 {
-  asc_intptr_t nc,c;
+  unsigned long nc,c;
   unsigned nullchildren=0;
   struct Instance *child;
   AssertMemory(inst);
@@ -90,11 +97,11 @@ void SlowVisitTreeTwo(struct Instance *inst,
 static
 void SilentVisitTreeTwo(struct Instance *inst,
                         VisitNameTwoProc proc,
-                        int depth, int leaf, int anon_flags,
+                        int depth, int leaf, int anon_flags, 
                         struct gl_list_t *path,
-                        VOIDPTR userdata
-){
-  asc_intptr_t nc,c;
+                        VOIDPTR userdata)
+{
+  unsigned long nc,c;
   struct Instance *child;
   AssertMemory(inst);
   if (!depth) {

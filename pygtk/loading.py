@@ -5,8 +5,7 @@ import os.path
 global have_gtk
 have_gtk = False
 
-#if not sys.executable.endswith("pythonw.exe"):
-#	print "PYTHON PATH =",sys.path
+print "PYTHON PATH =",sys.path
 
 try:
 	import pygtk 
@@ -47,9 +46,22 @@ def load_matplotlib(throw=False,alert=False):
 		try:
 			print_status("Trying python numpy")
 			import numpy
+			matplotlib.rcParams['numerix'] = 'numpy'  
 			print_status("","Using python module numpy")
 		except ImportError:
-			print_status("","FAILED to load Python module 'numpy'")
+			try:
+				print_status("Trying python numarray")
+				import numarray
+				matplotlib.rcParams['numerix'] = 'numarray'  
+				print_status("","Using python module numarray")
+			except ImportError:
+				try:
+					print_status("Trying python Numeric")
+					import Numeric
+					matplotlib.rcParams['numerix'] = 'Numeric'  
+					print_status("","Using python module Numeric")
+				except ImportError:
+					print_status("","FAILED TO LOAD A NUMERIC MODULE FOR PYTHON")
 		import pylab
 
 
@@ -74,7 +86,7 @@ class LoadingWindow:
 
 	def set_assets_dir(self, d):
 		self.assetsdir = d
-		self.splashfile = os.path.join(self.assetsdir,'ascend-loading.png')
+		self.splashfile = os.path.join(self.assetsdir,'ascend-loading.svg')
 
 	def create_window(self):
 		if have_gtk:
@@ -114,8 +126,7 @@ class LoadingWindow:
 	
 	def print_status(self,status,msg=None):
 		if self.is_loading:
-			if not sys.executable.endswith("pythonw.exe"):
-				print status
+			print status
 			self.label.set_text(status)
 			if msg is not None:
 				try:
@@ -129,7 +140,7 @@ class LoadingWindow:
 			try:
 				sys.stderr.write("\r                                                 \r")
 				if msg!=None:
-					sys.stderr.write(msg+"\r")
+					sys.stderr.write(msg+"\n")
 					_messages.append(msg)
 				sys.stderr.write(status+"...\r")
 				sys.stderr.flush()

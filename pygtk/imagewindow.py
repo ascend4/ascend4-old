@@ -1,21 +1,19 @@
 # General-purpose popup window for reporting graphical stuff
 
-import gtk, pango
+import gtk, gtk.glade, pango
 import ascpy
 from varentry import *
-import os,shutil
 
 class ImageWindow:
-	def __init__(self,browser,parent,imagefilename,title,delete=False):
+	def __init__(self,browser,parent,imagefilename,title):
 		self.browser = browser;
 		self.imagefilename = imagefilename
-		self.delete = delete
 
 		# GUI config
-		self.browser.builder.add_objects_from_file(self.browser.glade_file, ["imagewindow"])
-		self.window = self.browser.builder.get_object("imagewindow")
-		self.vbox = self.browser.builder.get_object("vbox1")
-		self.closebutton = self.browser.builder.get_object("closebutton")
+		_xml = gtk.glade.XML(browser.glade_file,"imagewindow")
+		self.window = _xml.get_widget("imagewindow")
+		self.vbox = _xml.get_widget("vbox1")
+		self.closebutton = _xml.get_widget("closebutton")
 		self.window.set_title(title)
 
 		if self.browser.icon:
@@ -39,7 +37,7 @@ class ImageWindow:
 		self.scrollwin.show()
 		self.vbox.add(self.scrollwin)
 
-		self.browser.builder.connect_signals(self)
+		_xml.signal_autoconnect(self)
 
 		# more than 100% is pointless
 		self.zoom_max = 1
@@ -56,26 +54,9 @@ class ImageWindow:
 		
 		response = chooser.run()
 		if response==gtk.RESPONSE_OK:
-			if os.path.exists(chooser.get_filename()):
-				label = gtk.Label("File Already Exists, Overwrite?")
-				dialog = gtk.Dialog("Error",None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT,
-                    gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-				dialog.vbox.pack_start(label)
-				label.show()
-				response = dialog.run()
-				if response == gtk.RESPONSE_ACCEPT:
-					shutil.copy(self.imagefilename,chooser.get_filename())
-					dialog.destroy()
-					self.browser.reporter.reportWarning("FILE SAVED: '%s'" % chooser.get_filename())
-					chooser.destroy()
-				else:
-					dialog.destroy()
-					self.browser.reporter.reportWarning("FILE NOT SAVED")
-					chooser.destroy()
-			else:
-				shutil.copy(self.imagefilename,chooser.get_filename())
-				self.browser.reporter.reportWarning("FILE SAVED: '%s'" % chooser.get_filename())
-				chooser.destroy()
+			self.browser.reporter.reportWarning("NOT IMPLEMENTED: SAVE AS '%s'" % chooser.get_filename())
+			chooser.destroy()
+		
 
 	def on_zoomfit_clicked(self,*args):
 		self.zoom(fit=1)
@@ -126,9 +107,8 @@ class ImageWindow:
 	def run(self):
 		self.window.show()
 
-	def on_imagewindow_remove(self,*args):
-		if self.delete:
-			os.unlink(self.imagefilename)
+	def on_imagewindow_destroy_event(self,*args):
+		pass
 
 	def on_imagewindow_size_request(self,*args):
 		if self.is_fit:

@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	'list' module
@@ -65,7 +67,7 @@
 #ifndef ASC_LIST_H
 #define ASC_LIST_H
 
-#include "platform.h"
+#include <ascend/utilities/ascConfig.h>
 
 #ifndef TRUE
 #define TRUE 1
@@ -74,10 +76,6 @@
 #define FALSE 0
 #endif
 #define LISTIMPLEMENTED 0 		/**< BAA_DEBUG changes that need work */
-
-/**	@addtogroup general_list General List
-	@{
-*/
 
 /*
  * The following bit fields are defined for the gl_list flags
@@ -826,8 +824,6 @@ extern void gl_reportrecycler(FILE *fp);
  *
  *  @param fp  Pointer to file stream to receive report.
  */
-
-/* @} */
 
 #endif /* ASC_LIST_H */
 

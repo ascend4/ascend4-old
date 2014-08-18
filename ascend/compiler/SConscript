@@ -3,7 +3,7 @@ Import('libascend_env')
 
 csrcs = Split("""
 	anoncopy.c anonmerg.c anontype.c arrayinst.c ascCompiler.c
-	atomsize.c atomvalue.c bintoken.c braced.c
+	atomsize.c atomvalue.c bintoken.c bit.c braced.c
 	case.c check.c child.c childdef.c childio.c childinfo.c cmpfunc.c
 	commands.c copyinst.c createinst.c defaultpaths.c destroyinst.c
 	dimen.c dimen_io.c dump.c
@@ -12,7 +12,7 @@ csrcs = Split("""
 	freestore.c func.c findpath.c
 	importhandler.c initialize.c instance_io.c
 	instantiate.c instmacro.c instquery.c
-	library.c link.c linkinst.c logrel_io.c logrel_util.c
+	library.c linkinst.c logrel_io.c logrel_util.c
 	logrelation.c mathinst.c mergeinst.c module.c name.c
 	nameio.c notate.c notequery.c numlist.c parentchild.c
 	parpend.c pending.c plot.c proc.c procframe.c
@@ -21,7 +21,7 @@ csrcs = Split("""
 	relation_io.c relation_util.c rootfind.c reverse_ad.c 
 	safe.c
 	select.c setinst_io.c setinstval.c setio.c
-	sets.c slist.c slvreq.c simlist.c statement.c statio.c switch.c
+	sets.c slist.c simlist.c statement.c statio.c switch.c
 	symtab.c syntax.c temp.c tmpnum.c type_desc.c
 	type_descio.c typedef.c typelint.c
 	units.c universal.c
@@ -49,7 +49,6 @@ else:
 
 if scanparse_env.has_key('HAVE_LEX'):
 	scannersource = libascend_env.CFile('scanner.l',LEXFLAGS=['-l','-Pzz_'])
-	libascend_env.Depends(scannersource,parsersource)
 	# backup the lex output for use by people without lex:
 	if libascend_env.get('UPDATE_NO_YACC_LEX'):
 		libascend_env.Command('scanner_no_lex.c',scannersource,Copy('$TARGET','$SOURCE'))

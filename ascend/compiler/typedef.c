@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//*
 	@file
 	Type definition module
@@ -26,12 +28,13 @@
 #include <math.h>
 #include <stdarg.h>
 #include <ctype.h>
-
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
+
+
 
 #include "functype.h"
 #include "expr_types.h"
@@ -53,6 +56,7 @@
 #include "exprs.h"
 #include "exprio.h"
 #include "forvars.h"
+#include "bit.h"
 #include "setinstval.h"
 #include "childinfo.h"
 #include "instance_enum.h"
@@ -739,7 +743,7 @@ enum typelinterr VerifyALIASES(CONST struct StatementList *stats,
     case REF:
     case ISA:
     case WHEN:
-    default: /* IRT, ATS, AA, LNK, REL, ASGN, RUN, IF, EXT, CASGN, too. */
+    default: /* IRT, ATS, AA, REL, ASGN, RUN, IF, EXT, CASGN, too. */
       break;
     }
   }
@@ -833,7 +837,7 @@ enum typelinterr DoIS_A(CONST struct StatementList *stats)
         return error_code;
       }
       break;
-    default: /* IRT, ATS, AA, LNK, REL, ASGN, RUN, WHEN, IF, EXT, CASGN  */
+    default: /* IRT, ATS, AA, REL, ASGN, RUN, WHEN, IF, EXT, CASGN  */
       break;
     }
   }
@@ -1216,7 +1220,7 @@ enum typelinterr DoRelations(symchar *type,
         return error_code;
       }
       break;
-    default: /* ISA, IRT, ATS, AA, LNK, ASGN, WHEN, RUN, IF, REF, CASGN, CALL*/
+    default: /* ISA, IRT, ATS, AA, ASGN, WHEN, RUN, IF, REF, CASGN, CALL*/
       break;
     }
   }
@@ -1272,7 +1276,7 @@ enum typelinterr DoWhens(symchar *type,
   return DEF_OKAY;
 }
 
-
+
 /*****************************************************************\
   Functions to help determine the types of children.
 \*****************************************************************/
@@ -1747,7 +1751,7 @@ void MarkIfPassedArgs(CONST struct Name *nptr, CONST struct gl_list_t *clist)
   CONST struct Name *pnptr;
   struct ChildListEntry *found;
   struct ChildListEntry test;
-  //int rlen;
+  int rlen;
   unsigned long pos;
 
   /* digest the first part of the name in the local scope */
@@ -1763,7 +1767,7 @@ void MarkIfPassedArgs(CONST struct Name *nptr, CONST struct gl_list_t *clist)
   }
   /* name found. */
   found = (struct ChildListEntry *) gl_fetch(clist,pos);
-  //rlen = found->isarray;
+  rlen = found->isarray;
   if (NameLength(nptr) == 1) {
     /* local scalar name */
     found->bflags |= CBF_PASSED;
@@ -2052,7 +2056,7 @@ int DeriveChildTypes(struct StatementList *stats, struct gl_list_t *clist)
   End of functions to help determine the types of children
   necessitated by aliases.
 \*****************************************************************/
-
+
 /*****************************************************************\
  begin stuff to help refine the types of children
  using ARE_ALIKE ARE_THE_SAME IS_REFINED_TO info.
@@ -2928,8 +2932,7 @@ enum typelinterr VerifyRefinementLegal(CONST struct StatementList *stats,
     case FOR:
       if (ForContainsAlike(stat) ||
           ForContainsAts(stat) ||
-          ForContainsIrt(stat) ||
-	  ForContainsLink(stat) ) {
+          ForContainsIrt(stat) ) {
         error_code = VerifyRefinementLegal(ForStatStmts(stat),lclgl);
         if (error_code != DEF_OKAY){
           return error_code;
@@ -2944,7 +2947,7 @@ enum typelinterr VerifyRefinementLegal(CONST struct StatementList *stats,
       break;
     case COND:
       break;
-    default: /* LREL REL, ASGN, RUN, IF, LNK, EXT, REF ISA WHEN too. */
+    default: /* LREL REL, ASGN, RUN, IF, EXT, REF ISA WHEN too. */
       break;
     }
   }
@@ -3077,13 +3080,11 @@ enum typelinterr VerifyTypeArgs(CONST struct Set *alist,
         }
         n = ExprName(ex);
         if (NameInForTable(ft,n)) {
-          const char *filename=Asc_ModuleBestName(StatementModule(stat));
-          int line=StatementLineNum(stat);
-          error_reporter_start(ASC_USER_ERROR,filename,line,"");
-          FPRINTF(ASCERR,"Loop index used in argument list where instance expected (arg #%d '",argc);
+          FPRINTF(ASCERR,
+            "%s Loop index used where instance expected\n  Argument %d: ",
+            StatioLabel(3),argc);
           WriteSetNode(ASCERR,sn);
-          FPRINTF(ASCERR,"')");
-          error_reporter_end_flush();
+          FPRINTF(ASCERR,"\n");
           return DEF_ARGS_INCORRECT;
         }
         ptype = FindRHSType(n,lclgl,&rval,&subsopen,&origin);
@@ -3100,7 +3101,7 @@ enum typelinterr VerifyTypeArgs(CONST struct Set *alist,
          * the type might be <= and refined elsewhere to the correct sort.
          */
         if (ptype!=atype && MoreRefined(ptype,atype)==NULL) {
-          ERROR_REPORTER_START_HERE(ASC_USER_ERROR);
+          ERROR_REPORTER_START_HERE(ASC_USER_ERROR);		  
           FPRINTF(ASCERR,"Instance '");
           WriteSetNode(ASCERR,sn);
 		  FPRINTF(ASCERR,"' is of incompatible type '%s' (expected '%s') at argument %d."
@@ -3580,7 +3581,7 @@ enum typelinterr VerifyRelationNames(symchar * name,
         return error_code;
       }
       break;
-    default: /* ISA, IRT, ATS, AA, LNK, ASGN, WHEN, RUN, IF, REF, CASGN*/
+    default: /* ISA, IRT, ATS, AA, ASGN, WHEN, RUN, IF, REF, CASGN*/
       break;
     }
   }
@@ -3705,7 +3706,7 @@ enum typelinterr AddRLE(struct gl_list_t *nspace, struct Statement *s)
 {
   struct RedListEntry *rle;
   CONST struct VariableList *vl;
-  //CONST struct Expr *checkval;
+  CONST struct Expr *checkval;
   enum typelinterr rval = DEF_OKAY;
 
   /* remember to append pointer before leaving function, but after
@@ -3730,7 +3731,7 @@ enum typelinterr AddRLE(struct gl_list_t *nspace, struct Statement *s)
   } else {
     assert(StatementType(s)==WILLBE);
     vl = GetStatVarList(s);
-    GetStatCheckValue(s);
+    checkval = GetStatCheckValue(s);
     /* WILL_BE creates as many rle as there are lhs names. */
     while (vl != NULL) {
       rle = CREATERLE;

@@ -1,5 +1,5 @@
 /*	ASCEND modelling environment
-	Copyright (C) 2006-2011 Carnegie Mellon University
+	Copyright (C) 2006-2007 Carnegie Mellon University
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Implementation of non-GUI-specific parts of the Integration Interface.
 
@@ -49,8 +51,8 @@
 	@{
 */
 
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
 
@@ -69,26 +71,16 @@
 
 /*---------------------------*/
 
-// TODO FIXME do we need all integrator IDs to be declare in here, or is it 
-// OK to add them later at runtime...?
-
 #ifdef ASC_WITH_IDA
 # define IDA_OPTIONAL S I(IDA,integrator_ida_internals)
 #else
 # define IDA_OPTIONAL
 #endif
 
-#ifdef ASC_WTH_DOPRI5
-# define DOPRI5_OPTIONAL S I(DOPRI5,integrator_dopri5_internals)
-#else
-# define DOPRI5_OPTIONAL
-#endif
-
 /* we add IDA to the list of integrators at build time, if it is selected */
 #define INTEG_LIST \
 	I(LSODE       ,integrator_lsode_internals) \
 	IDA_OPTIONAL \
-	DOPRI5_OPTIONAL \
 	S I(AWW       ,integrator_aww_internals)
 
 /**
@@ -181,14 +173,12 @@ typedef int IntegratorSolveFn(struct IntegratorSystemStruct *blsys
 /**<
 	Integrators must provide a function like this that actually runs the
 	integration.
-
-	@return 0 on success.
 */
 
 typedef int IntegratorWriteMatrixFn(const struct IntegratorSystemStruct *blsys, FILE *fp, const char *type);
 /**<
 	Write Matrix. This method allows the user to request output of 'a matrix'
-	from the integrator to a file. The type of output can be requested using
+	from the integrator to a file. The type of output can be requested using 
 	the type parameter. Check the implementation details of the specific
 	integrator.
 
@@ -237,7 +227,7 @@ typedef struct IntegratorInternalsStruct{
 	that we're solving it with, and a struct containing the output function ptrs
 */
 struct IntegratorSystemStruct{
-  struct Instance *instance;  /**< not sure if this one is really necessary... -- JP */ /*DS: it is necessary to know the model where the integration takes place in case the LINK syntax is used because we need to access the model LINK tables */
+  struct Instance *instance;  /**< not sure if this one is really necessary... -- JP */
   slv_system_t system;        /**< the system that we're integrating in ASCEND */
   IntegratorEngine engine;    /**< enum containing the ID of the integrator engine we're using. Should go away -- fully replaced by 'internals' */
   const IntegratorInternals *internals;/**< pointers to the various functions belonging to this integrator */
@@ -270,7 +260,7 @@ struct IntegratorSystemStruct{
   int n_obs;
   int n_diffeqs;              /**< number of differential equations (used by idaanalyse) */
   int currentstep;            /**< current step number (also @see integrator_getnsamples) */
-
+ 
   /** @TODO move the following to the 'params' structure? Or maybe better not to? */
   int maxsubsteps;            /**< most steps between mesh poins */
   double stepzero;            /**< initial step length, SI units. */
@@ -334,13 +324,6 @@ ASC_DLLSPEC const struct gl_list_t *integrator_get_engines();
 	changed to being determined at load time if necessary.
 */
 
-ASC_DLLSPEC void integrator_free_engines();
-/**<
-	Destroy integrator engines, hopefully unloading any shared libraries
-	that aren't needed. FIXME probably needs to be reimplemented to
-	store pointers in a shared context object somewhere.
-*/
-
 ASC_DLLSPEC int integrator_set_engine(IntegratorSystem *blsys, const char *name);
 /**<
 	Sets the engine for this integrator. Checks that the integrator can be used
@@ -383,8 +366,6 @@ ASC_DLLSPEC int integrator_set_reporter(IntegratorSystem *blsys
 	to make its output. You need to pass in a struct containing the required
 	function pointers. (We will wrap IntegratorReporter and access it from
 	Python, eventually)
-
-	@returns 1, but doesn't test anything for correctness.
 */
 
 ASC_DLLSPEC int integrator_find_indep_var(IntegratorSystem *blsys);

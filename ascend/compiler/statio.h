@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	 @file
 	Permanent Statement Output routines.
@@ -35,21 +37,15 @@
 #ifndef ASC_STATIO_H
 #define ASC_STATIO_H
 
-/**	@addtogroup compiler_stmt Compiler Statements
+/**	@addtogroup compiler Compiler
 	@{
 */
 
 #include <stdio.h>
 #include <stdarg.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/utilities/error.h>
 #include "stattypes.h"
-
-ASC_DLLSPEC void statio_clear_stattypenames(void);
-/**<
-	Clear global array of pointers to statement type names, needed after
-	destruction of the symbol table.
-*/
 
 ASC_DLLSPEC struct gl_list_t *GetTypeNamesFromStatList(CONST struct StatementList*sl);
 /**<
@@ -136,11 +132,6 @@ extern void WriteStatementErrorMessage(FILE *f,
 
 	@see WriteStatementError
  */
-
-ASC_DLLSPEC void WriteStatementLocation(FILE *f, CONST struct Statement *stat);
-/**<
-	Write out a statement, together with its location information
-*/
 
 extern CONST char *StatioLabel(int level);
 /**<

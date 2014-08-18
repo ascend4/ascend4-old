@@ -35,10 +35,9 @@ else:
 
 objs += graph_env.SharedObject('graph.c')
 
-# we don't need to link with GraphViz any more, because we dlopen it.
-#if libascend_env.get('WITH_GRAPHVIZ'):
-#	libascend_env.Append(LIBS=libascend_env['GRAPHVIZ_LIBS'])
-#	libascend_env.Append(LIBPATH=libascend_env['GRAPHVIZ_LIBPATH'])
+if libascend_env.get('WITH_GRAPHVIZ'):
+	libascend_env.Append(LIBS=libascend_env['GRAPHVIZ_LIBS'])
+	libascend_env.Append(LIBPATH=libascend_env['GRAPHVIZ_LIBPATH'])
 	
 
 #--------------------

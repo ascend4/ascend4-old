@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	System graph output
 
@@ -26,147 +28,60 @@
 #ifdef HAVE_GRAPHVIZ_BOOLEAN
 # define HAVE_BOOLEAN
 #endif
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 
 #ifdef WITH_GRAPHVIZ
-# include <gvc.h>
-#ifdef WITH_CGRAPH
-# include <cgraph.h>
-#endif
-#endif
-
-#define ASC_GV_LIBNAME "libgvc.so"
-#ifdef WITH_CGRAPH
-# define ASC_CGRAPH_LIBNAME "libcgraph.so"
-#else
-# define ASC_CGRAPH_LIBNAME ASC_GV_LIBNAME
+# ifdef __WIN32__
+#  include <gvc.h>
+# else
+#  include <graphviz/gvc.h>
+# endif
+# define HAVE_BOOLEAN
 #endif
 
-#include "./graph.h"
+boolean X;
+
+#include "graph.h"
 #include "slv_client.h"
 #include "incidence.h"
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
-#include <ascend/utilities/ascDynaLoad.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 
 int system_write_graph(slv_system_t sys
 	, FILE *fp
 	, const char *format
 ){
-#ifdef WITH_GRAPHVIZ
 	incidence_vars_t id;
 	build_incidence_data(sys, &id);
 
-	int res;
-
-	/* first create nodes for the relations */
-	unsigned i;
-	Agnode_t *n, *m;
-	void (*ags) (Agnode_t* , char* , char*);
-
+#ifdef WITH_GRAPHVIZ
 	Agraph_t *g;
+	GVC_t *gvc;
 
 	unsigned edgecount = 0;
 	unsigned nodecount = 0;
 
-	GVC_t *gvc;
-
-	const struct var_variable **ivars;
-	unsigned niv;
-	char reltemp[200];
-	//Agedge_t *e;
+	gvc = gvContext();
+	g = agopen("g",AGDIGRAPH);
+	agnodeattr(g,"shape","ellipse");
+	agnodeattr(g,"label","");
+	agnodeattr(g,"color","");
+	agnodeattr(g,"style","");
 
 	char temp[200];
 
-	/* dynamic loading of stuff from the graphviz libraries... */
-#ifdef WITH_CGRAPH
-	/* gvc */
-	GVC_t *(*gvConte)(void);
-	void (*gvLayo)(GVC_t* , graph_t*, const char*engine);
-	void (*gvRend)(GVC_t* , graph_t*, const char*format, FILE*out);
-	/* cgraph */
-	Agdesc_t Agdirected = { 1, 0, 0, 1};
-	Agraph_t *(*agop)(char* , Agdesc_t type, Agdisc_t *disc);
-	Agsym_t *(*agatt)(Agraph_t *g, int kind, char *name, char *value);
-	Agnode_t *(*agno)(Agraph_t *g, char *name, int cflag);
-	Agedge_t *(*aged)(Agraph_t *g, Agnode_t *t, Agnode_t *h, char *name,int cflag);
-# define ASC_AGNODE(GRAPH,NAME) (*agno)(GRAPH,NAME,1)
-# define ASC_AGEDGE(GRAPH,N1,N2) (*aged)(GRAPH,N1,N2,NULL,1)
-#else // agraph
-	GVC_t *(*gvConte)();
-	Agnode_t *(*agno)(Agraph_t* , char*);
-	Agraph_t *(*agop)(char* , int);
-	void (*agatt) (Agraph_t* , char* , char*);
-	Agedge_t *(*aged)(Agraph_t* , Agnode_t*, Agnode_t*);
-	void (*gvLayo)(GVC_t* , Agraph_t*, char*);
-	void (*gvRend)(GVC_t* , Agraph_t*, char*, FILE*);
-# define ASC_AGNODE(GRAPH,NAME) (*agno)(GRAPH,NAME)
-# define ASC_AGEDGE(GRAPH,N1,N2) (*aged)(GRAPH,N1,N2)
-#endif
-
-	res = Asc_DynamicLoad(ASC_GV_LIBNAME,NULL);
-	if(res){
-		ERROR_REPORTER_NOLINE(ASC_USER_ERROR,"Unable to load GraphViz (gvc) on your system. Is it installed?");
-		return 1;
-	}
-#ifdef WITH_CGRAPH
-	res = Asc_DynamicLoad(ASC_CGRAPH_LIBNAME,NULL);
-	if(res){
-		ERROR_REPORTER_NOLINE(ASC_USER_ERROR,"Unable to access GraphViz (cgraph) on your system. Is it installed?");
-		return 1;
-	}
-#endif
-
-	*(void **) (&gvConte) = Asc_DynamicFunction(ASC_GV_LIBNAME,"gvContext");
-	*(void **) (&gvLayo) = Asc_DynamicFunction(ASC_GV_LIBNAME,"gvLayout");
-	*(void **) (&gvRend) = Asc_DynamicFunction(ASC_GV_LIBNAME,"gvRender");
-	*(void **) (&agop) = Asc_DynamicFunction(ASC_CGRAPH_LIBNAME,"agopen");
-#ifdef WITH_CGRAPH
-	*(void **) (&agatt) = Asc_DynamicFunction(ASC_CGRAPH_LIBNAME,"agattr");
-#else
-	*(void **) (&agatt) = Asc_DynamicFunction(ASC_GV_LIBNAME,"agnodeattr");
-#endif
-
-	*(void **) (&agno) = Asc_DynamicFunction(ASC_CGRAPH_LIBNAME,"agnode");
-	*(void **) (&ags) = Asc_DynamicFunction(ASC_CGRAPH_LIBNAME,"agset");
-	*(void **) (&aged) = Asc_DynamicFunction(ASC_CGRAPH_LIBNAME,"agedge");
-
-	if(!gvConte || !gvLayo || !gvRend || !agop || !agatt | !agno | !ags || !aged){
-		ERROR_REPORTER_NOLINE(ASC_USER_ERROR,"Unable to access find required "
-			"functions in Graphviz dynamically-loaded library/ies Do you have the "
-			"correct version installed?"
-		);
-		return 1;
-	}
-
-	CONSOLE_DEBUG("Dynamically loaded GraphViz OK");
-
-	/* create the graph and its style details */
-	gvc = (*gvConte)();
-#ifdef WITH_CGRAPH
-	g = (*agop)("g",Agdirected,NULL);
-	(*agatt)(g,AGNODE,"shape","ellipse");
-	(*agatt)(g,AGNODE,"label","");
-	(*agatt)(g,AGNODE,"color","");
-	(*agatt)(g,AGNODE,"style","");
-#else
-	g = (*agop)("g",AGDIGRAPH);
-	(*agatt)(g,"shape","ellipse");
-	(*agatt)(g,"label","");
-	(*agatt)(g,"color","");
-	(*agatt)(g,"style","");
-#endif
-
-	/* create notes for the relations */
+	/* first create nodes for the relations */
+	unsigned i;
+	Agnode_t *n, *m;
 	for(i=0; i < id.neqn; ++i){
 		char *relname;
 		relname = rel_make_name(sys,id.rlist[i]);
 		sprintf(temp,"r%d",rel_sindex(id.rlist[i]));
-		n = ASC_AGNODE(g,temp);
-		(*ags)(n,"label",relname);
+		n = agnode(g,temp);
+		agset(n,"label",relname);
 		if(rel_satisfied(id.rlist[i])){
-			(*ags)(n,"style","filled");
-			(*ags)(n,"color","blue");
+			agset(n,"style","filled");
+			agset(n,"color","blue");
 		}
 		ASC_FREE(relname);
 		nodecount++;
@@ -178,24 +93,28 @@ int system_write_graph(slv_system_t sys
 		char *varname;
 		varname = var_make_name(sys,id.vlist[j]);
 		sprintf(temp,"v%d",var_sindex(id.vlist[j]));
-		n = ASC_AGNODE(g,temp);
-		(*ags)(n,"label",varname);
-		(*ags)(n, "shape", "box");
+		n = agnode(g,temp);
+		agset(n,"label",varname);
+		agset(n, "shape", "box");
 		if(var_fixed(id.vlist[j])){
 			CONSOLE_DEBUG("VAR '%s' IS FIXED",varname);
-			(*ags)(n,"style","filled");
-			(*ags)(n,"color","green");
+			agset(n,"style","filled");
+			agset(n,"color","green");
 		}
 		if(!var_active(id.vlist[j])){
 			CONSOLE_DEBUG("VAR '%s' IS FIXED",varname);
-			(*ags)(n,"style","filled");
-			(*ags)(n,"color","gray");
+			agset(n,"style","filled");
+			agset(n,"color","gray");
 		}
 		ASC_FREE(varname);
 		nodecount++;
 	}
 
 	/* now create edges */
+	const struct var_variable **ivars;
+	unsigned niv;
+	char reltemp[200];
+	struct Agedge_t *e;
 	for(i=0; i < id.nprow; ++i){
 		ivars = rel_incidence_list(id.rlist[i]);
 		niv = rel_n_incidences(id.rlist[i]);
@@ -208,39 +127,96 @@ int system_write_graph(slv_system_t sys
 			const struct var_variable *v;
 			v = ivars[j];
 			sprintf(temp,"v%d",var_sindex(v));
-			n = ASC_AGNODE(g, reltemp);
-			m = ASC_AGNODE(g, temp);
+			n = agnode(g, reltemp);
+			m = agnode(g, temp);
 
 			if(id.v2pc[var_sindex(v)]==id.e2pr[rel_sindex(id.rlist[i])]){
-				ASC_AGEDGE(g,n,m); /* from rel to var */
+				e = agedge(g,n,m); /* from rel to var */
 			}else{
-				ASC_AGEDGE(g,m,n); /* from var to rel */
+				e = agedge(g,m,n); /* from var to rel */
 			}
 			edgecount++;
 		}
 	}
-
-	/* we won't try to plot it if it's way too complex */
 
 	if(nodecount > 300 || edgecount > 300){
 		ERROR_REPORTER_HERE(ASC_USER_ERROR,"Graph is too complex, will not launch GraphViz (%d nodes, %d edges)", nodecount, edgecount);
 		return 1;
 	}
 
-	(*gvLayo)(gvc, g, "dot");
-	(*gvRend)(gvc, g, (char*)format, fp);
-
-	//printf("\nErrors encountered %s\n",(*dlerror)());
-
-	Asc_DynamicUnLoad(ASC_GV_LIBNAME);
-
-	CONSOLE_DEBUG("Completed graph output");
-	return 0;
+	gvLayout(gvc, g, "dot");
+	gvRender(gvc, g, (char*)format, fp);
 
 #else
 	ERROR_REPORTER_HERE(ASC_PROG_ERR,"Function system_write_graph not available (GraphViz not present at build-time)");
-	return 1;
+	return 1; /* error */
 #endif
+
+#if 0
+	int nr,nsr,nv,nsv,niv;
+	int i,j;
+	struct rel_relation **srels;
+	struct var_variable **svars, **ivars;
+	char *relname, *varname;
+
+	CONSOLE_DEBUG("Writing graph...");
+	asc_assert(fp!=NULL);
+
+	CONSOLE_DEBUG("FP = %p",fp);
+	fprintf(fp,"digraph G{\n");
+
+	/* first create nodes for the rels */
+	nr = slv_count_solvers_rels(sys,rfilter);
+	nsr = slv_get_num_solvers_rels(sys);
+	srels = slv_get_solvers_rel_list(sys);
+	fprintf(fp,"\n\n\t/* %d relations */\n\n",nr);
+	for(i=0; i<nsr; ++i){
+		if(rel_apply_filter(srels[i],rfilter)){
+			relname = rel_make_name(sys,srels[i]);
+			fprintf(fp,"\tr%d[shape=box,label=\"%s\"]\n",i,relname);
+			ASC_FREE(relname);
+		}
+	}
+
+	/* and the vars */
+	nsv = slv_get_num_solvers_vars(sys);
+	nv = slv_count_solvers_vars(sys,vfilter);
+	svars = slv_get_solvers_var_list(sys);
+	fprintf(fp,"\n\n\t/* %d variables */\n\n",nv);
+	for(j=0; j<nsv; ++j){
+		if(var_apply_filter(svars[j],vfilter)){
+			varname = var_make_name(sys,svars[j]);
+			if(var_fixed(svars[j])){
+				fprintf(fp,"s\tv%d[label=\"%s\",style=filled,color=green]\n",j,varname);
+			}else{
+				fprintf(fp,"\tv%d[label=\"%s\"]\n",j,varname);
+			}
+			ASC_FREE(varname);
+		}
+	}
+
+	/* now output the edges between them */
+	fprintf(fp,"\n\n\t/* incidences */\n\n");
+	for(i=0; i<nsr; ++i){
+		if(!rel_apply_filter(srels[i],rfilter))continue;
+
+		ivars = rel_incidence_list(srels[i]);
+		niv = rel_n_incidences(srels[i]);
+
+		for(j=0; j<niv; ++j){
+			if(!var_apply_filter(ivars[j],vfilter))continue;
+			if(j==i){
+				fprintf(fp,"\tr%d->v%d\n",i,var_sindex(ivars[j]));
+			}else{
+				fprintf(fp,"\tv%d->r%d\n",var_sindex(ivars[j]),i);
+			}
+		}
+	}
+
+	fprintf(fp,"}\n");
+#endif
+	CONSOLE_DEBUG("Completed graph output");
+	return 0;
 }
 
 

@@ -1,4 +1,3 @@
-
 /* :ex: set ts=2 */
 /*	ASCEND modelling environment
 	Copyright 1997, Carnegie Mellon University
@@ -15,7 +14,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	LSODE Integrator
 
@@ -56,12 +57,12 @@
 #endif
 
 #include <ascend/utilities/config.h>
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/utilities/error.h>
 #include <ascend/compiler/instance_enum.h>
 #include <ascend/utilities/ascSignal.h>
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/solver/solver.h>
 
 #include <ascend/packages/sensitivity.h>
@@ -104,16 +105,16 @@ extern ASC_EXPORT int lsode_register(void){
  *  is wierd. WIN32/CRAY is treated as special case
  */
 #ifdef APOLLO
-#define NOUNDERBARS
+#define NOUNDERBARS TRUE
 #endif
 #ifdef _HPUX_SOURCE
-#define NOUNDERBARS
+#define NOUNDERBARS TRUE
 #endif
 /* AIX xlf will not suffix an underbar on a symbol
  * unless xlf is given the ``-qextname'' option
  */
 #ifdef _AIX
-#define NOUNDERBARS
+#define NOUNDERBARS TRUE
 #endif
 
 #ifdef NOUNDERBARS
@@ -143,14 +144,6 @@ extern ASC_EXPORT int lsode_register(void){
 #define LSODE_FEX FEX
 #define GETCOMMON GET_LSODE_COMMON
 #endif
-
-#if defined(__MINGW32__) || defined(__MINGW64__)
-#undef LSODE
-#undef XASCWV
-#define XASCWV xascwv_
-#define LSODE lsode_
-#endif
-
 
 #define ASC_CLOCK_CHECK_PERIOD 1 /* number of FEX or JEX cycled between GUI updates */
 #define ASC_CLOCK_MAX_GUI_WAIT (0.5*CLOCKS_PER_SEC) /* max number of clock ticks between GUI updates */
@@ -316,7 +309,6 @@ static void integrator_lsode_free(void *enginedata){
 	densematrix_destroy(d.dydot_dy);
 
 	d.n_eqns = 0L;
-	ASC_FREE(enginedata);
 }
 
 /*------------------------------------------------------------------------------
@@ -785,12 +777,11 @@ static void LSODE_FEX( int *n_eq ,double *t ,double *y ,double *ydot){
     break;
   }
 
-  if((res = slv_solve(l_lsode_blsys->system))){
+  if((res =slv_solve(l_lsode_blsys->system))){
 		CONSOLE_DEBUG("solver returns error %ld",res);
 	}
 
   slv_get_status(l_lsode_blsys->system, &status);
-  CONSOLE_DEBUG("Calling slv_check_bounds with lo = 0, hi = -1");
   if(slv_check_bounds(l_lsode_blsys->system,0,-1,"")){
     lsodedata->status = lsode_nok;
   }
@@ -811,7 +802,7 @@ static void LSODE_FEX( int *n_eq ,double *t ,double *y ,double *ydot){
 #endif
 
   if(res){
-    ERROR_REPORTER_HERE(ASC_PROG_ERR,"Failed to solve for derivatives (%d)",res);
+		ERROR_REPORTER_HERE(ASC_PROG_ERR,"Failed to solve for derivatives (%d)",res);
 #if 0
   	ERROR_REPORTER_START_HERE(ASC_PROG_ERR);
     FPRINTF(ASCERR,"Unable to compute the vector of derivatives with the following values for the state variables:\n");
@@ -820,14 +811,14 @@ static void LSODE_FEX( int *n_eq ,double *t ,double *y ,double *ydot){
     }
     error_reporter_end_flush();
 #endif
-    lsodedata->stop = 1;
+		lsodedata->stop = 1;
     lsodedata->status = lsode_nok;
 #ifdef ASC_SIGNAL_TRAPS
-    raise(SIGINT);
+		raise(SIGINT);
 #endif
   }else{
     lsodedata->status = lsode_ok;
-    /* ERROR_REPORTER_HERE(ASC_PROG_NOTE,"lsodedata->status = %d",lsodedata->status); */
+		/* ERROR_REPORTER_HERE(ASC_PROG_NOTE,"lsodedata->status = %d",lsodedata->status); */
   }
   integrator_get_ydot(l_lsode_blsys, ydot);
 
@@ -872,10 +863,10 @@ static void LSODE_JEX(int *neq ,double *t, double *y
   );
 
   if(nok){
-    ERROR_REPORTER_HERE(ASC_PROG_ERR,"Error in computing the derivatives for the system. Failing...");
+  	ERROR_REPORTER_HERE(ASC_PROG_ERR,"Error in computing the derivatives for the system. Failing...");
     lsodedata->status = lsode_nok;
     lsodedata->lastcall = lsode_derivative;
-    lsodedata->stop = 1;
+		lsodedata->stop = 1;
     return;
   }else{
     lsodedata->status = lsode_ok;
@@ -1004,7 +995,7 @@ static int integrator_lsode_solve(IntegratorSystem *blsys
 			CONSOLE_DEBUG("MAXORD reduced to 12 for AM");
 		}
 		mf = 10 + miter;
-        }else{
+  }else{
 		ERROR_REPORTER_HERE(ASC_USER_ERROR,"Unacceptable value '%d' of parameter 'meth'",method);
 		return 5;
 	}
@@ -1098,22 +1089,20 @@ static int integrator_lsode_solve(IntegratorSystem *blsys
   for(index = start_index; index < finish_index; index++, 	blsys->currentstep++) {
     xend = integrator_getsample(blsys, index+1);
     xprev = x[0];
-    asc_assert(xend > xprev);
+		asc_assert(xend > xprev);
     /* CONSOLE_DEBUG("LSODE call #%lu: x = [%f,%f]", index,xprev,xend); */
 
 # ifdef ASC_SIGNAL_TRAPS
 
-    Asc_SignalHandlerPushDefault(SIGFPE);
-    Asc_SignalHandlerPushDefault(SIGINT);
+		Asc_SignalHandlerPushDefault(SIGFPE);
+		Asc_SignalHandlerPushDefault(SIGINT);
 
-    int s_fpe = SETJMP(g_fpe_env);
-    int s_int = SETJMP(g_int_env);
-
-    if(s_fpe == 0 && s_int == 0) {
+    if(SETJMP(g_fpe_env)==0) {
 # endif /* ASC_SIGNAL_TRAPS */
 
-      CONSOLE_DEBUG("Calling LSODE with end-time = %f",xend);
-      switch(mf){
+	  /* CONSOLE_DEBUG("Calling LSODE with end-time = %f",xend); */
+      /*
+	  switch(mf){
 		case 10:
 			CONSOLE_DEBUG("Non-stiff (Adams) method; no Jacobian will be used"); break;
 		case 21:
@@ -1126,10 +1115,11 @@ static int integrator_lsode_solve(IntegratorSystem *blsys
 			CONSOLE_DEBUG("Stiff (BDF) method, internally generated banded jacobian"); break;
 		default:
 			ERROR_REPORTER_HERE(ASC_PROG_ERR,"Invalid method id %d for LSODE",mf);
-			return 0;
+			return 0; * failure *
       }
+	  */
 
-      d->lastwrite = clock();
+			d->lastwrite = clock();
 
       /* provides some rudimentary locking to prevent reentrance*/
       LSODEDATA_SET(blsys);
@@ -1141,30 +1131,20 @@ static int integrator_lsode_solve(IntegratorSystem *blsys
       /* clear the global var */
       LSODEDATA_RELEASE();
 
-      CONSOLE_DEBUG("...");
-
 # ifdef ASC_SIGNAL_TRAPS
     }else{
-      if(s_fpe){
-        ERROR_REPORTER_HERE(ASC_PROG_ERR,"Integration terminated due to float error in LSODE call.");
-        lsode_free_mem(y,reltol,abtol,rwork,iwork,obs,dydx);
-        d->status = lsode_ok;		/* clean up before we go */
-        d->lastcall = lsode_none;
-        return 6;
-      }
-      if(s_int){
-        ERROR_REPORTER_HERE(ASC_PROG_ERR,"Integration aborted or interrupted.");
-        lsode_free_mem(y,reltol,abtol,rwork,iwork,obs,dydx);
-        d->status = lsode_ok;		/* clean up before we go */
-        d->lastcall = lsode_none;
-        return 6;
-      }
+      ERROR_REPORTER_HERE(ASC_PROG_ERR,"Integration terminated due to float error in LSODE call.");
+      lsode_free_mem(y,reltol,abtol,rwork,iwork,obs,dydx);
+      d->status = lsode_ok;		/* clean up before we go */
+      d->lastcall = lsode_none;
+      return 6;
     }
-    Asc_SignalHandlerPopDefault(SIGFPE);
-    Asc_SignalHandlerPopDefault(SIGINT);
+		Asc_SignalHandlerPopDefault(SIGFPE);
+		Asc_SignalHandlerPopDefault(SIGINT);
+
 # endif
 
-    /*CONSOLE_DEBUG("AFTER %lu LSODE CALL\n", index); */
+    /* CONSOLE_DEBUG("AFTER %lu LSODE CALL\n", index); */
     /* this check is better done in fex,jex, but lsode takes no status */
 /*    if (Solv_C_CheckHalt()) {
       if (istate >= 0) {

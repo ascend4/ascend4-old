@@ -1,4 +1,5 @@
 import gtk
+import gtk.glade
 import ascpy
 from itertools import groupby
 from operator import itemgetter
@@ -7,7 +8,6 @@ import re
 
 import config
 from infodialog import *
-from preferences import *
 
 ZOOM_RE = re.compile(r"([0-9]+)\s*%?")
 MAX_ZOOM_SIZE = float(2000) # float
@@ -17,13 +17,11 @@ AT_BOUND_TOL = 0.0001;
 class DiagnoseWindow:
 	def __init__(self,browser,block=0):
 		self.browser=browser
-		self.browser.builder.add_objects_from_file(self.browser.glade_file, ["diagnosewin"])
-		self.browser.builder.connect_signals(self)
-		self.window = self.browser.builder.get_object("diagnosewin")
-		self.window.grab_focus()
-		self.window.set_transient_for(self.browser.window)
+		_xml = gtk.glade.XML(browser.glade_file,"diagnosewin")
+		_xml.signal_autoconnect(self)	
 
-		self.prefs = Preferences()
+		self.window = _xml.get_widget("diagnosewin")
+		self.window.set_transient_for(self.browser.window)
 
 		try:
 			_icon = gtk.Image()
@@ -35,38 +33,32 @@ class DiagnoseWindow:
 		except:
 			pass
 		
-		self.blockstatus = self.browser.builder.get_object("blockstatustext")
-
-		self.imagescroll = self.browser.builder.get_object("imagescroll")
-		self.image = self.browser.builder.get_object("image")
-		self.blockentry = self.browser.builder.get_object("blockentry")
-		self.zoomentry = self.browser.builder.get_object("zoomentry")
+		self.imagescroll = _xml.get_widget("imagescroll")
+		self.image = _xml.get_widget("image")
+		self.blockentry = _xml.get_widget("blockentry")
+		self.zoomentry = _xml.get_widget("zoomentry")
 
 		self.var = None; self.rel = None
-		self.varname = self.browser.builder.get_object("varname1")
-		self.varval = self.browser.builder.get_object("varval")
-		self.varinfobutton = self.browser.builder.get_object("varinfobutton")
-		self.relname = self.browser.builder.get_object("relname1")
-		self.relresid = self.browser.builder.get_object("relresid")
-		self.relinfobutton = self.browser.builder.get_object("relinfobutton")
-		self.preferred_units_check = self.browser.builder.get_object("preferred_units_check")
-		if self.prefs.getBoolPref("Diagnose","show_preferred_units")==True:
-			self.preferred_units_check.set_active(True)
-		else:
-			self.preferred_units_check.set_active(False)
+		self.varname = _xml.get_widget("varname1")
+		self.varval = _xml.get_widget("varval")
+		self.varinfobutton = _xml.get_widget("varinfobutton")
+		self.relname = _xml.get_widget("relname1")
+		self.relresid = _xml.get_widget("relresid")
+		self.relinfobutton = _xml.get_widget("relinfobutton")
 
-		self.varview = self.browser.builder.get_object("varview")
+		self.varview = _xml.get_widget("varview")
 		self.varbuf = gtk.TextBuffer()
 		self.varview.set_buffer(self.varbuf)
-		self.varcollapsed = self.browser.builder.get_object("varcollapsed")
-		self.relview = self.browser.builder.get_object("relview")	
-		self.relcollapsed = self.browser.builder.get_object("relcollapsed")
-		self.relvalues = self.browser.builder.get_object("relvalues")
-		self.rellabels = self.browser.builder.get_object("rellabels")
-		self.relrels = self.browser.builder.get_object("relrels")
-		self.relresids = self.browser.builder.get_object("relresids")
+		self.varcollapsed = _xml.get_widget("varcollapsed")
+		self.relview = _xml.get_widget("relview")	
+		self.relcollapsed = _xml.get_widget("relcollapsed")
+		self.relvalues = _xml.get_widget("relvalues")
+		self.rellabels = _xml.get_widget("rellabels")
+		self.relrels = _xml.get_widget("relrels")
+		self.relresids = _xml.get_widget("relresids")
 		self.relbuf = gtk.TextBuffer()
 		self.relview.set_buffer(self.relbuf)
+
 		self.im = None
 		self.block = 0
 		self.apply_prefs()
@@ -197,7 +189,6 @@ class DiagnoseWindow:
 
 		self.fill_var_names()
 		self.fill_rel_names()
-		self.fill_block_status()
 	
 		self.fill_selection_info()
 
@@ -205,17 +196,8 @@ class DiagnoseWindow:
 
 	def fill_selection_info(self):
 		if self.var:
-			self.varname.set_text(self.var.getName())
-			default_units = self.var.getInstance().getType().getDimensions().getDefaultUnits().getName().toString()
-			pref_units = self.var.getInstance().getType().getPreferredUnits()
-			if pref_units and self.prefs.getBoolPref("Diagnose","show_preferred_units",True):
-				varval = str(self.var.getValue())+" "+pref_units.getName().toString()
-			else:
-				if default_units=="?":
-					varval = str(self.var.getValue())
-				else:
-					varval = str(self.var.getValue())+" "+default_units
-			self.varval.set_text(varval)
+			#self.varname.set_text(self.var.getName())
+			self.varval.set_text(str(self.var.getValue()))
 			self.varinfobutton.set_sensitive(True)
 		else:
 			self.varname.set_text("")
@@ -263,21 +245,6 @@ class DiagnoseWindow:
 			pb1 = self.pixbuf.scale_simple(w,h,gtk.gdk.INTERP_NEAREST)
 		
 		self.image.set_from_pixbuf(pb1)
-
-	def fill_block_status(self):
-		print "FILL BLOCK STATUS"
-		s = self.im.getBlockStatus(self.block)
-		ss = "Failed"
-		if s == ascpy.IM_CONVERGED:
-			ss = "Converged"
-		elif s == ascpy.IM_NOT_YET_ATTEMPTED:
-			ss = "Not attempted yet"
-		elif s == ascpy.IM_OVER_TIME:
-			ss += " (time limit)"
-		elif s == ascpy.IM_OVER_ITER:
-			ss += " (iter limit)"
-		self.blockstatus.set_text(ss);
-		
 
 	def fill_var_names(self):
 		print "FILL VAR NAMES"
@@ -351,11 +318,6 @@ class DiagnoseWindow:
 	def on_diagnosewin_close(self,*args):
 		self.window.response(gtk.RESPONSE_CLOSE);
 
-	def on_preferred_units_toggle(self,widget):
-		_v = widget.get_active()
-		self.prefs.setBoolPref("Diagnose","show_preferred_units",_v)
-		self.fill_selection_info()
-
 	# incidence data view
 
 	def on_varcollapsed_toggled(self,*args):
@@ -375,14 +337,7 @@ class DiagnoseWindow:
 	def on_varinfobutton_clicked(self,*args):
 		title = "Variable '%s'" % self.var
 		text = "%s\n%s\n" % (title,"(from the solver's view)")
-		units = " "
-		default_units = self.var.getInstance().getType().getDimensions().getDefaultUnits().getName().toString()
-		pref_units = self.var.getInstance().getType().getPreferredUnits()
-		if pref_units and self.prefs.getBoolPref("Diagnose","show_preferred_units",True):
-			units += pref_units.getName().toString()
-		else:
-			if default_units!="?":
-				units += default_units
+
 		_rows = {
 			"Value": self.var.getValue()
 			,"Nominal": self.var.getNominal()
@@ -390,7 +345,7 @@ class DiagnoseWindow:
 			,"Upper bound": self.var.getUpperBound()
 		}
 		for k,v in _rows.iteritems():
-			text += "\n  %s\t%s" % (k,value_human(v)+units)
+			text += "\n  %s\t%s" % (k,value_human(v))
 		
 		text += "\n\nIncident with %d relations:" % self.var.getNumIncidentRelations()
 		for r in self.var.getIncidentRelations():
@@ -409,15 +364,7 @@ class DiagnoseWindow:
 
 		text += "\n\nIncident with %d variables:" % self.rel.getNumIncidentVariables()
 		for v in self.rel.getIncidentVariables():
-			units = " "
-			default_units = v.getInstance().getType().getDimensions().getDefaultUnits().getName().toString()
-			pref_units = v.getInstance().getType().getPreferredUnits()
-			if pref_units and self.prefs.getBoolPref("Diagnose","show_preferred_units",True):
-				units += pref_units.getName().toString()
-			else:
-				if default_units != "?" :
-					units += default_units
-			text += "\n  %s\t= %s" % ( v.getName(),value_human(v.getValue())+units )
+			text += "\n  %s\t= %s" % ( v.getName(),value_human(v.getValue()) )
 
 		_dialog = InfoDialog(self.browser,self.window,text,title,tabs=(150,300))
 		_dialog.run()
@@ -437,7 +384,6 @@ class DiagnoseWindow:
 			rl,cl,rh,ch = self.im.getBlockLocation(b)
 			if rh-rl > 0 or ch-cl>0:
 				self.set_block(b)
-				return
 			b = b - 1
 		print "NO PRECEDING 'BIG' BLOCKS"
 		
@@ -448,7 +394,6 @@ class DiagnoseWindow:
 			rl,cl,rh,ch = self.im.getBlockLocation(b)
 			if rh-rl > 0 or ch-cl>0:
 				self.set_block(b)
-				return
 			b = b + 1
 		print "NO FOLLOWING 'BIG' BLOCKS"
 	

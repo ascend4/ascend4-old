@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
 	Query function(s) for the NOTES database in notate.h
 */
@@ -20,11 +22,11 @@
 #ifndef ASC_NOTEQUERY_H
 #define ASC_NOTEQUERY_H
 
-/**	@addtogroup compiler_notes Compiler Notes
+/**	@addtogroup compiler Compiler
 	@{
 */
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include <ascend/compiler/compiler.h>
 #include <ascend/compiler/type_desc.h>
 #include <ascend/general/list.h>

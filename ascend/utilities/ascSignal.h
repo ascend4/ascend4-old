@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Signal handling protocol definitions for ASCEND.
@@ -28,12 +30,12 @@
 	  - a standard signal handler - Asc_SignalTrap()
 	  - global jmp_buf's for use with Asc_SignalTrap()
 	  - functions for managing nested signal handlers
-
+	
 	The following signal types are currently supported:
 	  - SIGFPE  - floating point exception
 	  - SIGINT  - CTRL-C interactive attention request
 	  - SIGSEGV - segmentation fault
-
+	
 	A simple use of these facilities to trap floating point exceptions
 	might be as follows:
 	<pre>
@@ -57,7 +59,7 @@
 	uses <code>lngjmp</code> and returns to the if statement, and now
 	'setjmp' returns non-zero and the <code>else</code> clause is executed.
 	Finally, the handler is removed and the signal manager cleaned up.<br><br>
-
+	
 	The stack mechanism also allows nested handlers to be registered.  It is
 	important to note that nested handlers for the same signal type cannot
 	both use Asc_SignalTrap() as the handler.  This is because different
@@ -83,14 +85,14 @@
 	   Asc_SignHandlerPop(SIGFPE,Asc_SignalTrap);
 	   Asc_SignalDestroy();
 	</pre>
-
+	
 	Here, exceptions in the sqrt(x) calculation are handled by the standard
 	Asc_SignalTrap(), while the division is handled by my_handler.<br><br>
-
+	
 	Avoid mixing use of the signal manager with direct calls to signal().
 	Once Asc_SignalInit() has been called, use of signal() directly is likely
 	to be lost or to corrupt the managed handlers.<br><br>
-
+	
 	Another warning: setjmp is expensive if called inside a fast loop.
 
 	Requires:
@@ -104,11 +106,6 @@
 #define ASC_ASCSIGNAL_H
 
 #include "config.h"
-
-/**	@addtogroup utilities_signal Utilities Signal Handling
-	@{
-*/
-
 #ifndef ASC_SIGNAL_TRAPS
 
 /* if our wizzband PITA signal handing isn't turned on, at least allow
@@ -126,7 +123,7 @@
 #else
 /*-------------- rest of file is conditional on ASC_SIGNAL_TRAPS--------------*/
 
-#include <ascend/general/platform.h>
+#include "ascConfig.h"
 
 #include <ascend/general/except.h>
 
@@ -149,7 +146,7 @@ typedef void SigHandlerFn(int);
 
 #define MAX_TRAP_DEPTH 40L
 /**< The maximum number of traps that can be nested. */
-
+	
 ASC_DLLSPEC JMP_BUF g_fpe_env;   /**< Standard signal jmp_buf - floating point error. */
 ASC_DLLSPEC JMP_BUF g_seg_env;   /**< Standard signal jmp_buf - segmentation fault. */
 ASC_DLLSPEC JMP_BUF g_int_env;   /**< Standard signal jmp_buf - interactive attention (<CTRL>C). */
@@ -254,10 +251,8 @@ ASC_DLLSPEC void Asc_SignalRecover(int force);
  *               compiler/platform.
  */
 
-/* add source line/file and signal handler name to call */
-#define Asc_SignalHandlerPushDefault(SIG) Asc_SignalHandlerPush_impl((SIG),Asc_SignalTrap,"Asc_SignalTrap",__FILE__,__LINE__)
-
-#define Asc_SignalHandlerPush(SIG,FUNC) Asc_SignalHandlerPush_impl((SIG),(FUNC),#FUNC,__FILE__,__LINE__)
+ASC_DLLSPEC int Asc_SignalHandlerPushDefault(int signum);
+ASC_DLLSPEC int Asc_SignalHandlerPush(int signum, SigHandlerFn *func);
 /**<
  * Adds a handler to the stack of signal handlers for the given signal.
  * There is a maximum stack limit, so returns 1 if limit exceeded.
@@ -279,11 +274,8 @@ ASC_DLLSPEC void Asc_SignalRecover(int force);
  *        popping an unintended handler.
  */
 
-ASC_DLLSPEC int Asc_SignalHandlerPush_impl(int signum, SigHandlerFn *func, char *name, char *file, int line);
-
-#define Asc_SignalHandlerPopDefault(SIG) Asc_SignalHandlerPop_impl((SIG),Asc_SignalTrap,"Asc_SignalTrap",__FILE__,__LINE__)
-
-#define Asc_SignalHandlerPop(SIG,FUNC) Asc_SignalHandlerPop_impl((SIG),(FUNC),#FUNC,__FILE__,__LINE__)
+ASC_DLLSPEC int Asc_SignalHandlerPopDefault(int signum);
+ASC_DLLSPEC int Asc_SignalHandlerPop(int signum, SigHandlerFn *func);
 /**<
  *  Removes the last-pushed handler from the stack for signum signal types.
  *  If the removed handler is the same as func, it is uninstalled and
@@ -305,8 +297,6 @@ ASC_DLLSPEC int Asc_SignalHandlerPush_impl(int signum, SigHandlerFn *func, char 
  *        only call Asc_SignalRecover() if it matches func.
  */
 
-ASC_DLLSPEC int Asc_SignalHandlerPop_impl(int signum, SigHandlerFn *func, char *name, char *file, int line);
-
 /** Output the contents of the specified stack. For debugging. */
 ASC_DLLSPEC void Asc_SignalPrintStack(int signum);
 
@@ -319,8 +309,6 @@ ASC_DLLSPEC int Asc_SignalStackLength(int signum);
 ASC_DLLSPEC SigHandlerFn *Asc_SignalStackTop(int signum);
 
 #endif /* ASC_SIGNAL_TRAPS */
-
-/* @} */
 
 #endif  /* ASC_ASCSIGNAL_H */
 

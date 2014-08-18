@@ -3,7 +3,7 @@
 	Copyright (C) 1993 Joseph Zaher
 	Copyright (C) 1994 Joseph Zaher, Benjamin Andrew Allan
 	Copyright (C) 1996 Benjamin Andrew Allan
-	Copyright (C) 2006-2011 Carnegie Mellon University
+	Copyright (C) 2006 Carnegie Mellon University
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -16,9 +16,14 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*//** @defgroup system_slvserver System Solver Server
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
+*//**
+	@file
 	Server functions for the SLV solver.
+
+	Requires:
 
 	@NOTE
 		We are going through a solver API definition restructuring.
@@ -36,8 +41,6 @@
 #define ASC_SLV_SERVER_H
 
 #include <ascend/utilities/config.h>
-#include <ascend/general/platform.h>
-#include <ascend/linear/linsolqr.h>
 
 #include "var.h"
 #include "rel.h"
@@ -49,7 +52,11 @@
 #include "slv_types.h"
 #include "slv_client.h"
 
-/**	@addtogroup system_slvserver
+#include <ascend/linear/linsolqr.h>
+
+#include <ascend/utilities/ascConfig.h>
+
+/**	@addtogroup solver Solver
 	@{
 */
 
@@ -58,11 +65,11 @@ extern slv_system_t slv_create(void);
 	Creates a system of the currently selected type in sys.
 */
 
-ASC_DLLSPEC int slv_destroy(slv_system_t sys);
+extern int slv_destroy(slv_system_t sys);
 /**<
 	Destroys all currently created systems in sys.
 
-	@param sys a system
+	@sys a system
 	@return 0 on success, or else the number of solvers with trouble destroying if there were problems.
 */
 
@@ -81,7 +88,7 @@ extern void slv_set_instance(slv_system_t sys, SlvBackendToken root);
 
 	NOTE: THESE TWO FUNCTIONS SHOULD TAKE A VOID * AND
 	THEN THE USER SHOULD CAST IT BACK TO WHATEVER IS
-	NEEDED, GIVEN THE KNOWLEDGE OF THE BACK END IN QUESTION.
+	NEEDED GIVEN THE KNOWLEDGE OF THE BACK END IN QUESTION.
 */
 
 extern void slv_set_num_models(slv_system_t sys, int32 nmod);
@@ -159,8 +166,8 @@ extern void slv_set_master_bnd_list(slv_system_t sys,
 	Set the master boundaries list to blist of length size.
 
 	@NOTE
-		There are now 2 lists: the master list, pulled off the instance
-		tree, and the solvers list, to be handed to the solvers.
+		There are now 2 lists: the master  list pulled of the instance
+		tree, and the solvers  list is to be handed to the solvers.
 		Eventually the solvers_list will only include those elements the specific
 		solver needs to know about.
 		For the moment,the content of the two lists is the same, but the ordering

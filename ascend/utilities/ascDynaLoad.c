@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 
@@ -26,19 +28,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <ascend/general/platform.h>
+#include "ascConfig.h"
 #include "error.h"
 #include "ascPrint.h"
-#include <ascend/general/panic.h>
-#include <ascend/general/ascMalloc.h>
+#include "ascPanic.h"
+#include "ascMalloc.h"
 #include "ascDynaLoad.h"
 #include "ascEnvVar.h"
 
 #include <ascend/general/env.h>
 #include <ascend/general/ospath.h>
+#include <ascend/compiler/instance_enum.h>
 #include <ascend/general/list.h>
-
-// #define DL_DEBUG
+#include <ascend/compiler/extfunc.h>
+#include <ascend/compiler/importhandler.h>
 
 typedef int (*ExternalLibraryRegister_fptr_t)(void);
 
@@ -155,7 +158,7 @@ void AscCheckDuplicateLoad(CONST char *path)
   r = g_ascend_dllist;
   while (r != NULL) {
     if (strcmp(path,r->path)==0) {
-      ERROR_REPORTER_HERE(ASC_PROG_WARNING,"Attempt to load already-loaded '%s'.",path);
+      ERROR_REPORTER_HERE(ASC_PROG_WARNING,"Attempt to load already loaded '%s'.",path);
       return;
     }
     r = r->next;
@@ -255,7 +258,7 @@ int Asc_DynamicLoad(CONST char *path, CONST char *initFun)
    *	If the named library does not exist, if it's not loadable or if
    *	it does not define the named install proc, report an error
    */
-  xlib = dlopen(path, RTLD_NOW|RTLD_LOCAL);
+  xlib = dlopen(path, 1);
   if (xlib == NULL) {
     ERROR_REPORTER_HERE(ASC_PROG_ERR,"%s",(char *)dlerror());
 
@@ -381,9 +384,7 @@ int Asc_DynamicUnLoad(CONST char *path)
     ERROR_REPORTER_HERE(ASC_PROG_ERR, "Unable to remember or unload %s", path);
     return -3;
   }
-#ifdef DL_DEBUG
   CONSOLE_DEBUG("Asc_DynamicUnLoad: forgetting & unloading %s", path);
-#endif
   /*
    *  dlclose() returns 0 on success, FreeLibrary() returns TRUE.
    *  A uniform convention is preferable, so trap and return 0 on success.
@@ -527,7 +528,7 @@ char *dynaload_lib_filename(const char *partialname){
 #if !defined(ASC_SHLIBSUFFIX) || !defined(ASC_SHLIBPREFIX)
 # error "ASC_SHLIBSUFFIX and ASC_SHLIBPREFIX are not defined"
 #endif
-	SNPRINTF(buffer,PATH_MAX,"%s%s%s",ASC_SHLIBPREFIX,partialname,ASC_SHLIBSUFFIX);
+	snprintf(buffer,PATH_MAX,"%s%s%s",ASC_SHLIBPREFIX,partialname,ASC_SHLIBSUFFIX);
 	return buffer;
 }
 
@@ -585,7 +586,8 @@ int test_librarysearch(struct FilePath *path, void *userdata){
 }
 
 /**
-	@NOTE this function makes use of ospath search functionality.
+	@DEPRECATED this function needs to be rewritten to use 'ImportHandler'
+	functionality.
 */
 char *SearchArchiveLibraryPath(CONST char *name, char *dpath, const char *envv){
 	struct FilePath *fp1, *fp2, *fp3; /* relative path */

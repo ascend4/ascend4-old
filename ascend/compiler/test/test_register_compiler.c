@@ -12,20 +12,19 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 */
 
-#include <ascend/general/platform.h>
+#include <ascend/utilities/ascConfig.h>
 #include "test_register_compiler.h"
+
+#define SUITE compiler
 
 #define TESTS(T) \
 	T(basics) \
-	T(autodiff) \
-	T(expr) \
-	T(bintok) \
-	T(fixfree) \
-	T(blackbox) \
-	T(fixassign)
+	T(autodiff)
 
 
 #define PROTO_TEST(NAME) PROTO(compiler,NAME)
@@ -33,9 +32,16 @@ TESTS(PROTO_TEST)
 #undef PROTO_TEST
 
 #define REGISTER_TEST(NAME) \
-	result = TESTREGISTER(compiler,NAME); \
+	result = test_register_compiler_##NAME(); \
 	if(CUE_SUCCESS!=result){ \
 		return result; \
 	}
+
+#define REGISTER_SUITE(SUITENAME,TESTS) \
+	CU_ErrorCode test_register_##SUITENAME(void){ \
+		CU_ErrorCode result = CUE_SUCCESS; \
+		TESTS(REGISTER_TEST) \
+		return result; \
+	}	
 
 REGISTER_SUITE(compiler,TESTS)

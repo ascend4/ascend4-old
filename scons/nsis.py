@@ -27,6 +27,7 @@ import SCons.Scanner
 import os.path
 import glob
 
+
 def nsis_parse( sources, keyword, multiple ):
   """
   A function that knows how to read a .nsi file and figure
@@ -181,14 +182,14 @@ def find_nsis(env):
   if SCons.Util.can_read_reg:
     # If we can read the registry, get the NSIS command from it
     try:
-		# 131609 is KEY_READ | KEY_WOW64_32KEY since NSIS is 32-bit
-		k = SCons.Util.RegOpenKeyEx(SCons.Util.hkey_mod.HKEY_LOCAL_MACHINE,'SOFTWARE\\NSIS',0,131609)
-		val, tok = SCons.Util.RegQueryValueEx(k,None)
-		ret = val + os.path.sep + 'makensis.exe'
-		if os.path.exists(ret):
-			return '"' + ret + '"'
-		else:
-			return None
+      k = SCons.Util.RegOpenKeyEx(SCons.Util.hkey_mod.HKEY_LOCAL_MACHINE,
+                                  'SOFTWARE\\NSIS')
+      val, tok = SCons.Util.RegQueryValueEx(k,None)
+      ret = val + os.path.sep + 'makensis.exe'
+      if os.path.exists(ret):
+        return '"' + ret + '"'
+      else:
+        return None
     except:
       pass # Couldn't find the key, just act like we can't read the registry
   # Hope it's on the path

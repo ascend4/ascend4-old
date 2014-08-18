@@ -24,21 +24,24 @@
  *  See the GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check
+ *  the file named COPYING.
  */
 
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/list.h>
+
+
 
 #include "expr_types.h"
 #include "stattypes.h"
+#include "slist.h"
 #include "proc.h"
 #include "instance_enum.h"
 #include "watchpt.h"
 #include "procframe.h"
-
-//#define PROCFRAME_DEBUG
 
 /* The following goo all goes to slow down the method execution.
  * need to be smarter about these macros.
@@ -54,9 +57,6 @@
 char * fmncreate(CONST char *old, char *incr, char* join)
 {
   char *new;
-#ifdef PROCFRAME_DEBUG
-  CONSOLE_DEBUG("Create procframe");
-#endif
   if (old == NULL) { old = "";}
   if (join == NULL) { join = "";}
   if (incr == NULL) { incr = "";}
@@ -83,9 +83,6 @@ void InitNormalTopProcFrame(struct procFrame *fm, struct Instance *i,
   assert(i !=NULL);
   assert(cname !=NULL);
   assert(err!=NULL); /* good design? */
-#ifdef PROCFRAME_DEBUG
-  CONSOLE_DEBUG("...");
-#endif
   fm->i = i;
   fm->flow = FrameOK;
   fm->ErrNo = Proc_all_ok;
@@ -131,9 +128,6 @@ void InitDebugTopProcFrame(struct procFrame *fm, struct Instance *i,
   assert(i !=NULL);
   assert(cname !=NULL);
   assert(dbi !=NULL);
-#ifdef PROCFRAME_DEBUG
-  CONSOLE_DEBUG("...");
-#endif
   fm->i = i;
   fm->flow = FrameOK;
   fm->ErrNo = Proc_all_ok;
@@ -172,9 +166,6 @@ struct procFrame *AddProcFrame(struct procFrame *parent,
   assert(context != NULL);
   assert(incrname != NULL);
   assert(proc != NULL);
-#ifdef PROCFRAME_DEBUG
-  CONSOLE_DEBUG("...");
-#endif
   if (parent == NULL) {
     assert(m == FrameNormal || m == FrameDebug);
     fm = FMALLOC;
@@ -215,9 +206,6 @@ void UpdateProcFrame(struct procFrame *fm, struct Statement *stat,
                      struct Instance *i)
 {
   assert(fm != NULL);
-#ifdef PROCFRAME_DEBUG
-  CONSOLE_DEBUG("...");
-#endif
   fm->stat = stat;
   fm->i = i;
 }
@@ -225,9 +213,6 @@ void UpdateProcFrame(struct procFrame *fm, struct Statement *stat,
 void DestroyProcFrame(struct procFrame *fm)
 {
   assert(fm != NULL);
-#ifdef PROCFRAME_DEBUG
-  CONSOLE_DEBUG("...");
-#endif
   fm->m = FrameDestroyed;
   fm->i = NULL;
   fm->depth = -1;
@@ -300,4 +285,3 @@ char *FrameControlToString(enum FrameControl frc)
 #define WP_WATCH4    0x40000000	/* reserved */
 #define WP_DEBUGWATCH 0x80000000 /* if set, Asc_wp_stop_here activated */
 #endif
-

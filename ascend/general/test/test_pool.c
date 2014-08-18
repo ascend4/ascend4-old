@@ -12,20 +12,21 @@
  *
  *  The Ascend Environment is distributed in hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU        
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
  */
 
 #include <stdio.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/general/pool.h>
 #include <ascend/general/list.h>
-
-#include <test/common.h>
+#include "CUnit/CUnit.h"
 
 static void test_pool(void)
 {
@@ -81,7 +82,7 @@ static void test_pool(void)
   CU_TEST(0 == stats.elt_taken);
   CU_TEST(0 == stats.elt_inuse);
   CU_TEST(0 == stats.elt_onlist);
-  CU_TEST(sizeof(asc_intptr_t) == stats.elt_size);
+  CU_TEST(sizeof(int) == stats.elt_size);
   CU_TEST(10 == stats.str_len);
   CU_TEST(10 == stats.str_wid);
 
@@ -111,7 +112,7 @@ static void test_pool(void)
   CU_TEST(0 == stats.elt_taken);
   CU_TEST(0 == stats.elt_inuse);
   CU_TEST(0 == stats.elt_onlist);
-  CU_TEST(sizeof(asc_intptr_t) == stats.elt_size);
+  CU_TEST(sizeof(int) == stats.elt_size);
   CU_TEST(10 == stats.str_len);
   CU_TEST(10 == stats.str_wid);
 
@@ -124,7 +125,7 @@ static void test_pool(void)
   CU_TEST(50 == stats.elt_taken);
   CU_TEST(50 == stats.elt_inuse);
   CU_TEST(0 == stats.elt_onlist);
-  CU_TEST(sizeof(asc_intptr_t) == stats.elt_size);
+  CU_TEST(sizeof(int) == stats.elt_size);
   CU_TEST(10 == stats.str_len);
   CU_TEST(10 == stats.str_wid);
 
@@ -137,7 +138,7 @@ static void test_pool(void)
   CU_TEST(100 == stats.elt_taken);
   CU_TEST(100 == stats.elt_inuse);
   CU_TEST(0 == stats.elt_onlist);
-  CU_TEST(sizeof(asc_intptr_t) == stats.elt_size);
+  CU_TEST(sizeof(int) == stats.elt_size);
   CU_TEST(10 == stats.str_len);
   CU_TEST(10 == stats.str_wid);
 
@@ -151,7 +152,7 @@ static void test_pool(void)
   CU_TEST(100 == stats.elt_taken);
   CU_TEST(100 == stats.elt_inuse);
   CU_TEST(0 == stats.elt_onlist);
-  CU_TEST(sizeof(asc_intptr_t) == stats.elt_size);
+  CU_TEST(sizeof(int) == stats.elt_size);
   CU_TEST(10 == stats.str_len);
   CU_TEST(10 == stats.str_wid);
 
@@ -163,7 +164,7 @@ static void test_pool(void)
   CU_TEST(100 == stats.elt_taken);
   CU_TEST(50 == stats.elt_inuse);
   CU_TEST(50 == stats.elt_onlist);
-  CU_TEST(sizeof(asc_intptr_t) == stats.elt_size);
+  CU_TEST(sizeof(int) == stats.elt_size);
   CU_TEST(10 == stats.str_len);
   CU_TEST(10 == stats.str_wid);
 #ifdef MALLOC_DEBUG
@@ -181,7 +182,7 @@ static void test_pool(void)
   CU_TEST(100 == stats.elt_taken);
   CU_TEST(100 == stats.elt_inuse);
   CU_TEST(0 == stats.elt_onlist);
-  CU_TEST(sizeof(asc_intptr_t) == stats.elt_size);
+  CU_TEST(sizeof(int) == stats.elt_size);
   CU_TEST(10 == stats.str_len);
   CU_TEST(10 == stats.str_wid);
 
@@ -362,7 +363,7 @@ static void test_pool(void)
   CU_TEST(100 == stats.elt_taken);
   CU_TEST(100 == stats.elt_inuse);
   CU_TEST(0 == stats.elt_onlist);
-  CU_TEST(sizeof(asc_intptr_t) == stats.elt_size);
+  CU_TEST(sizeof(int) == stats.elt_size);
   CU_TEST(10 == stats.str_len);
   CU_TEST(10 == stats.str_wid);
 
@@ -372,7 +373,7 @@ static void test_pool(void)
   CU_TEST(0 == stats.elt_taken);
   CU_TEST(0 == stats.elt_inuse);
   CU_TEST(0 == stats.elt_onlist);
-  CU_TEST(sizeof(asc_intptr_t) == stats.elt_size);
+  CU_TEST(sizeof(int) == stats.elt_size);
   CU_TEST(10 == stats.str_len);
   CU_TEST(10 == stats.str_wid);
 
@@ -405,8 +406,18 @@ static void test_pool(void)
 /*===========================================================================*/
 /* Registration information */
 
-#define TESTS(T) \
-	T(pool)
+static CU_TestInfo list_test_pool[] = {
+  {"pool", test_pool},
+  CU_TEST_INFO_NULL
+};
 
-REGISTER_TESTS_SIMPLE(general_pool, TESTS)
+static CU_SuiteInfo suites[] = {
+  {"general_pool", NULL, NULL, list_test_pool},
+  CU_SUITE_INFO_NULL
+};
 
+/*-------------------------------------------------------------------*/
+CU_ErrorCode test_register_general_pool(void)
+{
+  return CU_register_suites(suites);
+}

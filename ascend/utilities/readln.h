@@ -22,7 +22,9 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.  COPYING is in ../compiler.
  */
 
 /** @file
@@ -46,14 +48,10 @@
 #ifndef _READLN_H
 #define _READLN_H
 
-/**	@addtogroup utilities_readln Utilities Read-line
-	@{
-*/
-
 ASC_DLLSPEC int readln(char *str, int max);
 /**<
  *  Reads a line from standard input to a target string having a
- *  specified capacity.  If the line read is too long, the remainder of
+ *  specified capacity.  If the line read is too long, the remainder of 
  *  the line is bypassed.  The number of characters read is returned
  *  (excluding newline, which is removed from str), or -1 if EOF was
  *  encountered.  If str is NULL, -1 is returned.
@@ -82,7 +80,7 @@ ASC_DLLSPEC int freadln(char *str, int max, FILE *input);
 ASC_DLLSPEC char *areadln(void);
 /**<
  *  Reads a line from standard input and returns a newly-allocated
- *  string containing all that was read.  NULL is returned if EOF
+ *  string containing all that was read.  NULL is returned if EOF 
  *  is encountered or memory cannot be allocated.  The returned
  *  string should be destroyed with ascfree() when no longer in use.
  *
@@ -102,7 +100,7 @@ ASC_DLLSPEC char *afreadln(FILE *fp);
 
 ASC_DLLSPEC long readlong(long number_default);
 /**<
- *  Reads in a line from standard input and extracts a long integer
+ *  Reads in a line from standard input and extracts a long integer 
  *  from that line.  If none is found, then the default is returned.
  *
  *  @param number_default The default value to return if a long
@@ -119,8 +117,6 @@ ASC_DLLSPEC double readdouble(double value_default);
  *                       cannot be read.
  *  @return The input double or value_default if none is found.
  */
-
-/* @} */
 
 #endif  /* _READLN_H */
 

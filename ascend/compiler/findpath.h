@@ -13,9 +13,21 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//** @file
  *  Ascend Instance Tree Name Search Routines.
+ *  <pre>
+ *  When #including find.h, make sure these files are #included first:
+ *         #include "utilities/ascConfig.h"
+ *         #include "fractions.h"
+ *         #include "compiler.h"
+ *         #include "instance_enum.h"
+ *         #include "dimen.h"
+ *         #include "expr_types.h"
+ *         #include "find.h"
+ *  </pre>
 *//*
 	by Ben Allan
 	Created: 10/3/2006
@@ -24,11 +36,7 @@
 #ifndef ASC_FINDPATH_H
 #define ASC_FINDPATH_H
 
-#include <ascend/general/list.h>
-#include "instance_enum.h"
-#include "find.h"
-
-/**	@addtogroup compiler_inst Compiler Instance Hierarchy
+/**	@addtogroup compiler Compiler
 	@{
 */
 

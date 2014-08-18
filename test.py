@@ -13,7 +13,9 @@
 #	GNU General Public License for more details.
 #
 #	You should have received a copy of the GNU General Public License
-#	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#	along with this program; if not, write to the Free Software
+#	Foundation, Inc., 59 Temple Place - Suite 330,
+#	Boston, MA 02111-1307, USA.
 
 # This script gives a test suite for the high-level interface of ASCEND via
 # Python. It is also planned to be a wrapper for the CUnit test suite, although
@@ -54,7 +56,7 @@ class AscendSelfTester(Ascend):
 			filename = 'johnpye/%s.a4c' % modelname
 		self.L.load(filename)
 		T = self.L.findType(modelname)
-		M = T.getSimulation('sim',1)
+		M = T.getSimulation('sim')
 		M.setSolver(ascpy.Solver(solvername))
 		for k,v in parameters.iteritems():
 			M.setParameter(k,v)
@@ -67,7 +69,7 @@ class TestCompiler(Ascend):
 	def _run(self,filen,modeln=""):
 		self.L.load('test/compiler/%s.a4c' % filen)
 		T = self.L.findType('%s%s' % (filen,modeln))
-		M = T.getSimulation('sim',1)
+		M = T.getSimulation('sim')
 		M.build()
 
 	def _runfail(self,filen,n,msg="failed"):
@@ -102,7 +104,7 @@ class TestCompiler(Ascend):
 	def defaultmethodstest(self,modelname):
 		self.L.load("test/defaultmethods.a4c")
 		T = self.L.findType(modelname)
-		M = T.getSimulation('sim',1)
+		M = T.getSimulation('sim')
 		M.run(T.getMethod('on_load'))
 		M.run(T.getMethod('self_test'))
 		return M
@@ -179,7 +181,6 @@ class TestSystem(AscendSelfTester):
 		M.run(self.L.findType('testlog10').getMethod('on_load'))
 		if platform.system!="Windows":
 			f = file('temp.png','wb')
-			# currently M.write is failing...JP 20120511.
 			M.write(f,"dot")
 			f.close()
 		else:
@@ -200,40 +201,38 @@ class TestSolver(AscendSelfTester):
 		self._run('distance_calc',filename="distance_calc.a4c")
 
 	def testconopt(self):
-		self._run('conopttest',"CONOPT",filename="test/conopt/conopttest.a4c")				
+		self._run('conopttest',"CONOPT",filename="conopttest.a4c")				
 
 	def testcmslv2(self):
 		self._run('testcmslv2',"CMSlv")	
 
 	def testsunpos1(self):
-		self._run('example_1_6_1',"QRSlv","johnpye/sunpos_db.a4c")
+		self._run('example_1_6_1',"QRSlv","johnpye/sunpos.a4c")
 
 	def testsunpos2(self):
-		self._run('example_1_6_2a',"QRSlv","johnpye/sunpos_db.a4c")
-	def testsunpos2(self):
-		self._run('example_1_6_2b',"QRSlv","johnpye/sunpos_db.a4c")
-
-	def testsunpos2(self):
-		self._run('example_1_6_3',"QRSlv","johnpye/sunpos_db.a4c")
+		self._run('example_1_6_2',"QRSlv","johnpye/sunpos.a4c")
 
 	def testsunpos3(self):
-		self._run('example_1_8_1',"QRSlv","johnpye/sunpos_db.a4c")
+		self._run('example_1_7_1',"QRSlv","johnpye/sunpos.a4c")
 
 	def testsunpos4(self):
-		self._run('example_1_8_2',"QRSlv","johnpye/sunpos_db.a4c")
+		self._run('example_1_7_2',"QRSlv","johnpye/sunpos.a4c")
 
 	def testsunpos5(self):
-		self._run('example_1_8_3',"QRSlv","johnpye/sunpos_db.a4c")
+		self._run('example_1_7_3',"QRSlv","johnpye/sunpos.a4c")
+
+	def testsunpos6(self):
+		self._run('example_1_8_1',"QRSlv","johnpye/sunpos.a4c")
 
 	def testinstanceas(self):
-		M = self._run('example_1_6_1',"QRSlv","johnpye/sunpos_db.a4c")
+		M = self._run('example_1_6_1',"QRSlv","johnpye/sunpos.a4c")
 		self.assertAlmostEqual( float(M.t_solar), M.t_solar.to("s"))
 		self.assertAlmostEqual( float(M.t_solar)/3600, M.t_solar.to("h"))
 
 	def testrelinclude(self):
 		self.L.load('test/relinclude.a4c')
 		T = self.L.findType('relinclude')
-		M = T.getSimulation('sim',1)
+		M = T.getSimulation('sim')
 		M.eq1.setIncluded(True)
 		M.eq2.setIncluded(False)
 		M.eq3.setIncluded(False)
@@ -257,7 +256,7 @@ class TestBinTokens(AscendSelfTester):
 		ascpy.getCompiler().setBinaryCompilation(True)
 		self.L.load('johnpye/testlog10.a4c')
 		T = self.L.findType('testlog10')
-		M = T.getSimulation('sim',1)
+		M = T.getSimulation('sim')
 		M.build()
 		M.solve(ascpy.Solver('QRSlv'),ascpy.SolverReporter())
 
@@ -332,7 +331,7 @@ class TestIntegrator(Ascend):
 	# this routine is reused by both testIDA and testLSODE
 	def _testIntegrator(self,integratorname):
 		self.L.load('johnpye/shm.a4c')
-		M = self.L.findType('shm').getSimulation('sim',1)
+		M = self.L.findType('shm').getSimulation('sim')
 		M.setSolver(ascpy.Solver('QRSlv'))
 		P = M.getParameters()
 		M.setParameter('feastol',1e-12)
@@ -364,7 +363,7 @@ class TestIntegrator(Ascend):
 
 	def testInvalidIntegrator(self):
 		self.L.load('johnpye/shm.a4c') 
-		M = self.L.findType('shm').getSimulation('sim',1)
+		M = self.L.findType('shm').getSimulation('sim')
 		M.setSolver(ascpy.Solver('QRSlv'))
 		I = ascpy.Integrator(M)
 		try:
@@ -381,7 +380,7 @@ class TestIntegrator(Ascend):
 
 	def testparameters(self):
 		self.L.load('johnpye/shm.a4c')
-		M = self.L.findType('shm').getSimulation('sim',1)
+		M = self.L.findType('shm').getSimulation('sim')
 		M.build()
 		I = ascpy.Integrator(M)
 		I.setEngine('IDA')
@@ -414,7 +413,7 @@ class TestLSODE(Ascend):
 	def testzill(self):
 		self.L.load('johnpye/zill.a4c')
 		T = self.L.findType('zill')
-		M = T.getSimulation('sim',1)
+		M = T.getSimulation('sim')
 		M.setSolver(ascpy.Solver('QRSlv'))
 		I = ascpy.Integrator(M)
 		I.setEngine('LSODE')
@@ -431,7 +430,7 @@ class TestLSODE(Ascend):
 		sys.stderr.write("STARTING TESTNEWTON\n")
 		self.L.load('johnpye/newton.a4c')
 		T = self.L.findType('newton')
-		M = T.getSimulation('sim',1)
+		M = T.getSimulation('sim')
 		M.solve(ascpy.Solver("QRSlv"),ascpy.SolverReporter())	
 		I = ascpy.Integrator(M)
 		I.setEngine('LSODE')
@@ -454,7 +453,7 @@ class TestLSODE(Ascend):
 
 	def testlotka(self):
 		self.L.load('johnpye/lotka.a4c')
-		M = self.L.findType('lotka').getSimulation('sim',1)
+		M = self.L.findType('lotka').getSimulation('sim')
 		M.setSolver(ascpy.Solver("QRSlv"))
 		I = ascpy.Integrator(M)
 		I.setEngine('LSODE')
@@ -470,7 +469,7 @@ class TestLSODE(Ascend):
 
 	def testwritegraph(self):
 		self.L.load('johnpye/lotka.a4c')
-		M = self.L.findType('lotka').getSimulation('sim',1)
+		M = self.L.findType('lotka').getSimulation('sim')
 		F = file('lotka.png','w')
 		M.build()
 		M.write(F,"dot")
@@ -519,7 +518,7 @@ class TestBlackBox(AscendSelfTester):
 		"""Mismatched arg counts check-- tests bbox, not ascend."""
 		self.L.load('test/blackbox/fail1.a4c')
 		try:
-			M = self.L.findType('fail1').getSimulation('sim',1)
+			M = self.L.findType('fail1').getSimulation('sim')
 			self.fail("expected exception was not raised")
 		except RuntimeError,e:
 			print "Caught exception '%s', assumed ok" % e
@@ -528,7 +527,7 @@ class TestBlackBox(AscendSelfTester):
 		"""Incorrect data arg check -- tests bbox, not ascend"""
 		self.L.load('test/blackbox/fail2.a4c')
 		try:
-			M = self.L.findType('fail2').getSimulation('sim',1)
+			M = self.L.findType('fail2').getSimulation('sim')
 			self.fail("expected exception was not raised")
 		except RuntimeError,e:
 			print "Caught exception '%s', assumed ok (should mention errors during instantiation)" % e
@@ -650,7 +649,7 @@ class TestSensitivity(AscendSelfTester):
 	def test1(self):
 		self.L.load('sensitivity_test.a4c')
 		T = self.L.findType('sensitivity_test')
-		M = T.getSimulation('sim',0)
+		M = T.getSimulation('sim',False)
 		M.run(T.getMethod('on_load'))
 		M.solve(ascpy.Solver('QRSlv'),ascpy.SolverReporter())
 		M.run(T.getMethod('analyse'))
@@ -673,7 +672,7 @@ class TestExtPy(AscendSelfTester):
 	def test1(self):
 		self.L.load('johnpye/extpy/extpytest.a4c')
 		T = self.L.findType('extpytest')
-		M = T.getSimulation('sim',1)
+		M = T.getSimulation('sim')
 		M.run(T.getMethod('self_test'))
 		
 	def test2(self):
@@ -1478,8 +1477,6 @@ class TestIPOPT(Ascend):
 	def test14_exact(self):
 		self.ipopt_tester('test14',hessian_approx='exact')
 
-	def testformula(self):
-		self.ipopt_tester('formula')
 
 class TestCSV(Ascend):
 	def test1(self):
@@ -1487,61 +1484,6 @@ class TestCSV(Ascend):
 		M = self.L.findType('testcsv').getSimulation('sim')
 		M.solve(ascpy.Solver("QRSlv"),ascpy.SolverReporter())
 
-
-class TestSlvReq(Ascend):
-	def test1(self):
-		self.L.load('test/slvreq/test1.a4c')
-		H = ascpy.SolverHooks(ascpy.SolverReporter())
-		ascpy.SolverHooksManager_Instance().setHooks(H)
-		T = self.L.findType('test1')
-		M = T.getSimulation('sim',0)
-		print "\n\n\nRUNNING ON_LOAD EXPLICITLY NOW..."
-		M.run(T.getMethod('on_load'))
-
-	def test2(self):
-		self.L.load('test/slvreq/test1.a4c')
-		R = ascpy.SolverReporter()
-		class SolverHooksPython(ascpy.SolverHooks):
-			def __init__(self):
-				print "PYTHON SOLVER HOOKS"
-				ascpy.SolverHooks.__init__(self,None)
-			def setSolver(self,solvername,sim):
-				sim.setSolver(ascpy.Solver(solvername))
-				print "PYTHON: SOLVER is now %s" % sim.getSolver().getName()	
-				return 0
-			def setOption(self,optionname,val,sim):
-				try:
-					PP = sim.getParameters()
-				except Exception,e:
-					print "PYTHON ERROR: ",str(e)
-					return ascpy.SLVREQ_OPTIONS_UNAVAILABLE
-				try:
-					for P in PP:
-						if P.getName()==optionname:
-							try:
-								P.setValueValue(val)
-								sim.setParameters(PP)
-								print "PYTHON: SET",optionname,"to",repr(val)
-								return 0
-							except Exception,e:
-								print "PYTHON ERROR: ",str(e)
-								return ascpy.SLVREQ_WRONG_OPTION_VALUE_TYPE
-					return ascpy.SLVREQ_INVALID_OPTION_NAME
-				except Exception,e:
-					print "PYTHON ERROR: ",str(e)
-					return ascpy.SLVREQ_INVALID_OPTION_NAME
-			def doSolve(self,inst,sim):
-				try:
-					print "PYTHON: SOLVING",sim.getName(),"WITH",sim.getSolver().getName()
-					sim.solve(sim.getSolver(),R)
-				except Exception,e:
-					print "PYTHON ERROR:",str(e)
-					return 3
-				return 0
-		H = SolverHooksPython()
-		ascpy.SolverHooksManager_Instance().setHooks(H)
-		T = self.L.findType('test1')
-		M = T.getSimulation('sim',1)
 
 # test some stuff for beam calculations
 class TestSection(Ascend):
@@ -1637,7 +1579,7 @@ if __name__=='__main__':
 		if patchpath('ASCENDLIBRARY',SEP,modeldirs):
 			restart = 1
 
-	libdirs = ["ascxx","."]
+	libdirs = ["pygtk","."]
 	libdirs = [os.path.normpath(os.path.join(sys.path[0],l)) for l in libdirs]
 	if not os.environ.get(LD_LIBRARY_PATH):
 		os.environ[LD_LIBRARY_PATH]=SEP.join(libdirs)
@@ -1654,16 +1596,15 @@ if __name__=='__main__':
 				restart = 1		
 		os.environ[LD_LIBRARY_PATH] = SEP.join(envlibdirs)
 
-	pypath = [os.path.normpath(os.path.join(sys.path[0],i)) for i in ['ascxx','pygtk']]
+	pypath = os.path.normpath(os.path.join(sys.path[0],"pygtk"))
 	if not os.environ.get('PYTHONPATH'):
-		os.environ['PYTHONPATH']= SEP.join(pypath)
+		os.environ['PYTHONPATH']=pypath
 	else:
 		envpypath = os.environ['PYTHONPATH'].split(SEP)
-		for pypath1 in pypath:
-			if pypath1 not in envpypath:
-				envpypath.insert(0,pypath1)
-				os.environ['PYTHONPATH']=SEP.join(envpypath)
-				restart = 1
+		if pypath not in envpypath:
+			envpypath.insert(0,pypath)
+			os.environ['PYTHONPATH']=SEP.join(envpypath)
+			restart = 1
 
 	if restart and platform.system()!="Windows":
 		script = os.path.join(sys.path[0],"test.py")					

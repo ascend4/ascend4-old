@@ -1,5 +1,5 @@
 /*	ASCEND modelling environment
-	Copyright (C) 2006, 2010 Carnegie Mellon University
+	Copyright (C) 2006 Carnegie Mellon University
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -12,7 +12,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Handle the Import Handler library, which is a hash table of additional
@@ -27,7 +29,7 @@
 #include <ascend/utilities/config.h>
 #include <ascend/utilities/error.h>
 #include <ascend/utilities/ascDynaLoad.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/utilities/ascEnvVar.h>
 #include <ascend/general/table.h>
 
@@ -36,7 +38,6 @@
 /* #define SEARCH_DEBUG */
 /* #define FIND_DEBUG */
 /* #define IMPORTHANDLER_VERBOSE */
-/* #define IMPORT_DEBUG */
 
 /*
 	Maximum number of importhandlers possible in one session. Hard to imagine
@@ -76,9 +77,7 @@ ASC_DLLSPEC int importhandler_add(struct ImportHandler *handler){
 		return 1;
 	}
 	importhandler_library[i] = handler;
-#ifdef IMPORTHANDLER_VERBOSE
 	ERROR_REPORTER_HERE(ASC_USER_NOTE,"New import hander '%s' added",handler->name);
-#endif
 	return 0;
 }
 
@@ -113,7 +112,7 @@ char *importhandler_extlib_filename(const char *partialname){
 		this is the preferred operation: SCons reports what the local system
 		uses as its shared library file extension.
 	*/
-	SNPRINTF(buffer,PATH_MAX,"%s%s%s",ASC_EXTLIBPREFIX,partialname,ASC_EXTLIBSUFFIX);
+	snprintf(buffer,PATH_MAX,"%s%s%s",ASC_EXTLIBPREFIX,partialname,ASC_EXTLIBSUFFIX);
 #else
 #ifdef __GNUC__
 # warning "You should be using Use ASC_EXTLIBPREFIX and ASC_EXTLIBSUFFIX!"
@@ -125,15 +124,15 @@ char *importhandler_extlib_filename(const char *partialname){
 		system-specific stuff here, but it's not as general.
 	*/
 # ifdef __WIN32__
-	SNPRINTF(buffer,PATH_MAX,"%s.dll",partialname);
+	snprintf(buffer,PATH_MAX,"%s.dll",partialname);
 # elif defined(linux)
-	SNPRINTF(buffer,PATH_MAX,"lib%s.so",partialname); /* changed from .o to .so -- JP */
+	snprintf(buffer,PATH_MAX,"lib%s.so",partialname); /* changed from .o to .so -- JP */
 # elif defined(sun) || defined(solaris)
-	SNPRINTF(buffer,PATH_MAX,"%s.so.1.0",partialname);
+	snprintf(buffer,PATH_MAX,"%s.so.1.0",partialname);
 # elif defined(__hpux)
-	SNPRINTF(buffer,PATH_MAX,"%s.sl",partialname);
+	snprintf(buffer,PATH_MAX,"%s.sl",partialname);
 # elif defined(_SGI_SOURCE)
-	SNPRINTF(buffer,PATH_MAX,"%s.so",partialname);
+	snprintf(buffer,PATH_MAX,"%s.so",partialname);
 # else
 #  error "Unknown system type (please define ASC_EXTLIBSUFFIX and ASC_EXTLIBPREFIX)"
 # endif
@@ -159,16 +158,12 @@ int importhandler_extlib_import(const struct FilePath *fp,const char *initfunc,c
 	char auto_initfunc[PATH_MAX];
 	int result;
 
-	fp1 = ospath_getabs(fp);
-	ospath_cleanup(fp1);
-	path = ospath_str(fp1);
-	ospath_free(fp1);
-
+	path = ospath_str(fp);
 	if(path==NULL){
 		ERROR_REPORTER_HERE(ASC_PROG_ERR,"File path is NULL");
 		return 1;
 	}
-#ifdef IMPORT_DEBUG
+#ifdef SEARCH_DEBUG
 	CONSOLE_DEBUG("Importing extlib with path '%s'",path);
 #endif
 
@@ -186,7 +181,6 @@ int importhandler_extlib_import(const struct FilePath *fp,const char *initfunc,c
 		result = Asc_DynamicLoad(path,initfunc);
 	}
 
-#ifdef IMPORT_DEBUG
 	if(result){
 		CONSOLE_DEBUG("FAILED TO IMPORT '%s' (error %d)",partialpath,result);
 	}else{
@@ -196,7 +190,6 @@ int importhandler_extlib_import(const struct FilePath *fp,const char *initfunc,c
 			CONSOLE_DEBUG("'%s' OK (explicitly named, got file '%s')",initfunc,path);
 		}
 	}
-#endif
 
 	ASC_FREE(path);
 	return result;
@@ -224,7 +217,6 @@ int importhandler_createlibrary(){
 	extlib_handler->name ="extlib";
 	extlib_handler->filenamefn = &importhandler_extlib_filename;
 	extlib_handler->importfn = &importhandler_extlib_import;
-	extlib_handler->destroyfn = NULL;
 	if(importhandler_add(extlib_handler)){
 		ERROR_REPORTER_HERE(ASC_PROG_ERR,"Failed to create 'extlib' import handler");
 		return 1;
@@ -233,50 +225,28 @@ int importhandler_createlibrary(){
 	return 0;
 }
 
-int importhandler_destroy(struct ImportHandler *handler){
-	int res = 0;
-	if(handler->destroyfn){
-		res = (*(handler->destroyfn))(handler);
-	}/* else: nothing inside needs destroying */
-	if(!res)ASC_FREE(handler);
-	return res;
+int importhandler_remove(const char *name){
+	if(importhandler_library==NULL)return 2;
+	/* CONSOLE_DEBUG("Removing importhandler '%s'", name); */
+	ERROR_REPORTER_HERE(ASC_PROG_ERR,"%s not implemented",__FUNCTION__);
+	return 1;
 }
 
 struct ImportHandler *importhandler_lookup(const char *name){
-	int i;
-	for(i=0; i < IMPORTHANDLER_MAX && importhandler_library[i] != NULL; ++i){
-		if(importhandler_library[i]->name
-			&& 0==strcmp(name,importhandler_library[i]->name)
-		){
-			return importhandler_library[i];
-		}
-	}
+	ERROR_REPORTER_HERE(ASC_PROG_ERR,"%s not implemented",__FUNCTION__);
 	return NULL;
 }
 
 /** @return 0 on success */
 int importhandler_destroylibrary(){
 	int i;
-	int err = 0, thiserr;
-#ifdef IMPORT_DEBUG
+	int err = 0;
 	CONSOLE_DEBUG("Destroying importhandler library...");
-#endif
-	///importhandler_printlibrary(stderr);
+	importhandler_printlibrary(stderr);
 	if(importhandler_library!=NULL){
 		for(i=IMPORTHANDLER_MAX - 1; i >= 0; --i){
 			if(importhandler_library[i]==NULL)continue;
-			thiserr = importhandler_destroy(importhandler_library[i]);
-			if(!thiserr){
-				importhandler_library[i] = NULL;
-#ifdef IMPORT_DEBUG
-				CONSOLE_DEBUG("Destroyed import handler");
-#endif
-			}
-			err = err | thiserr;
-		}
-		if(!err){
-			ASC_FREE(importhandler_library);
-			importhandler_library = NULL;
+			err = err | importhandler_remove(importhandler_library[i]->name);
 		}
 	}
 	if(err)ERROR_REPORTER_HERE(ASC_PROG_WARNING,"Failed to destroy importhandler library");
@@ -360,14 +330,10 @@ int importhandler_search_test(struct FilePath *path, void *userdata){
 
 		filename = (*(importhandler_library[i]->filenamefn))(searchdata->partialname); /* eg 'myext' -> 'libmyext.so' */
 		if(filename==NULL){
-#ifdef SEARCH_DEBUG
 			CONSOLE_DEBUG("Unable to create filename from partialname '%s'",searchdata->partialname);
-#endif
 			continue;
 		}
-#ifdef SEARCH_DEBUG
-		CONSOLE_DEBUG("Filename '%s'",filename);
-#endif
+		/* CONSOLE_DEBUG("Filename '%s'",filename); */
 		fp = ospath_new_noclean(filename); /* eg 'libmyext.so' */
 		ASC_FREE(filename);
 		asc_assert(fp!=NULL);
@@ -425,7 +391,6 @@ struct FilePath *importhandler_findinpath(const char *partialname
 	ospath_stat_t buf;
 	FILE *f;
 	const char *epath;
-	char *epathmem = NULL;
 
 	fp1 = ospath_new_noclean(partialname); /* eg 'path/to/myext' */
 	if(fp1==NULL){
@@ -435,9 +400,7 @@ struct FilePath *importhandler_findinpath(const char *partialname
 
 	searchdata.partialname = ospath_getbasefilename(fp1);
 	if(searchdata.partialname==NULL){
-#ifdef FIND_DEBUG
 		CONSOLE_DEBUG("Not a filename");
-#endif
 		ospath_free(fp1);
 		return NULL;
 	}
@@ -464,9 +427,7 @@ struct FilePath *importhandler_findinpath(const char *partialname
 
 		filename = (*(importhandler_library[i]->filenamefn))(searchdata.partialname); /* eg 'myext' -> 'libmyext.so' */
 		if(filename==NULL){
-#ifdef FIND_DEBUG
 			CONSOLE_DEBUG("Unable to create filename from partialname '%s'",searchdata.partialname);
-#endif
 			continue;
 		}
 
@@ -506,9 +467,7 @@ struct FilePath *importhandler_findinpath(const char *partialname
 #endif
 
 		if(0==ospath_stat(fp1,&buf) && NULL!=(f = ospath_fopen(fp1,"r"))){
-#ifdef FIND_DEBUG
 			CONSOLE_DEBUG("Found in current directory!");
-#endif
 			fclose(f);
 			ASC_FREE(searchdata.partialname);
 			ospath_free(searchdata.relativedir);
@@ -530,14 +489,12 @@ struct FilePath *importhandler_findinpath(const char *partialname
 	CONSOLE_DEBUG("SEARCHING ACCORDING TO ENV VAR $%s",envv);
 #endif
 
-	epath = defaultpath;
-	epathmem=Asc_GetEnv(envv);
-	if(epathmem){
-		epath = epathmem;
+	epath=Asc_GetEnv(envv);
+	if(epath==NULL){
 #ifdef FIND_DEBUG
-	}else{
 		CONSOLE_DEBUG("ENV VAR '%s' NOT FOUND, FALLING BACK TO DEFAULT SEARCH PATH = '%s'",envv,defaultpath);
 #endif
+		epath=defaultpath;
 	}
 
 #ifdef FIND_DEBUG
@@ -552,7 +509,6 @@ struct FilePath *importhandler_findinpath(const char *partialname
 		ospath_free(searchdata.relativedir);
 		ASC_FREE(searchdata.partialname);
 		ospath_searchpath_free(sp);
-		if(epathmem)ASC_FREE(epathmem);
 		return NULL;
 	}
 
@@ -562,7 +518,6 @@ struct FilePath *importhandler_findinpath(const char *partialname
 
 	ospath_searchpath_free(sp);
 	ASC_FREE(searchdata.partialname);
-	if(epathmem)ASC_FREE(epathmem);
 	ospath_free(searchdata.relativedir);
 	*handler = searchdata.handler;
 	return searchdata.foundpath;

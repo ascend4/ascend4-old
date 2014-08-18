@@ -1,9 +1,13 @@
 ; NSIS script to create an ASCEND binary installer for Windows
-; by John Pye, 2006-2012.
+; by John Pye, 2006-2007.
 ;
 ;--------------------------------
 
 ; The name of the installer
+
+!ifndef VERSION
+!define VERSION 0.svn
+!endif
 
 Name "ASCEND ${VERSION}"
 
@@ -12,28 +16,29 @@ SetCompressor /SOLID lzma
 
 !include LogicLib.nsh
 !include nsDialogs.nsh
-!include x64.nsh
+
+!ifndef PYVERSION
+!define PYVERSION "2.6"
+!endif
+
+!ifndef PYPATCH
+!define PYPATCH ".1"
+!endif
 
 ; The file to write
+!ifdef OUTFILE
 OutFile ${OUTFILE}
-
-!if "${INSTARCH}" == "x64"
-!define INST64
+!else
+OutFile "ascend-${VERSION}-py${PYVERSION}.exe"
 !endif
+
 
 ; The default installation directory
-!ifdef INST64
-InstallDir $PROGRAMFILES64\ASCEND
-!define SMNAME "ASCEND (64-bit)"
-!else
-InstallDir $PROGRAMFILES32\ASCEND
-!define SMNAME "ASCEND"
-!endif
+InstallDir $PROGRAMFILES\ASCEND
 
-; NOTE we *don't* user InstallDirRegKey because it doesn't work correctly on Win64.
-;InstallDirRegKey HKLM "Software\ASCEND" "Install_Dir"
-
-RequestExecutionLevel admin
+; Registry key to check for directory (so if you install again, it will 
+; overwrite the old one automatically)
+InstallDirRegKey HKLM "Software\ASCEND" "Install_Dir"
 
 ;--------------------------------
 
@@ -47,146 +52,135 @@ Page directory
 Page custom dependenciesCreate dependenciesLeave
 Page instfiles
 Page custom ascendIniCreate ascendIniLeave
-Page custom ascendEnvVarCreate ascendEnvVarLeave
 
 UninstPage uninstConfirm
 UninstPage instfiles
 
 ;--------------------------------
 
-!define GTKSEARCHPATH "c:\GTK"
+Var /GLOBAL DEFAULTPATH
+Var /GLOBAL PYOK
+Var /GLOBAL PYPATH
+Var /GLOBAL GTKOK
+Var /GLOBAL GTKPATH
+Var /GLOBAL GLADEOK
+Var /GLOBAL PYGTKOK
+Var /GLOBAL PYGOBJECTOK
+Var /GLOBAL PYCAIROOK
+Var /GLOBAL GLADEPATH
+Var /GLOBAL PYINSTALLED
+Var /GLOBAL TCLOK
+Var /GLOBAL TCLPATH
+Var /GLOBAL TCLINSTALLED
 
-Var DEFAULTPATH
-Var HAVE_PYTHON
-Var PYPATH
-Var HAVE_GTK
-Var GTKPATH
-Var HAVE_PYGTK
-Var HAVE_PYGOBJECT
-Var HAVE_PYCAIRO
-Var PYINSTALLED
+Var /GLOBAL PDFINSTALLED
 
-Var PDFINSTALLED
+Var /GLOBAL PATH
 
-Var PATH
+Var /GLOBAL PYDOWNLOAD
+Var /GLOBAL PYGTKDOWNLOAD
+Var /GLOBAL PYGOBJECTDOWNLOAD
+Var /GLOBAL PYCAIRODOWNLOAD
+Var /GLOBAL GTKDOWNLOAD
+Var /GLOBAL TCLDOWNLOAD
 
-Var NEED_PYTHON
-Var NEED_GTK
-Var NEED_PYGTK
-Var NEED_PYCAIRO
-Var NEED_PYGOBJECT
-
-Var ASCENDINIFOUND
-Var ASCENDENVVARFOUND
-Var ASCENDLIBRARY
-
-Var PYTHONTARGETDIR
+Var /GLOBAL ASCENDINIFOUND
 
 ; .onInit has been moved to after section decls so that they can be references
 
 ;------------------------------------------------------------
 ; DOWNLOAD AND INSTALL DEPENDENCIES FIRST
 
-; Use the official python.org Python packages
 !define PYTHON_VERSION "${PYVERSION}${PYPATCH}"
-!define PYTHON_FN "python-${PYTHON_VERSION}${PYARCH}.msi"
-!define PYTHON_URL "http://python.org/ftp/python/${PYTHON_VERSION}/${PYTHON_FN}"
-!define PYTHON_CMD "msiexec /i $DAI_TMPFILE /passive ALLUSERS=1 TARGETDIR=$PYTHONTARGETDIR"
+!define PYTHON_FN "python-${PYTHON_VERSION}.msi"
+!define PYTHON_URL "http://www.python.org/ftp/python/${PYTHON_VERSION}/${PYTHON_FN}"
+!define PYTHON_CMD "msiexec /i $DAI_TMPFILE /passive"
 
-!define THIRDPARTY_DIR "http://downloads.sourceforge.net/project/ascend-sim/thirdparty/"
-!define GTK_VER "2.22"
+!define GTK_FN "glade3-3.6.7-with-GTK+.exe"
+!define GTK_URL "http://ftp.gnome.org/pub/GNOME/binaries/win32/glade3/3.6/${GTK_FN}"
+!define GTK_CMD "$DAI_TMPFILE"
 
-!ifdef INST64
-!define WINXX "win64"
-!define AMDXX ".win-amd64"
-!define NNBIT "64-bit"
-!define X64I386 "x64"
-!define GTK_PATCH ".1-20101229"
-!else
-!define WINXX "win32"
-!define AMDXX ".win32"
-!define X64I386 "i386"
-!define NNBIT "32-bit"
-!define GTK_PATCH ".1-20101227"
-!endif
-
-; Host our own GTK bundles, repackaged as installers.
-; User should still be able to use the ftp.gnome.org zip files, we just can't easily install them from here.
-; Also, but having GTK installer, we can store the installation location in the registry (and have both 64 and 32 bit versions)
-!define GTK_FN "gtk+-${GTK_VER}${GTK_PATCH}-${X64I386}-a4.exe"
-!define GTK_URL "${THIRDPARTY_DIR}${GTK_FN}"
-!define GTK_MFT "gtk+-bundle_${GTK_VER}${GTK_PATCH}_${WINXX}.mft"
-!define GTK_CMD "$DAI_TMPFILE /S"
-
-; We will host the PyGTK, PyGObject and PyCairo dependencies on SF.net ourselves... for the moment.
-; Note that PyGTK version should match GTK+ version.
-!define PYGTK_PATCH ".0"
-!define PYCAIRO_VER "1.10.0"
-!define PYGOBJECT_VER "2.28.6"
-!define PYGTK_FN "pygtk-${GTK_VER}${PYGTK_PATCH}${AMDXX}-py${PYVERSION}.exe"
-!define PYCAIRO_FN "py2cairo-${PYCAIRO_VER}${AMDXX}-py${PYVERSION}.exe"
-!define PYGOBJECT_FN "pygobject-${PYGOBJECT_VER}${AMDXX}-py${PYVERSION}.exe"
-!define PYGTK_URL "${THIRDPARTY_DIR}${PYGTK_FN}"
-!define PYCAIRO_URL "${THIRDPARTY_DIR}${PYCAIRO_FN}"
-!define PYGOBJECT_URL "${THIRDPARTY_DIR}${PYGOBJECT_FN}"
-!define PYGTK_CMD "$DAI_TMPFILE"
-!define PYCAIRO_CMD "$DAI_TMPFILE"
+!define PYGOBJECT_VER "2.14"
+!define PYGOBJECT_FN "pygobject-${PYGOBJECT_VER}.2-2.win32-py${PYVERSION}.exe"
+!define PYGOBJECT_URL "http://ftp.gnome.org/pub/GNOME/binaries/win32/pygobject/${PYGOBJECT_VER}/${PYGOBJECT_FN}"
 !define PYGOBJECT_CMD "$DAI_TMPFILE"
 
+!define PYCAIRO_VER "1.4"
+!define PYCAIRO_FN "pycairo-${PYCAIRO_VER}.12-2.win32-py${PYVERSION}.exe"
+!define PYCAIRO_URL "http://ftp.gnome.org/pub/GNOME/binaries/win32/pycairo/${PYCAIRO_VER}/${PYCAIRO_FN}"
+!define PYCAIRO_CMD "$DAI_TMPFILE"
+
+!define PYGTK_VER "2.12"
+!define PYGTK_FN "pygtk-${PYGTK_VER}.1-3.win32-py${PYVERSION}.exe"
+!define PYGTK_URL "http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/${PYGTK_VER}/${PYGTK_FN}"
+!define PYGTK_CMD "$DAI_TMPFILE"
+
+!define TCL_VERSION "8.4.15"
+!define TCL_PATCH ".0.280619"
+!define TCL_FN "ActiveTcl${TCL_VERSION}${TCL_PATCH}-win32-ix86-threaded.exe"
+!define TCL_URL "http://downloads.activestate.com/ActiveTcl/Windows/${TCL_VERSION}/${TCL_FN}"
+!define TCL_CMD "$DAI_TMPFILE"
 !include "download.nsi"
 
 Section "-python"
 	DetailPrint "--- DOWNLOAD PYTHON ---"
-        ${If} $NEED_PYTHON == '1'
+        ${If} $PYDOWNLOAD == '1'
 		!insertmacro downloadAndInstall "Python" "${PYTHON_URL}" "${PYTHON_FN}" "${PYTHON_CMD}"
 		Call DetectPython
-		${If} $HAVE_PYTHON == 'NOK'
-			MessageBox MB_OK "Python installation appears to have failed. You may need to retry manually."
+		Pop $PYOK
+		Pop $PYPATH
+		${If} $PYOK == 'NOK'
+			MessageBox MB_OK "Python installation appears to have failed"
 		${EndIf}
         ${EndIf}
 SectionEnd
-
 Section "-gtk"
-	DetailPrint "--- DOWNLOAD GTK ---"
-	${If} $NEED_GTK == '1'
-		!insertmacro downloadAndInstall "GTK" "${GTK_URL}" "${GTK_FN}" "${GTK_CMD}"
+	DetailPrint "--- DOWNLOAD GTK+ ---"
+	${If} $GTKDOWNLOAD == '1'
+		!insertmacro downloadAndInstall "GTK+" ${GTK_URL} ${GTK_FN} ${GTK_CMD}
 		Call DetectGTK
-		${If} $HAVE_GTK == 'NOK'
-			MessageBox MB_OK "GTK installation appears to have failed. You may need to retry manually."
-		${EndIf}
+		Pop $GTKOK
+		Pop $GTKPATH
+		Call DetectGlade
+		Pop $GLADEOK
+		Pop $GLADEPATH
         ${EndIf}
 SectionEnd
-
-Section "-pygtk"
-	DetailPrint "--- DOWNLOAD PYGTK ---"
-	${If} $NEED_PYGTK == '1'
-		!insertmacro downloadAndInstall "PyGTK" "${PYGTK_URL}" "${PYGTK_FN}" "${PYGTK_CMD}"
-		Call DetectPyGTK
-		${If} $HAVE_PYGTK == 'NOK'
-			MessageBox MB_OK "PyGTK installation appears to have failed. You may need to retry manually"
-		${EndIf}
-        ${EndIf}
-SectionEnd
-
-Section "-pycairo"
-	DetailPrint "--- DOWNLOAD PYCAIRO ---"
-	${If} $NEED_PYCAIRO == '1'
-		!insertmacro downloadAndInstall "PyCAIRO" "${PYCAIRO_URL}" "${PYCAIRO_FN}" "${PYCAIRO_CMD}"
-		Call DetectPyCairo
-		${If} $HAVE_PYCAIRO == 'NOK'
-			MessageBox MB_OK "PyCairo installation appears to have failed. You may need to retry manually."
-		${EndIf}
-        ${EndIf}
-SectionEnd
-
 Section "-pygobject"
 	DetailPrint "--- DOWNLOAD PYGOBJECT ---"
-	${If} $NEED_PYGOBJECT == '1'
-		!insertmacro downloadAndInstall "PyGObject" "${PYGOBJECT_URL}" "${PYGOBJECT_FN}" "${PYGOBJECT_CMD}"
+        ${If} $PYGOBJECTDOWNLOAD == '1'
+        ${AndIf} $PYOK == 'OK'
+		!insertmacro downloadAndInstall "PyGObject" ${PYGOBJECT_URL} ${PYGOBJECT_FN} ${PYGOBJECT_CMD}
 		Call DetectPyGObject
-		${If} $HAVE_PYGOBJECT == 'NOK'
-			MessageBox MB_OK "PyGObject installation appears to have failed. You may need to retry manually."
-		${EndIf}
+		Pop $PYGOBJECTOK
+        ${EndIf}
+SectionEnd
+Section "-pycairo"
+	DetailPrint "--- DOWNLOAD PYCAIRO ---"
+        ${If} $PYCAIRODOWNLOAD == '1'
+        ${AndIf} $PYOK == 'OK'
+		!insertmacro downloadAndInstall "PyCairo" ${PYCAIRO_URL} ${PYCAIRO_FN} ${PYCAIRO_CMD}
+		Call DetectPyCairo
+		Pop $PYCAIROOK
+        ${EndIf}
+SectionEnd
+Section "-pygtk"
+	DetailPrint "--- DOWNLOAD PYGTK ---"
+        ${If} $PYGTKDOWNLOAD == '1'
+        ${AndIf} $PYOK == 'OK'
+		!insertmacro downloadAndInstall "PyGTK" ${PYGTK_URL} ${PYGTK_FN} ${PYGTK_CMD}
+		Call DetectPyGTK
+		Pop $PYGTKOK
+
+        ${EndIf}
+SectionEnd
+Section "-tcl"
+	DetailPrint "--- DOWNLOAD TCL/TK ---"
+	${If} $TCLDOWNLOAD == '1'
+		!insertmacro downloadAndInstall "Tcl/Tk" ${TCL_URL} ${TCL_FN} ${TCL_CMD}
+		Call DetectTcl
+		Pop $TCLOK
+		Pop $TCLPATH
         ${EndIf}
 SectionEnd
 
@@ -207,11 +201,7 @@ Section "ASCEND (required)"
 	File "..\LICENSE.txt"
 	File "..\CHANGELOG.txt"
 	File "..\README-windows.txt"
-	${FILE_IPOPT_1}
-	${FILE_IPOPT_2}
-	${FILE_IPOPT_3}
-	${FILE_IPOPT_4}
-	${FILE_IPOPT_5}
+	File "${IPOPTDLL}"
 	
 	; Model Library
 	SetOutPath $INSTDIR\models
@@ -234,18 +224,11 @@ Section "ASCEND (required)"
 	;File "Makefile.bt"
 	File "..\tools\textpad\ascend.syn"
 
-	; Check for pre-existing .ascend.ini for current user (warn after installation, if so)
 	${If} ${FileExists} "$APPDATA\.ascend.ini"
 		StrCpy $ASCENDINIFOUND "1"
 	${Else}
 		; Set 'librarypath' in .ascend.ini
 		WriteINIstr $APPDATA\.ascend.ini Directories librarypath "$DOCUMENTS\ascdata;$INSTDIR\models"
-	${EndIf}
-	
-	; Check for ASCENDLIBRARY environment variable for current user
-	ExpandEnvStrings $ASCENDLIBRARY "%ASCENDLIBRARY%"
-	${IfNot} $ASCENDLIBRARY == "%ASCENDLIBRARY%"
-		StrCpy $ASCENDENVVARFOUND "1"
 	${EndIf}
 
 	; Write the installation path into the registry
@@ -277,19 +260,18 @@ SectionEnd
 ;--------------------------------
 
 Section "PyGTK GUI" sect_pygtk
-!ifdef INST64
-	SetRegView 64
-!endif
 	; Check the dependencies of the PyGTK GUI before proceding...
-	${If} $HAVE_PYTHON == 'NOK'
+	${If} $PYOK == 'NOK'
 		MessageBox MB_OK "PyGTK GUI can not be installed, because Python was not found on this system.$\nIf you do want to use the PyGTK GUI, please check the installation instructions$\n$\n(PYPATH=$PYPATH)"
-	${ElseIf} $HAVE_GTK == 'NOK'
+	${ElseIf} $GTKOK == 'NOK'
 		MessageBox MB_OK "PyGTK GUI cannot be installed, because GTK+ 2.x was not found on this system.$\nIf you do want to use the PyGTK GUI, please check the installation instructions$\n$\n(GTKPATH=$GTKPATH)"
-	${ElseIf} $HAVE_PYGTK == "NOK"
+	${ElseIf} $GLADEOK == 'NOK'
+		MessageBox MB_OK "PyGTK GUI cannot be installed, because Glade 2.x was not found on this system.$\nIf you do want to use the PyGTK GUI, please check the installation instructions$\n$\n(GTKPATH=$GTKPATH).\n\nIf you do have GTK+ runtime installed, make sure\nyou have a version that includes support for Glade."
+	${ElseIf} $PYGTKOK == "NOK"
 		MessageBox MB_OK "PyGTK GUI cannot be installed, because PyGTK was not found on this system.$\nPlease check the installation instructions.$\n$\n(PYPATH=$PYPATH)"
-	${ElseIf} $HAVE_PYCAIRO == "NOK"
+	${ElseIf} $PYCAIROOK == "NOK"
 		MessageBox MB_OK "PyGTK GUI cannot be installed, because PyCairo was not found on this system.$\nPlease check the installation instructions.$\n$\n(PYPATH=$PYPATH)"
-	${ElseIf} $HAVE_PYGOBJECT == "NOK"
+	${ElseIf} $PYGOBJECTOK == "NOK"
 		MessageBox MB_OK "PyGTK GUI cannot be installed, because PyGObject was not found on this system.$\nPlease check the installation instructions.$\n$\n(PYPATH=$PYPATH)"
 	${Else}
 		;MessageBox MB_OK "Python: $PYPATH, GTK: $GTKPATH"
@@ -303,13 +285,8 @@ Section "PyGTK GUI" sect_pygtk
 
 		; Python interface
 		SetOutPath $INSTDIR\python
-		File "..\ascxx\_ascpy.pyd"
-		File "..\ascxx\ascpy.py"
+		File "..\pygtk\_ascpy.pyd"
 		File "..\pygtk\*.py"
-		
-		; FPROPS: python bindings
-		File "..\models\johnpye\fprops\python\_fprops.pyd"
-		File "..\models\johnpye\fprops\python\*.py"
 		
 		; GLADE assets
 		SetOutPath $INSTDIR\glade
@@ -391,6 +368,28 @@ SectionEnd
 
 ;---------------------------------
 
+Section "Tcl/Tk GUI" sect_tcltk
+
+	${If} $TCLOK != 'OK'
+		MessageBox MB_OK "Tck/Tk GUI can not be installed, because ActiveTcl was not found on this system. If do you want to use the Tcl/Tk GUI, please check the installation instructions ($TCLPATH)"
+	${Else}
+		DetailPrint "--- TCL/TK INTERFACE ---"
+		SetOutPath $INSTDIR\tcltk
+		; FIXME we should be a bit more selective here?
+		File /r /x .svn "..\tcltk\tk\*"
+		SetOutPath $INSTDIR
+		File "..\tcltk\interface\ascendtcl.dll"
+		File "..\tcltk\interface\ascend4.exe"
+
+		StrCpy $TCLINSTALLED "1"
+		WriteRegDWORD HKLM "SOFTWARE\ASCEND" "TclTk" 1
+
+	${EndIf}
+
+SectionEnd
+
+;---------------------------------
+
 Section "Documentation" sect_doc
 	SetOutPath $INSTDIR
 	File "..\doc\book.pdf"
@@ -403,32 +402,32 @@ Section "Start Menu Shortcuts" sect_menu
   
 	WriteRegDWORD HKLM "SOFTWARE\ASCEND" "StartMenu" 1
 
-	CreateDirectory "$SMPROGRAMS\${SMNAME}"  
+	CreateDirectory "$SMPROGRAMS\ASCEND"  
 
 	; Link to PyGTK GUI
 	${If} $PYINSTALLED == "1"
-		CreateShortCut "$SMPROGRAMS\${SMNAME}\ASCEND.lnk" "$PYPATH\pythonw.exe" '"$INSTDIR\ascend"' "$INSTDIR\ascend.ico" 0
+		CreateShortCut "$SMPROGRAMS\ASCEND\ASCEND.lnk" "$PYPATH\pythonw.exe" '"$INSTDIR\ascend"' "$INSTDIR\ascend.ico" 0
 	${EndIf}
 
 	; Model library shortcut
-	CreateShortCut "$SMPROGRAMS\${SMNAME}\Model Library.lnk" "$INSTDIR\models" "" "$INSTDIR\models" 0
+	CreateShortCut "$SMPROGRAMS\ASCEND\Model Library.lnk" "$INSTDIR\models" "" "$INSTDIR\models" 0
 
-;	; Link to Tcl/Tk GUI  
-;	${If} $TCLINSTALLED == "1"
-;		CreateShortCut "$SMPROGRAMS\${SMNAME}\ASCEND Tcl/Tk.lnk" "$INSTDIR\ascend4.exe" "" "$INSTDIR\ascend4.exe" 0
-;	${EndIf}
+	; Link to Tcl/Tk GUI  
+	${If} $TCLINSTALLED == "1"
+		CreateShortCut "$SMPROGRAMS\ASCEND\ASCEND Tcl/Tk.lnk" "$INSTDIR\ascend4.exe" "" "$INSTDIR\ascend4.exe" 0
+	${EndIf}
 	
 	; Documentation
 	${If} $PDFINSTALLED == "1"
-		CreateShortCut "$SMPROGRAMS\${SMNAME}\User's Manual.lnk" "$INSTDIR\book.pdf" "" "$INSTDIR\book.pdf" 0
+		CreateShortCut "$SMPROGRAMS\ASCEND\User's Manual.lnk" "$INSTDIR\book.pdf" "" "$INSTDIR\book.pdf" 0
 	${EndIf}
 
 	; Information files
-	CreateShortCut "$SMPROGRAMS\${SMNAME}\LICENSE.lnk" "$INSTDIR\LICENSE.txt" '' "$INSTDIR\LICENSE.txt" 0
-	CreateShortCut "$SMPROGRAMS\${SMNAME}\CHANGELOG.lnk" "$INSTDIR\CHANGELOG.txt" '' "$INSTDIR\CHANGELOG.txt" 0
-	CreateShortCut "$SMPROGRAMS\${SMNAME}\README.lnk" "$INSTDIR\README-windows.txt" '' "$INSTDIR\README-windows.txt" 0
+	CreateShortCut "$SMPROGRAMS\ASCEND\LICENSE.lnk" "$INSTDIR\LICENSE.txt" '' "$INSTDIR\LICENSE.txt" 0
+	CreateShortCut "$SMPROGRAMS\ASCEND\CHANGELOG.lnk" "$INSTDIR\CHANGELOG.txt" '' "$INSTDIR\CHANGELOG.txt" 0
+	CreateShortCut "$SMPROGRAMS\ASCEND\README.lnk" "$INSTDIR\README-windows.txt" '' "$INSTDIR\README-windows.txt" 0
 
-	CreateShortCut "$SMPROGRAMS\${SMNAME}\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
+	CreateShortCut "$SMPROGRAMS\ASCEND\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
   
 SectionEnd
 
@@ -473,9 +472,6 @@ SectionEnd
 ; UNINSTALLER
 
 Section "Uninstall"
-!ifdef INST64
-	SetRegView 64
-!endif
 
 ;--- python components ---
 
@@ -484,7 +480,6 @@ Section "Uninstall"
   
 		DetailPrint "--- REMOVING PYTHON COMPONENTS ---"
 		Delete $INSTDIR\python\_ascpy.pyd
-		Delete $INSTDIR\python\_fprops.pyd
 		Delete $INSTDIR\python\*.py
 		Delete $INSTDIR\python\*.pyc
 		Delete $INSTDIR\glade\*.glade
@@ -533,13 +528,13 @@ Section "Uninstall"
 
 ;--- tcl/tk components ---
 
-;	ReadRegDWORD $0 HKLM "SOFTWARE\ASCEND" "TclTk"
-;	${If} $0 <> 0
-;		DetailPrint "--- REMOVING TCL/TK COMPONENTS ---"
-;		Delete $INSTDIR\ascendtcl.dll
-;		Delete $INSTDIR\ascend4.exe
-;		RMDir /r $INSTDIR\tcltk
-;	${EndIf}
+	ReadRegDWORD $0 HKLM "SOFTWARE\ASCEND" "TclTk"
+	${If} $0 <> 0
+		DetailPrint "--- REMOVING TCL/TK COMPONENTS ---"
+		Delete $INSTDIR\ascendtcl.dll
+		Delete $INSTDIR\ascend4.exe
+		RMDir /r $INSTDIR\tcltk
+	${EndIf}
 
 ;--- documentation ---
 
@@ -555,6 +550,8 @@ Section "Uninstall"
 	${If} $0 <> 0
 		DetailPrint "--- REMOVING HEADER FILES ---"
 		RMDir /r $INSTDIR\include
+		Delete $INSTDIR\ascend-config
+		Delete $INSTDIR\ascend-config.bat	
 	${EndIf}
 	
 ;--- start menu ---
@@ -563,7 +560,7 @@ Section "Uninstall"
 	${If} $0 <> 0
 		; Remove shortcuts, if any
 		DetailPrint "--- REMOVING START MENU SHORTCUTS ---"
-		RmDir /r "$SMPROGRAMS\${SMNAME}"
+		RmDir /r "$SMPROGRAMS\ASCEND"
 	${EndIf}
 
 ;--- common components ---
@@ -576,8 +573,6 @@ Section "Uninstall"
 
 	; Remove files and uninstaller
 
-	Delete $INSTDIR\ascend-config
-	Delete $INSTDIR\ascend-config.bat	
 	Delete $INSTDIR\ascend.dll
 	Delete $INSTDIR\LICENSE.txt
 	Delete $INSTDIR\README-windows.txt
@@ -597,12 +592,6 @@ Section "Uninstall"
 	Delete $INSTDIR\solvers\ipopt_ascend.dll
 	RMDir $INSTDIR\solvers
 
-	${DEL_IPOPT_1}
-	${DEL_IPOPT_2}
-	${DEL_IPOPT_3}
-	${DEL_IPOPT_4}
-	${DEL_IPOPT_5}
-	
 	; Remove directories used
 
 	Delete $INSTDIR\uninstall.exe
@@ -616,52 +605,60 @@ SectionEnd
 
 !include "ascendini.nsi"
 
-!include "envvarwarning.nsi"
-
 Function .onInit
-!ifdef INST64
-	${IfNot} ${RunningX64}
-		MessageBox MB_OK "This ASCEND installer is for 64-bit Windows versions only.$\n$\nVisit http://ascend4.org for 32-bit versions."
-		Abort
-	${EndIf}
-	SetRegView 64
-!endif
-
-	;Get the previously-chosen $INSTDIR
-	ReadRegStr $0 HKLM "SOFTWARE\ASCEND" "Install_Dir"
-	${If} $0 != ""
-		StrCpy $INSTDIR $0
-	${EndIf}
-
-	;set the default python target dir
-	StrCpy $PYTHONTARGETDIR "c:\Python${PYVERSION}"
-!ifndef INST64
-	${If} ${RunningX64}
-		; this is a 32-bit installer on 64-bit Windows: install Python to a special location
-		StrCpy $PYTHONTARGETDIR "c:\Python${PYVERSION}_32"
-	${EndIf}
-	; FIXME we should check whether that directory already exists before going ahead...
-!endif
-
 	StrCpy $PYINSTALLED ""
+	StrCpy $TCLINSTALLED ""
 	StrCpy $ASCENDINIFOUND ""
 	StrCpy $PDFINSTALLED ""
-	StrCpy $ASCENDENVVARFOUND ""
 	
 	ExpandEnvStrings $DEFAULTPATH "%WINDIR%;%WINDIR%\system32"
 
 	Call DetectPython
-	Call DetectGTK
-	Call DetectPyGTK
-	Call DetectPyGObject
-	Call DetectPyCairo
+	Pop $PYOK
+	Pop $PYPATH
 	
-	;MessageBox MB_OK "GTK path is $GTKPATH"
-	StrCpy $PATH "$GTKPATH;$DEFAULTPATH;$PYPATH"
+	Call DetectGTK
+	Pop $GTKOK
+	Pop $GTKPATH
+
+	Call DetectGlade
+	Pop $GLADEOK
+	Pop $GLADEPATH	
+	
+	Call DetectTcl
+	Pop $TCLOK
+	Pop $TCLPATH
+	
+	Call DetectPyGTK
+	Pop $PYGTKOK
+
+	Call DetectPyGObject
+	Pop $PYGOBJECTOK
+
+	Call DetectPyCairo
+	Pop $PYCAIROOK
+	
+	StrCpy $PATH "$DEFAULTPATH;$PYPATH;$GTKPATH"
 
 	ReadRegStr $0 HKLM "SOFTWARE\ASCEND" "Install_Dir"
 	${If} $0 != ""	
 		;MessageBox MB_OK "Previous installation detected..."
+		; If user previous deselected Tcl/Tk, then deselect it by
+		; default now, i.e don't force the user to install it.
+		ReadRegDWORD $0 HKLM "SOFTWARE\ASCEND" "TclTk"
+		${If} $0 = 0
+			;MessageBox MB_OK "Tcl/Tk was previously deselected"
+			SectionGetFlags "${sect_tcltk}" $1
+			IntOp $1 $1 ^ ${SF_SELECTED}
+			SectionSetFlags "${sect_tcltk}" $1
+		${Else}
+			; If previously installed, force it to stay installed;
+			; the only way to uninstall a component is via complete
+			; uninstall.
+			SectionGetFlags "${sect_tcltk}" $1
+			IntOp $1 $1 ^ ${SF_RO}
+			SectionSetFlags "${sect_tcltk}" $1
+		${EndIf}
 
 		ReadRegDWORD $0 HKLM "SOFTWARE\ASCEND" "Python"
 		${If} $0 = 0
@@ -709,17 +706,4 @@ Function .onInit
 		${EndIf}
 	${EndIf}	
 
-FunctionEnd
-
-
-Function un.onInit
-!ifdef INST64
-	SetRegView 64
-!endif
-
-	;Get the previously-chosen $INSTDIR
-	ReadRegStr $0 HKLM "SOFTWARE\ASCEND" "Install_Dir"
-	${If} $0 != ""
-		StrCpy $INSTDIR $0
-	${EndIf}
 FunctionEnd

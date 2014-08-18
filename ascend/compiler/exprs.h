@@ -13,7 +13,9 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place - Suite 330,
+	Boston, MA 02111-1307, USA.
 *//**
 	@file
 	Expression Module
@@ -31,15 +33,12 @@
 
 #ifndef ASC_EXPRS_H
 #define ASC_EXPRS_H
-#include "symtab.h"
-#include "dimen.h"
-#include "name.h"
 
-/**	@addtogroup compiler_expr Compiler Expressions
+/**	@addtogroup compiler Compiler
 	@{
 */
 
-ASC_DLLSPEC struct Expr *CreateVarExpr(struct Name *n);
+extern struct Expr *CreateVarExpr(struct Name *n);
 /**<
  *  Create a name type expr node.
  */
@@ -63,7 +62,7 @@ extern void InitVarExpr(struct Expr *e, CONST struct Name *n);
  *  after the node dies is that the name is destroyed when the node is.
  */
 
-ASC_DLLSPEC struct Expr *CreateOpExpr(enum Expr_enum t);
+extern struct Expr *CreateOpExpr(enum Expr_enum t);
 /**< 
  *  Create an operator node.
  */
@@ -110,7 +109,7 @@ extern struct Expr *CreateSetExpr(struct Set *set);
  *  Create a set node.
  */
 
-ASC_DLLSPEC struct Expr *CreateSymbolExpr(symchar *sym);
+extern struct Expr *CreateSymbolExpr(symchar *sym);
 /**< 
  *  Create a symbol node.
  */
@@ -426,7 +425,7 @@ extern void DestroyExprList(struct Expr *e);
  *  Handles NULL input gracefully.
  */
 
-ASC_DLLSPEC struct Expr *JoinExprLists(struct Expr *e1, struct Expr *e2);
+extern struct Expr *JoinExprLists(struct Expr *e1, struct Expr *e2);
 /**< 
  *  Append list e2 to the end of e1.  This returns e1, unless e1
  *  is NULL in which case it returns e2.

@@ -36,16 +36,6 @@ ATOM specific_entropy REFINES solver_var
 
 END specific_entropy;
 
-ATOM delta_specific_entropy REFINES solver_var
-		DIMENSION L^2/T^2/TMP
-		DEFAULT 6{kJ/kg/K};
-	
-	lower_bound := -1e50{kJ/kg/K};
-	upper_bound := 1e50{kJ/kg/K};
-	nominal := 6{kJ/kg/K};
-
-END delta_specific_entropy;
-
 ATOM specific_heat_capacity REFINES solver_var
 		DIMENSION L^2/T^2/TMP
 		DEFAULT 4.0{kJ/kg/K};
@@ -82,27 +72,9 @@ ATOM specific_energy REFINES solver_var
 	nominal := 1000{kJ/kg};
 END specific_energy;
 
-ATOM positive_specific_work REFINES solver_var
-		DIMENSION L^2/T^2
-		DEFAULT 1000{kJ/kg};
-
-	lower_bound := 0{kJ/kg};
-	upper_bound := 1e50{kJ/kg};
-	nominal := 1000{kJ/kg};
-END positive_specific_work;
-
-ATOM negative_specific_work REFINES solver_var
-		DIMENSION L^2/T^2
-		DEFAULT -1000{kJ/kg};
-
-	lower_bound := -1e50{kJ/kg};
-	upper_bound := 0{kJ/kg};
-	nominal := -1000{kJ/kg};
-END negative_specific_work;
-
 ATOM delta_specific_enthalpy REFINES solver_var
 		DIMENSION L^2/T^2
-		DEFAULT -1000{kJ/kg};
+		DEFAULT 1000{kJ/kg};
 
 	lower_bound := -10000{kJ/kg};
 	upper_bound := 10000{kJ/kg};
@@ -144,14 +116,6 @@ ATOM specific_enthalpy_rate REFINES solver_var
 	upper_bound := 1e8 {kJ/kg/s};
 	nominal := 100{ J/kg/s};
 END specific_enthalpy_rate;
-
-ATOM specific_volume_rate REFINES solver_var
-		DIMENSION L^3/M/T
-		DEFAULT 100 {m^3/kg/s};
-	lower_bound := -1e50 {m^3/kg/s};
-	upper_bound := 1e50 {m^3/kg/s};
-	nominal := 100{m^3/kg/s};
-END specific_volume_rate;
 
 ATOM ua_value REFINES solver_var
 		DIMENSION M/T^3/TMP*L^2
@@ -217,14 +181,3 @@ MODEL thermo_state;
 	cv IS_A specific_heat_capacity;
 	(* w IS_A speed; *)
 END thermo_state;
-
-(* valve coefficient in SI units (see models/johnpye/fprops/valve.a4c) *)
-ATOM valve_coefficient REFINES solver_var
-	DIMENSION L^2
-	DEFAULT 5.95925 {mm^2};
-	lower_bound := 1e-12 {mm^2};
-	upper_bound := 1e12 {mm^2};
-END valve_coefficient;
-
-
-

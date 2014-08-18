@@ -21,8 +21,9 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  You should have received a copy of the GNU General Public License along
+ *  with the program; if not, write to the Free Software Foundation, Inc., 675
+ *  Mass Ave, Cambridge, MA 02139 USA.  Check the file named COPYING.
  */
 
 /** @file
@@ -39,7 +40,7 @@
 #ifndef ASC_PROCIO_H
 #define ASC_PROCIO_H
 
-/**	@addtogroup compiler_proc Compiler Methods
+/**	@addtogroup compiler Compiler
 	@{
 */
 
@@ -53,13 +54,14 @@ enum ProcExtError {
 };
 
 /** METHODs equivalent of WSEM. Should go away soon. */
-extern void WriteInitWarn(struct procFrame *fm, const char *str);
+extern void WriteInitWarn(struct procFrame *fm, char *str);
 /** METHODs equivalent of WSEM. Should go away soon. */
-extern void WriteInitErr(struct procFrame *fm, const char *str);
+extern void WriteInitErr(struct procFrame *fm, char *str);
 
 /* error message services */
 
 /**
+ * <!--  ProcWriteCaseError(fm,arm,pos);                               -->
  * Write error encountered while evaluating SWITCH.
  * arm gives the number of the case in question. pos
  * gives the position of the error in the var list.
@@ -67,36 +69,39 @@ extern void WriteInitErr(struct procFrame *fm, const char *str);
 extern void ProcWriteCaseError(struct procFrame *fm, int arm, int pos);
 
 /**
+ * <!--  ProcWriteForError(fm);                                        -->
  * Write error encountered while evaluating FOR/DO.
  */
 extern void ProcWriteForError(struct procFrame *fm);
 
 /**
+ * <!--  ProcWriteAssignmentError(fm);                                 -->
  * Write error encountered while evaluating := assignment.
  */
 extern void ProcWriteAssignmentError(struct procFrame *fm);
 
 /**
+ * <!--  ProcWriteFixError(fm,var);                                 -->
  * Write error encountered while evaluating var.fixed assignment.
  */
 extern void ProcWriteFixError(struct procFrame *fm, CONST struct Name *var);
 
-/**
- */
-extern void ProcWriteSlvReqError(struct procFrame *fm);
 
 /**
+ * <!--  ProcWriteIfError(fm,cname);                                   -->
  * Write error encountered while evaluating boolean flow control.
  * cname is normally "IF" or "WHILE".
  */
 extern void ProcWriteIfError(struct procFrame *fm, CONST char *cname);
 
 /**
+ * <!--  ProcWriteRunError(fm);                                        -->
  * Write error encountered while evaluating RUN arguments.
  */
 extern void ProcWriteRunError(struct procFrame *fm);
 
 /**
+ * <!--  ProcWriteExtError(fm,funcname,err,pos);                       -->
  * Write error encountered while evaluating Ext arguments.
  */
 extern void ProcWriteExtError(struct procFrame *fm,
@@ -115,6 +120,7 @@ extern void ProcWriteStackCheck(struct procFrame *fm,
                                 struct Name *name);
 
 /**
+ * <!--  WriteProcedureBlock(fp,initstack,str);                        -->
  * Writes a line to file fp.  Write format resembles:
  * ("%s %s in %s\n",str,stack->last->proc,stack->last->context)
  * For example: 
@@ -130,6 +136,7 @@ extern void WriteProcedureBlock(FILE *fp,
                                 CONST char *str);
 
 /**
+ * <!--  WriteProcedureLine(fp,initstack,str);                         -->
  * Writes a line to file fp.  Write format resembles:
  * ("%s %d: %s in %s\n",str,line,proc,context)
  * For example:

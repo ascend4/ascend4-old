@@ -24,16 +24,20 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
  */
 #include <stdarg.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/panic.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/utilities/ascMalloc.h>
 #include <ascend/utilities/error.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
 
+#include "bit.h"
 #include "symtab.h"
 #include "functype.h"
 #include "expr_types.h"
@@ -74,6 +78,10 @@
 #include "instmacro.h"
 #include "instquery.h"
 
+#ifndef lint
+static CONST char CreateInstModuleID[] = "$Id: createinst.c,v 1.19 1998/03/26 20:39:41 ballan Exp $";
+#endif
+
 void ZeroNewChildrenEntries(register struct Instance **child_ary,
 			    register unsigned long int num)
 {
@@ -96,21 +104,20 @@ struct Instance *CreateModelInstance(struct TypeDescription *type)
   register struct ModelInstance *result, *proto;
   register unsigned long num_children;
   register CONST struct StatementList *stats;
+
   proto = MOD_INST(LookupPrototype(GetName(type)));
   if (proto==NULL) {
     CopyTypeDesc(type);
     num_children = ChildListLen(GetChildList(type));
     stats = GetStatementList(type);
-    result = MOD_INST(ascmalloc(
-                (unsigned)sizeof(struct ModelInstance)
-                + (unsigned)num_children * (unsigned)sizeof(struct Instance *)
-    ));
+    result = MOD_INST(ascmalloc((unsigned)sizeof(struct ModelInstance)+
+				(unsigned)num_children*
+				(unsigned)sizeof(struct Instance *)));
     result->t = MODEL_INST;
     result->pending_entry = NULL;
     result->interface_ptr = NULL;
     result->parents = gl_create(AVG_PARENTS);
     result->whens = NULL;
-    result->link_table = gl_create(AVG_LINKS); /**< DS: initially the link_table for a model is empty */
     result->desc = type;
     result->alike_ptr = INST(result);
     result->visited = 0;
@@ -159,21 +166,21 @@ struct Instance *CreateSimulationInstance(struct TypeDescription *type,
 					  symchar *name)
 {
   register struct SimulationInstance *result;
-  unsigned num_children;
-  /* unsigned int size; */
+  int num_children;
+  unsigned int size;
 
   num_children = 1;
   CopyTypeDesc(type);
-  /* size = (unsigned)sizeof(struct SimulationInstance) +
-    (unsigned)num_children*sizeof(struct Instance *); */
+  size = (unsigned)sizeof(struct SimulationInstance) +
+    (unsigned)num_children*sizeof(struct Instance *);
   result = SIM_INST(ascmalloc((unsigned)sizeof(struct SimulationInstance) +
-			      num_children* sizeof(struct Instance *)));
+			      (unsigned)num_children*
+			      sizeof(struct Instance *)));
   result->t = SIM_INST;
   result->interface_ptr = NULL;
   result->desc = type;
   result->name = name;
   result->extvars = NULL;
-  result->slvreq_hooks = NULL;
   return INST(result);
 }
 
@@ -184,7 +191,7 @@ struct Instance *CreateSimulationInstance(struct TypeDescription *type,
 static void CreateReal(struct RealInstance *i, struct Instance *parent)
 {
   i->t = REAL_INST;
-  i->parent_offset = INST((asc_intptr_t)i-(asc_intptr_t)parent);
+  i->parent_offset = INST((unsigned long)i-(unsigned long)parent);
   i->value = UNDEFAULTEDREAL;
   i->dimen = WildDimension();
   i->assigned = 0;
@@ -196,7 +203,7 @@ static void CreateReal(struct RealInstance *i, struct Instance *parent)
 static void CreateInteger(struct IntegerInstance *i, struct Instance *parent)
 {
   i->t = INTEGER_INST;
-  i->parent_offset = INST((asc_intptr_t)i-(asc_intptr_t)parent);
+  i->parent_offset = INST((unsigned long)i-(unsigned long)parent);
   i->value = 0;
   i->assigned = 0;
   i->depth = 0;
@@ -207,7 +214,7 @@ static void CreateInteger(struct IntegerInstance *i, struct Instance *parent)
 static void CreateBoolean(struct BooleanInstance *i, struct Instance *parent)
 {
   i->t = BOOLEAN_INST;
-  i->parent_offset = INST((asc_intptr_t)i-(asc_intptr_t)parent);
+  i->parent_offset = INST((unsigned long)i-(unsigned long)parent);
   i->value = 0;
   i->assigned = 0;
   i->depth = UINT_MAX;
@@ -222,7 +229,7 @@ static void CreateSet(struct SetInstance *i,
 			struct Instance *parent, int intset)
 {
   i->t = SET_INST;
-  i->parent_offset = INST((asc_intptr_t)i-(asc_intptr_t)parent);
+  i->parent_offset = INST((unsigned long)i-(unsigned long)parent);
   i->int_set = intset ? 1 : 0;
   i->list = NULL;
   AssertContainedMemory(i,sizeof(struct SetInstance));
@@ -231,7 +238,7 @@ static void CreateSet(struct SetInstance *i,
 static void CreateSymbol(struct SymbolInstance *i, struct Instance *parent)
 {
   i->t = SYMBOL_INST;
-  i->parent_offset = INST((asc_intptr_t)i-(asc_intptr_t)parent);
+  i->parent_offset = INST((unsigned long)i-(unsigned long)parent);
   i->value = NULL;
   AssertContainedMemory(i,sizeof(struct SymbolInstance));
 }
@@ -259,35 +266,35 @@ static void MakeAtomChildren(unsigned long int nc, /* number of children */
 	SetRealAtomDims(base,RealDimensions(cd));
       }
       /* prepare for next child */
-      base = INST((asc_intptr_t)base+sizeof(struct RealInstance));
+      base = INST((unsigned long)base+sizeof(struct RealInstance));
       break;
     case integer_child:
       CreateInteger(I_INST(base),parent);
       if (ValueAssigned(cd))
 	SetIntegerAtomValue(base,IntegerDefault(cd),UINT_MAX);
       /* prepare for next child */
-      base = INST((asc_intptr_t)base+sizeof(struct IntegerInstance));
+      base = INST((unsigned long)base+sizeof(struct IntegerInstance));
       break;
     case boolean_child:
       CreateBoolean(B_INST(base),parent);
       if (ValueAssigned(cd))
 	SetBooleanAtomValue(base,BooleanDefault(cd),UINT_MAX);
       /* prepare for next child */
-      base = INST((asc_intptr_t)base+sizeof(struct BooleanInstance));
+      base = INST((unsigned long)base+sizeof(struct BooleanInstance));
       break;
     case set_child:
       CreateSet(S_INST(base),parent,(int)SetIsIntegerSet(cd));
       if (ValueAssigned(cd))
 	AssignSetAtomList(base,CopySet(SetDefault(cd)));
       /* prepare for next child */
-      base = INST((asc_intptr_t)base+sizeof(struct SetInstance));
+      base = INST((unsigned long)base+sizeof(struct SetInstance));
       break;
     case symbol_child:
       CreateSymbol(SYM_INST(base),parent);
       if (ValueAssigned(cd))
 	SetSymbolAtomValue(base,SymbolDefault(cd));
       /* prepare for next child */
-      base = INST((asc_intptr_t)base+sizeof(struct SymbolInstance));
+      base = INST((unsigned long)base+sizeof(struct SymbolInstance));
       break;
     case bad_child:
       ASC_PANIC("MakeAtomChildren called with bad_child\n");

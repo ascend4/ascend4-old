@@ -21,25 +21,27 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  You should have received a copy of the GNU General Public License along
+ *  with the program; if not, write to the Free Software Foundation, Inc., 675
+ *  Mass Ave, Cambridge, MA 02139 USA.  Check the file named COPYING.
+ *
  */
 
 #include <math.h>
 #include <ctype.h>
 #include <stdarg.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
-#include <ascend/general/list.h>
-#include <ascend/utilities/bit.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 
-#include "slist.h"
+#include <ascend/utilities/ascPanic.h>
+#include <ascend/general/list.h>
+
 
 #include "functype.h"
 #include "expr_types.h"
 #include "stattypes.h"
 #include "statement.h"
+#include "slist.h"
 #include "statio.h"
 #include "symtab.h"
 #include "module.h"
@@ -52,6 +54,7 @@
 #include "sets.h"
 #include "exprs.h"
 #include "forvars.h"
+#include "bit.h"
 #include "setinstval.h"
 #include "childinfo.h"
 #include "instance_enum.h"
@@ -80,18 +83,15 @@ int BaseType(symchar *name)
 {
   static int init = 0;
   int c;
-
-  if (!init || !name) {
+  if (!name) return -1;         /* missing OF in set declaration */
+  if (!init) {
     init = 1;
-
     FundamentalTypeList[0] = GetBaseTypeName(boolean_type);
     FundamentalTypeList[1] = GetBaseTypeName(integer_type);
     FundamentalTypeList[2] = GetBaseTypeName(real_type);
     FundamentalTypeList[3] = GetBaseTypeName(set_type);
     FundamentalTypeList[4] = GetBaseTypeName(symbol_type);
   }
-  if (!name) return -1;         /* missing OF in set declaration */
-
   for(c=0;c<NUM_FUNDTYPES;c++){
     if (name == FundamentalTypeList[c]) return c;
   }

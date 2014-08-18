@@ -22,17 +22,21 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software Foundation,
+ *  Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the file named
+ *  COPYING.
+ *
  */
 
 #include <stdarg.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/list.h>
 #include <ascend/general/pool.h>
 #include <ascend/general/dstring.h>
 
+#include "bit.h"
 #include "symtab.h"
 #include "functype.h"
 #include "expr_types.h"
@@ -229,7 +233,7 @@ struct Instance *NextCliqueMember(CONST struct Instance *i){
     return (struct Instance *)i;
   default:
     ASC_PANIC("Invalid arguments to NextCliqueMember.");
-
+    
   }
 }
 
@@ -268,7 +272,7 @@ VOIDPTR GetInterfacePtr(CONST struct Instance *i){
 	break;
   default:
     ASC_PANIC("Undefined instance type %d passed to GetInterfacePtr",i->t);
-  }
+  } 
   return NULL;
 }
 
@@ -370,7 +374,7 @@ unsigned int GetAnonFlags(CONST struct Instance *i){
     return 0;
   default:
     ASC_PANIC("Incorrect type in GetAnonFlags"); /*NOTREACHED*/
-
+    
   }
 }
 
@@ -460,19 +464,6 @@ struct Instance *GetSimulationRoot(struct Instance *i){
   assert(i&&InstanceKind(i)==SIM_INST);
   child_adr = SIM_CHILD(i,0);
   return *child_adr;
-}
-
-struct Instance *FindSimulationInstance(struct Instance *i){
-	struct gl_list_t *sims;
-	sims = FindSimulationAncestors(i);
-	if(gl_length(sims)!=1){
-		CONSOLE_DEBUG("Instance does not have just one SIM_INST ancestor");
-		return NULL;
-	}
-	struct Instance *sim;
-	sim = gl_fetch(sims,1);
-	gl_destroy(sims);
-	return sim;
 }
 
 
@@ -593,7 +584,7 @@ unsigned long InstanceSize(CONST struct Instance *i){
     return len;
   default:
     ASC_PANIC("Invalid argument to InstanceSize.");
-
+    
   }
 }
 
@@ -606,7 +597,7 @@ int IntegerSetInstance(CONST struct Instance *i){
     return S_INST(i)->int_set;
   default:
     ASC_PANIC("IntegerSetInstance called with non-set argument.");
-
+    
   }
 }
 
@@ -656,7 +647,7 @@ struct TypeDescription *InstanceTypeDesc(CONST struct Instance *i){
     return NULL;
   default:
     ASC_PANIC("Unknown instance type (i->t=%d)!",i->t);
-
+    
   }
 }
 
@@ -716,7 +707,7 @@ symchar *InstanceType(register CONST struct Instance *i){
     return GetBaseTypeName(symbol_type);
   default:
     ASC_PANIC("InstanceType called on invalid instance.");
-
+    
   }
 }
 
@@ -749,7 +740,7 @@ struct BitList *InstanceBitList(CONST struct Instance *i){
     return NULL;
   default:
     ASC_PANIC("Unknown instance type passed to InstanceBitList.");
-
+    
   }
 }
 

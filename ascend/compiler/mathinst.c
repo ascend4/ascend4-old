@@ -25,13 +25,14 @@
 */
 
 #include <stdarg.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
-#include <ascend/general/panic.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
+#include <ascend/utilities/ascPanic.h>
 #include <ascend/general/pool.h>
 #include <ascend/general/list.h>
 #include <ascend/general/dstring.h>
 
+#include "bit.h"
 #include "symtab.h"
 #include "functype.h"
 #include "expr_types.h"
@@ -70,8 +71,8 @@
 #include "tmpnum.h"
 #include "mathinst.h"
 
-static const char panic_msg[]="Incorrect type '%s' passed";
-#define PANIC_INCORRECT_TYPE(i) ASC_PANIC(panic_msg,instance_typename(i))
+static const char panic_msg[]="Incorrect type passed";
+#define PANIC_INCORRECT_TYPE Asc_Panic(2,__FUNCTION__,panic_msg);
 
 enum Expr_enum GetInstanceRelationType(CONST struct Instance *i)
 {
@@ -79,7 +80,7 @@ enum Expr_enum GetInstanceRelationType(CONST struct Instance *i)
   if (i->t == REL_INST) {
     return RELN_INST(i)->type; /* the implementation kind */
   }else{
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
 }
 
@@ -89,7 +90,7 @@ CONST struct relation *GetInstanceRelationOnly(CONST struct Instance *i)
   if (i->t == REL_INST) {
     return RELN_INST(i)->ptr;
   }else{
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
 }
 
@@ -101,7 +102,7 @@ CONST struct relation *GetInstanceRelation(CONST struct Instance *i,
     *type = RELN_INST(i)->type;
     return RELN_INST(i)->ptr;
   }else{
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
 }
 
@@ -113,8 +114,8 @@ struct relation *GetInstanceRelToModify(struct Instance *i,
     *type = RELN_INST(i)->type;
     return RELN_INST(i)->ptr;
   }else{
-    PANIC_INCORRECT_TYPE(i);
-
+    PANIC_INCORRECT_TYPE;
+    
   }
 }
 
@@ -125,8 +126,8 @@ CONST struct logrelation *GetInstanceLogRel(CONST struct Instance *i)
   if (i->t == LREL_INST) {
     return LRELN_INST(i)->ptr;
   }else{
-    PANIC_INCORRECT_TYPE(i);
-
+    PANIC_INCORRECT_TYPE;
+    
   }
 }
 
@@ -136,8 +137,8 @@ struct logrelation *GetInstanceLogRelToModify(struct Instance *i)
   if (i->t == LREL_INST) {
     return LRELN_INST(i)->ptr;
   }else{
-    PANIC_INCORRECT_TYPE(i);
-
+    PANIC_INCORRECT_TYPE;
+    
   }
 }
 
@@ -147,8 +148,8 @@ CONST struct logrelation *GetInstanceLogRelOnly(CONST struct Instance *i)
   if (InstanceKind(i) == LREL_INST) {
     return LRELN_INST(i)->ptr;
   }else{
-    PANIC_INCORRECT_TYPE(i);
-
+    PANIC_INCORRECT_TYPE;
+    
   }
 }
 
@@ -175,17 +176,17 @@ struct gl_list_t *GetInstanceOperands(CONST struct Instance *i)
     if (rel != NULL) {
       list = RelationVarList(rel);
     }
-    break;
+    break; 
   case LREL_INST:
     lrel = GetInstanceLogRel(i);
     if (lrel != NULL) {
       list = LogRelBoolVarList(lrel);
       list2 = LogRelSatRelList(lrel);
     }
-    break;
+    break; 
   case WHEN_INST:
     list = GetInstanceWhenVars(i);
-    break;
+    break; 
   default:
     return NULL;
   }
@@ -218,8 +219,8 @@ struct gl_list_t *GetInstanceWhenVars(CONST struct Instance *i)
   if (i->t == WHEN_INST) {
     return W_INST(i)->bvar;
   }else{
-    PANIC_INCORRECT_TYPE(i);
-
+    PANIC_INCORRECT_TYPE;
+    
   }
 }
 
@@ -229,7 +230,8 @@ struct gl_list_t *GetInstanceWhenCases(CONST struct Instance *i)
   if (i->t == WHEN_INST) {
     return W_INST(i)->cases;
   }else{
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
+    
   }
 }
 
@@ -258,7 +260,7 @@ struct gl_list_t *GetInstanceWhens(CONST struct Instance *i)
     case WHEN_INST:
       return W_INST(i)->whens;
     default:
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
 }
 
@@ -268,7 +270,7 @@ void SetWhenVarList(struct Instance *i,struct gl_list_t *whenvars)
   if (i->t == WHEN_INST) {
     W_INST(i)->bvar = whenvars;
   }else{
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
 }
 
@@ -278,7 +280,7 @@ void SetWhenCases(struct Instance *i,struct gl_list_t *whencases)
   if (i->t == WHEN_INST) {
     W_INST(i)->cases = whencases;
   }else{
-     PANIC_INCORRECT_TYPE(i);
+     PANIC_INCORRECT_TYPE;
   }
 }
 
@@ -303,7 +305,7 @@ void SetInstanceRelation(struct Instance *i, struct relation *rel,
       Asc_Panic(2, __FUNCTION__, "Attempt to reassign RelationPointer.");
     }
   }else{
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
 }
 
@@ -316,7 +318,7 @@ void SetInstanceLogRel(struct Instance *i, struct logrelation *lrel){
       Asc_Panic(2, __FUNCTION__, "Attempted reassignment to logrel ptr");
     }
   }else{
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
 }
 
@@ -337,7 +339,7 @@ unsigned long RelationsCount(CONST struct Instance *i)
     }
   default:
     ASC_PANIC("RelationsCount called with inappropriate argument.");
-
+    
   }
 }
 
@@ -363,7 +365,7 @@ struct Instance *RelationsForAtom(CONST struct Instance *i,
 }
 
 void AddRelation(struct Instance *i, struct Instance *reln){
-  //unsigned long len;
+  unsigned long len;
   assert(i);
   assert(reln);
   assert(reln->t==REL_INST);
@@ -374,35 +376,34 @@ void AddRelation(struct Instance *i, struct Instance *reln){
     if (RA_INST(i)->relations==NULL) {
       RA_INST(i)->relations = gl_create(AVG_RELATIONS);
     }
-    //len = gl_length(RA_INST(i)->relations);
+    len = gl_length(RA_INST(i)->relations);
     if (gl_search(RA_INST(i)->relations,(char*)reln,(CmpFunc)CmpRelations)==0){
       gl_append_ptr(RA_INST(i)->relations,(VOIDPTR)reln);
     }
     break;
   default:
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
 }
 
-void RemoveRelation(struct Instance *i, struct Instance *reln){
-	register unsigned long c;
-	//CONSOLE_DEBUG("Var %p: remove reference to rel %p",i,reln);
-	assert(i&&reln&&(reln->t==REL_INST));
-	AssertMemory(i);
-	switch(i->t){
-	case REAL_ATOM_INST:
-		//CONSOLE_DEBUG("It is a real atom");
-	    if(RA_INST(i)->relations==NULL){
-			return;
-		}
-		c = gl_search(RA_INST(i)->relations,(char *)reln,(CmpFunc)CmpRelations);
-		if(c>0){
-			gl_delete(RA_INST(i)->relations,c,0);
-		}
-		break;
-	default:
-		PANIC_INCORRECT_TYPE(i);
-	}
+void RemoveRelation(struct Instance *i, struct Instance *reln)
+{
+  register unsigned long c;
+  assert(i&&reln&&(reln->t==REL_INST));
+  AssertMemory(i);
+  switch(i->t) {
+  case REAL_ATOM_INST:
+    if (RA_INST(i)->relations==NULL) {
+      return;
+    }
+    c = gl_search(RA_INST(i)->relations,(char *)reln,(CmpFunc)CmpRelations);
+    if (c>0) {
+      gl_delete(RA_INST(i)->relations,c,0);
+    }
+    break;
+  default:
+    PANIC_INCORRECT_TYPE;
+  }
 }
 
 /*------------------------------------------------------------------------------
@@ -433,7 +434,7 @@ unsigned long LogRelationsCount(CONST struct Instance *i)
       return 0;
     }
   default:
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
 }
 
@@ -462,14 +463,14 @@ struct Instance *LogRelationsForInstance(CONST struct Instance *i,
       ASC_PANIC("c out of bounds in LogRelationsForInstance.\n");
     }
   default:
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
   exit(2);/* NOT REACHED.  Needed to keep gcc from whining */
 }
 
 void AddLogRel(struct Instance *i, struct Instance *lreln)
 {
-  //unsigned long len;
+  unsigned long len;
   assert(i&&lreln&&(lreln->t==LREL_INST));
   AssertMemory(i);
   switch(i->t){
@@ -477,7 +478,7 @@ void AddLogRel(struct Instance *i, struct Instance *lreln)
     if (BA_INST(i)->logrelations==NULL) {
       BA_INST(i)->logrelations = gl_create(AVG_LOGRELS);
     }
-    //len = gl_length(BA_INST(i)->logrelations);
+    len = gl_length(BA_INST(i)->logrelations);
     if (gl_search(BA_INST(i)->logrelations,
                   (char *)lreln,(CmpFunc)CmpLogRelations)==0) {
       gl_append_ptr(BA_INST(i)->logrelations,(VOIDPTR)lreln);
@@ -487,7 +488,7 @@ void AddLogRel(struct Instance *i, struct Instance *lreln)
     if (RELN_INST(i)->logrels==NULL) {
       RELN_INST(i)->logrels = gl_create(AVG_LOGRELS);
     }
-    //len = gl_length(RELN_INST(i)->logrels);
+    len = gl_length(RELN_INST(i)->logrels);
     if (gl_search(RELN_INST(i)->logrels,
                   (char *)lreln,(CmpFunc)CmpLogRelations)==0) {
       gl_append_ptr(RELN_INST(i)->logrels,(VOIDPTR)lreln);
@@ -497,14 +498,14 @@ void AddLogRel(struct Instance *i, struct Instance *lreln)
     if (LRELN_INST(i)->logrels==NULL) {
       LRELN_INST(i)->logrels = gl_create(AVG_LOGRELS);
     }
-    //len = gl_length(LRELN_INST(i)->logrels);
+    len = gl_length(LRELN_INST(i)->logrels);
     if (gl_search(LRELN_INST(i)->logrels,
                   (char *)lreln,(CmpFunc)CmpLogRelations)==0) {
       gl_append_ptr(LRELN_INST(i)->logrels,(VOIDPTR)lreln);
     }
     break;
   default:
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
 }
 
@@ -545,7 +546,7 @@ void RemoveLogRel(struct Instance *i, struct Instance *lreln)
     }
     break;
   default:
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
 }
 
@@ -619,7 +620,7 @@ unsigned long WhensCount(struct Instance *i)
       return 0;
     }
   default:
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
 }
 
@@ -691,7 +692,7 @@ struct Instance *WhensForInstance(struct Instance *i,
       ASC_PANIC("c out of bounds in WhensForInstance.\n");
     }
   default:
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
   exit(2);/* NOT REACHED.  Needed to keep gcc from whining */
 }
@@ -699,14 +700,14 @@ struct Instance *WhensForInstance(struct Instance *i,
 
 void AddWhen(struct Instance *i, struct Instance *when)
 {
-  //unsigned long len;
+  unsigned long len;
   assert(i&&when&&(when->t==WHEN_INST));
   AssertMemory(i);
   switch(i->t){
   case BOOLEAN_ATOM_INST:
     if (BA_INST(i)->whens==NULL)
       BA_INST(i)->whens = gl_create(AVG_WHEN);
-    //len = gl_length(BA_INST(i)->whens);
+    len = gl_length(BA_INST(i)->whens);
     if (gl_search(BA_INST(i)->whens,
                  (char *)when,(CmpFunc)CmpWhens)==0)
       gl_append_ptr(BA_INST(i)->whens,(VOIDPTR)when);
@@ -714,7 +715,7 @@ void AddWhen(struct Instance *i, struct Instance *when)
   case INTEGER_ATOM_INST:
     if (IA_INST(i)->whens==NULL)
       IA_INST(i)->whens = gl_create(AVG_WHEN);
-    //len = gl_length(IA_INST(i)->whens);
+    len = gl_length(IA_INST(i)->whens);
     if (gl_search(IA_INST(i)->whens,
                  (char *)when,(CmpFunc)CmpWhens)==0)
       gl_append_ptr(IA_INST(i)->whens,(VOIDPTR)when);
@@ -722,7 +723,7 @@ void AddWhen(struct Instance *i, struct Instance *when)
   case SYMBOL_ATOM_INST:
     if (SYMA_INST(i)->whens==NULL)
       SYMA_INST(i)->whens = gl_create(AVG_WHEN);
-    //len = gl_length(SYMA_INST(i)->whens);
+    len = gl_length(SYMA_INST(i)->whens);
     if (gl_search(SYMA_INST(i)->whens,
                  (char *)when,(CmpFunc)CmpWhens)==0)
       gl_append_ptr(SYMA_INST(i)->whens,(VOIDPTR)when);
@@ -730,7 +731,7 @@ void AddWhen(struct Instance *i, struct Instance *when)
   case BOOLEAN_CONSTANT_INST:
     if (BC_INST(i)->whens==NULL)
       BC_INST(i)->whens = gl_create(AVG_WHEN);
-    //len = gl_length(BC_INST(i)->whens);
+    len = gl_length(BC_INST(i)->whens);
     if (gl_search(BC_INST(i)->whens,
                  (char *)when,(CmpFunc)CmpWhens)==0)
       gl_append_ptr(BC_INST(i)->whens,(VOIDPTR)when);
@@ -738,7 +739,7 @@ void AddWhen(struct Instance *i, struct Instance *when)
   case INTEGER_CONSTANT_INST:
     if (IC_INST(i)->whens==NULL)
       IC_INST(i)->whens = gl_create(AVG_WHEN);
-    //len = gl_length(IC_INST(i)->whens);
+    len = gl_length(IC_INST(i)->whens);
     if (gl_search(IC_INST(i)->whens,
                  (char *)when,(CmpFunc)CmpWhens)==0)
       gl_append_ptr(IC_INST(i)->whens,(VOIDPTR)when);
@@ -746,7 +747,7 @@ void AddWhen(struct Instance *i, struct Instance *when)
   case SYMBOL_CONSTANT_INST:
     if (SYMC_INST(i)->whens==NULL)
       SYMC_INST(i)->whens = gl_create(AVG_WHEN);
-    //len = gl_length(SYMC_INST(i)->whens);
+    len = gl_length(SYMC_INST(i)->whens);
     if (gl_search(SYMC_INST(i)->whens,
                  (char *)when,(CmpFunc)CmpWhens)==0)
       gl_append_ptr(SYMC_INST(i)->whens,(VOIDPTR)when);
@@ -754,7 +755,7 @@ void AddWhen(struct Instance *i, struct Instance *when)
   case MODEL_INST:
     if (MOD_INST(i)->whens==NULL)
       MOD_INST(i)->whens = gl_create(AVG_WHEN);
-    //len = gl_length(MOD_INST(i)->whens);
+    len = gl_length(MOD_INST(i)->whens);
     if (gl_search(MOD_INST(i)->whens,
                  (char *)when,(CmpFunc)CmpWhens)==0)
       gl_append_ptr(MOD_INST(i)->whens,(VOIDPTR)when);
@@ -762,7 +763,7 @@ void AddWhen(struct Instance *i, struct Instance *when)
   case REL_INST:
     if (RELN_INST(i)->whens==NULL)
       RELN_INST(i)->whens = gl_create(AVG_WHEN);
-    //len = gl_length(RELN_INST(i)->whens);
+    len = gl_length(RELN_INST(i)->whens);
     if (gl_search(RELN_INST(i)->whens,
                  (char *)when,(CmpFunc)CmpWhens)==0)
       gl_append_ptr(RELN_INST(i)->whens,(VOIDPTR)when);
@@ -770,7 +771,7 @@ void AddWhen(struct Instance *i, struct Instance *when)
   case LREL_INST:
     if (LRELN_INST(i)->whens==NULL)
       LRELN_INST(i)->whens = gl_create(AVG_WHEN);
-    //len = gl_length(LRELN_INST(i)->whens);
+    len = gl_length(LRELN_INST(i)->whens);
     if (gl_search(LRELN_INST(i)->whens,
                  (char *)when,(CmpFunc)CmpWhens)==0)
       gl_append_ptr(LRELN_INST(i)->whens,(VOIDPTR)when);
@@ -778,13 +779,13 @@ void AddWhen(struct Instance *i, struct Instance *when)
   case WHEN_INST:
     if (W_INST(i)->whens==NULL)
       W_INST(i)->whens = gl_create(AVG_WHEN);
-    //len = gl_length(W_INST(i)->whens);
+    len = gl_length(W_INST(i)->whens);
     if (gl_search(W_INST(i)->whens,
                  (char *)when,(CmpFunc)CmpWhens)==0)
       gl_append_ptr(W_INST(i)->whens,(VOIDPTR)when);
     break;
   default:
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
 }
 
@@ -855,7 +856,7 @@ void RemoveWhen(struct Instance *i, struct Instance *when)
     if (c>0) gl_delete(W_INST(i)->whens,c,0);
     break;
   default:
-    PANIC_INCORRECT_TYPE(i);
+    PANIC_INCORRECT_TYPE;
   }
 }
 

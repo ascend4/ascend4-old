@@ -21,13 +21,14 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  You should have received a copy of the GNU General Public License along
+ *  with the program; if not, write to the Free Software Foundation, Inc., 675
+ *  Mass Ave, Cambridge, MA 02139 USA.  Check the file named COPYING.
  */
 #include<math.h>
 #include<stdio.h>
-#include <ascend/general/platform.h>
-#include <ascend/general/ascMalloc.h>
+#include <ascend/utilities/ascConfig.h>
+#include <ascend/utilities/ascMalloc.h>
 
 #include <ascend/general/dstring.h>
 #include <ascend/general/list.h>
@@ -37,6 +38,7 @@
 #include "expr_types.h"
 #include "stattypes.h"
 #include "statement.h"
+#include "slist.h"
 #include "statio.h"
 #include "instance_enum.h"
 #include "instance_io.h"
@@ -48,18 +50,20 @@
 #include "initialize.h"
 #include "procio.h"
 
-void WriteInitWarn(struct procFrame *fm, const char *str){
+void WriteInitWarn(struct procFrame *fm, char *str)
+{
+  CONSOLE_DEBUG("...");
   WriteStatementErrorMessage(fm->err, fm->stat, str, 0,2);
 }
 
-void WriteInitErr(struct procFrame *fm, const char *str){
-  //WriteStatementErrorMessage(fm->err, fm->stat, str,1,2);
+void WriteInitErr(struct procFrame *fm, char *str)
+{
   WSEM(fm->err,fm->stat,str);
-  WriteStatementLocation(fm->err,fm->stat);
   FFLUSH(fm->err);
 }
 
-void ProcWriteCaseError(struct procFrame *fm, int arm, int pos){
+void ProcWriteCaseError(struct procFrame *fm, int arm, int pos)
+{
   static char nostr[] = "";
   char *fmt;
   char *tail;
@@ -122,9 +126,12 @@ void ProcWriteCaseError(struct procFrame *fm, int arm, int pos){
   WriteInitErr(fm,errmsg);
 }
 
-void ProcWriteIfError(struct procFrame *fm, CONST char *cname){
+void ProcWriteIfError(struct procFrame *fm, CONST char *cname)
+{
   char em[85];
   char cn[20];
+
+  CONSOLE_DEBUG("...");
 
   if (strlen(cname) > 19) {
     strncpy(cn,cname,19);
@@ -182,10 +189,13 @@ void ProcWriteIfError(struct procFrame *fm, CONST char *cname){
     sprintf(em,"%s unexpected error message",cn);
     break;
   }
+  CONSOLE_DEBUG("...");
   WriteInitErr(fm,em);
+  CONSOLE_DEBUG("...");
 }
 
-void ProcWriteAssignmentError(struct procFrame *fm){
+void ProcWriteAssignmentError(struct procFrame *fm)
+{
   switch (fm->ErrNo) {
   case Proc_nonatom_assignment:
     WriteInitErr(fm,"Assignment to a non-atomic instance");
@@ -215,7 +225,7 @@ void ProcWriteAssignmentError(struct procFrame *fm){
     WriteInitErr(fm,"Error evaluating assignment right hand side");
     break;
   case Proc_lhs_error:
-    WriteInitErr(fm,"Unrecognized variable name on left-hand side of ':='.");
+    WriteInitErr(fm,"Undefined or NULL instance in left hand side of :=.");
     break;
   default:
     WriteInitErr(fm,"Assignment (:=) unexpected error message"); 
@@ -223,7 +233,8 @@ void ProcWriteAssignmentError(struct procFrame *fm){
   }
 }
 
-void ProcWriteForError(struct procFrame *fm){
+void ProcWriteForError(struct procFrame *fm)
+{
   switch (fm->ErrNo) {
   case Proc_for_duplicate_index:
     WriteInitErr(fm,"FOR/DO uses duplicate index variable.");
@@ -242,8 +253,8 @@ void ProcWriteForError(struct procFrame *fm){
 
 /* error messages for oldstyle external functions */
 void ProcWriteExtError(struct procFrame *fm, CONST char *funcname,
-                       enum ProcExtError peerr, int pos
-){
+                       enum ProcExtError peerr, int pos)
+{
   char *errmsg;
   assert(funcname != NULL);
   errmsg = ASC_NEW_ARRAY(char,80+strlen(funcname));
@@ -299,8 +310,8 @@ void ProcWriteExtError(struct procFrame *fm, CONST char *funcname,
 }
   
 void ProcWriteStackCheck(struct procFrame *fm,
-                         struct Name *class, struct Name *name
-){
+                         struct Name *class, struct Name *name)
+{
   int unwind = 0;
   if ( fm->ErrNo == Proc_return) {
     return;
@@ -322,9 +333,7 @@ void ProcWriteStackCheck(struct procFrame *fm,
       FPRINTF(fm->err,"  In call to"); 
     }
   } 
-  if(!unwind){
-	/* FIXME use _end_clean instead, if available. */
-    error_reporter_end_flush();
+  if (!unwind) {
     return;
   }
   FPRINTF(fm->err," METHOD ");
@@ -338,7 +347,8 @@ void ProcWriteStackCheck(struct procFrame *fm,
   error_reporter_end_flush();
 }
 
-void ProcWriteRunError(struct procFrame *fm){
+void ProcWriteRunError(struct procFrame *fm) 
+{
   char *errmsg;
   errmsg = "Unexpected RUN statement error";
   switch (fm->ErrNo) {
@@ -393,24 +403,4 @@ void ProcWriteFixError(struct procFrame *fm, CONST struct Name *var){
 	ascfree(name);
 	WriteInitErr(fm,errmsg);
 }
-
-void ProcWriteSlvReqError(struct procFrame *fm){
-	const char *msg;
-	switch(fm->ErrNo){
-		case Proc_slvreq_unhooked: msg = "Statement not available with this user interface"; break;
-		case Proc_slvreq_unknown_solver: msg = "Bad solver name (or solver had not yet been loaded)"; break;
-		case Proc_slvreq_no_solver_selected: msg = "No solver has been selected yet"; break;
-		case Proc_slvreq_invalid_option_name: msg = "Invalid option name (check the solver documentation?)"; break;
-		case Proc_slvreq_option_invalid_type: msg=  "Option value is not of expected type (check solver documentation)"; break;
-		case Proc_slvreq_no_system: msg = "No system (probably a bug in your user interface)"; break;
-		case Proc_slvreq_presolve_fail: msg = "Pre-solve failed"; break;
-		case Proc_slvreq_solve_fail: msg = "Solve failed"; break;
-		case Proc_slvreq_error: msg = "General solver-request error"; break;
-		case Proc_slvreq_not_implemented: msg = "Not implemented"; break;
-		default: msg = "Unknown error";
-	}
-	WriteInitErr(fm,msg);
-}
-
-
 
