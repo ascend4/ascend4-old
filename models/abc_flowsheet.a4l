@@ -34,7 +34,9 @@ PROVIDE "abc_flowsheet.a4l";
  *  See the GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check
+ *  the file named COPYING.
  *)
 
 (*
@@ -255,9 +257,9 @@ MODEL demo_flowsheet(
 	RUN Column[1..n_columns].scale;
     END scale;
     METHOD set_connections;
-	FIX dist_split[1..n_columns].split[sinks];
-	FIX bot_split[1..n_columns].split[sinks];
-	FIX feed_split[1..n_sheet_feeds].split[sinks];
+	dist_split[1..n_columns].split[sinks].fixed := TRUE;
+	bot_split[1..n_columns].split[sinks].fixed := TRUE;
+	feed_split[1..n_sheet_feeds].split[sinks].fixed := TRUE;
 
 	FOR i IN [1..n_columns] DO
 	    FOR j IN sinks DO
@@ -303,11 +305,11 @@ MODEL demo_flowsheet(
     END remove_connections;
     METHOD fix_splits;
 	FOR i IN [1..n_columns] DO
-	    FIX dist_split[i].split[sinks];
-	    FIX bot_split[i].split[sinks];
+	    dist_split[i].split[sinks].fixed := TRUE;
+	    bot_split[i].split[sinks].fixed := TRUE;
 	END FOR;
 	FOR i IN [1..n_sheet_feeds] DO
-	    FIX feed_split[i].split[sinks];
+	    feed_split[i].split[sinks].fixed := TRUE;
 	END FOR;
     END fix_splits;
 

@@ -27,7 +27,9 @@ PROVIDE "splitter.a4l";
  *  See the GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check
+ *  the file named COPYING.
  *)
 
 
@@ -141,11 +143,11 @@ REFINES base_splitter;
     END scale_all;
 
     METHOD seqmod;
-	FIX split[1..n_outs-1];
+	split[1..n_outs-1].fixed := TRUE;
 	RUN out[1..n_outs].specify;
-	FREE out[1..n_outs].P;
-	FREE out[1..n_outs].T;
-	FREE out[1..n_outs].f[feed.cd.components];
+	out[1..n_outs].P.fixed := FALSE;
+	out[1..n_outs].T.fixed := FALSE;
+	out[1..n_outs].f[feed.cd.components].fixed := FALSE;
     END seqmod;
 
     METHOD specify;
@@ -208,11 +210,11 @@ MODEL splitter_with_shared_state(
     END scale_all;
 
     METHOD seqmod;
-	FIX split[1..n_outs-1];
+	split[1..n_outs-1].fixed := TRUE;
 	RUN out[1..n_outs].specify;
-	FREE out[1..n_outs].P;
-	FREE out[1..n_outs].T;
-	FREE out[1..n_outs].f[feed.cd.components];
+	out[1..n_outs].P.fixed := FALSE;
+	out[1..n_outs].T.fixed := FALSE;
+	out[1..n_outs].f[feed.cd.components].fixed := FALSE;
     END seqmod;
 
     METHOD specify;

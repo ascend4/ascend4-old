@@ -5,13 +5,9 @@
 
 DELETE TYPES;
 READ FILE "dyn_tank.a4c";
-
-# The following source statement uses a full path to find the file
-# set_intervals.tcl.  If this path fails, edit in the correct
-# full path.
 source "$env(ASCENDDIST)/models/set_intervals.tcl";
 
-COMPILE ex OF dyn_tank;
+COMPILE ex OF tank;
 BROWSE {ex};
 RUN {ex.default_self};
 RUN {ex.reset};
@@ -23,10 +19,10 @@ RUN {ex.reset};
 RUN {ex.set_ode};
 RUN {ex.set_obs};
 set_int 500 10 {s};
-INTEGRATE ex FROM 0 TO 50 WITH LSODE;
+INTEGRATE ex FROM 0 TO 50 WITH BLSODE;
 
 ASSIGN {ex.input} 101 {mole/s};
-INTEGRATE ex FROM 50 TO 499 WITH LSODE;
+INTEGRATE ex FROM 50 TO 499 WITH BLSODE;
 
 # In order to view integration results from both the integrations
 # the user will have to goto the solver window, select options general
@@ -80,5 +76,3 @@ asc_merge_data_file excel excel_obs.txt obs.dat;
 #  along with the program.  If not, write to the Free Software
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check
 #  the file named COPYING.
-
-

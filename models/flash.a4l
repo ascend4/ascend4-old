@@ -30,7 +30,9 @@ PROVIDE "flash.a4l";
  *  See the GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check
+ *  the file named COPYING.
  *)
 
 MODEL flash_base(
@@ -222,7 +224,7 @@ END scale_all;
 
 METHOD seqmod;
 	RUN state.specify;
-	FREE state.y[cd.components];
+	state.y[cd.components].fixed := FALSE;
 END seqmod;
 
 METHOD reset_to_massbal;
@@ -257,9 +259,9 @@ This can be used to obtain an adiabatic flash by setting
 Qin to zero and equilibrated to TRUE.
 } END NOTES;
 	RUN specify_P_and_vapor_fraction;
-	FIX Qin;
+	Qin.fixed := TRUE;
 	IF (equilibrated) THEN
-	    FREE state.phase_fraction['vapor'];
+	    state.phase_fraction['vapor'].fixed := FALSE;
 	END IF;
 END specify_P_and_heat_input;
 
@@ -402,20 +404,20 @@ METHOD seqmod;
 	(* Equations connect_feed, vapor_balance, and liquid_balance
 	 * make us free nc+1 variables.
 	 *)
-	FREE state.y[state.cd.components];
-	FREE state.phase_fraction['vapor'];
+	state.y[state.cd.components].fixed := FALSE;
+	state.phase_fraction['vapor'].fixed := FALSE;
 	(* Then we trade cmo_ratio for T *)
-	FIX cmo_ratio;
+	cmo_ratio.fixed	:= TRUE;
 	IF (equilibrated) THEN
-		FREE state.T;
+		state.T.fixed	:= FALSE;
 	END IF;
 END seqmod;
 
 METHOD seqmod_massbal;
 	equilibrated := FALSE;
 	RUN seqmod;
-	FIX vapin.state.T;
-	FIX liqin.state.T;
+	vapin.state.T.fixed		:= TRUE;
+	liqin.state.T.fixed		:= TRUE;
 END seqmod_massbal;
 
 METHOD seqmod_fullthermo;
@@ -425,8 +427,8 @@ END seqmod_fullthermo;
 
 METHOD seqmod_fixed_Q;
 	RUN seqmod_fullthermo;
-	FREE cmo_ratio;
-	FIX Qin;
+	cmo_ratio.fixed := FALSE;
+	Qin.fixed := TRUE;
 END seqmod_fixed_Q;
 
 METHOD seqmod_adiabatic;
@@ -446,8 +448,8 @@ END reset_to_fullthermo;
 
 METHOD reset_to_adiabatic;
 	RUN reset_to_fullthermo;
-	FREE cmo_ratio;
-	FIX Qin;
+	cmo_ratio.fixed := FALSE;
+	Qin.fixed := TRUE;
 	Qin := 0{W};
 END reset_to_adiabatic;
 
@@ -458,13 +460,13 @@ METHOD specify;
 END specify;
 
 METHOD heat_balance;
-    FREE cmo_ratio;
-    FIX Qin;
+    cmo_ratio.fixed := FALSE;
+    Qin.fixed := TRUE;
 END heat_balance;
 
 METHOD CMO;
-    FIX cmo_ratio;
-    FREE Qin;
+    cmo_ratio.fixed := TRUE;
+    Qin.fixed := FALSE;
 END CMO;
 
 END detailed_tray;
@@ -795,22 +797,22 @@ METHOD seqmod;
 	(* Equations connect_feed, vapor_balance, and liquid_balance
 	 * make us free nc+1 variables.
 	 *)
-	FREE state.y[cd.components];
-	FREE state.phase_fraction['vapor'];
+	state.y[cd.components].fixed := FALSE;
+	state.phase_fraction['vapor'].fixed := FALSE;
 	(* swap q for T at equilibrium, or set both if
 	 * ignoring equilbrium.
 	 *)
-	FIX q;
+	q.fixed	:= TRUE;
 	IF (equilibrated) THEN
-		FREE T;
+		T.fixed := FALSE;
 	END IF;
 END seqmod;
 
 METHOD seqmod_massbal;
 	equilibrated := FALSE;
 	RUN seqmod;
-	FIX vapin.state.T;
-	FIX liqin.state.T;
+	vapin.state.T.fixed		:= TRUE;
+	liqin.state.T.fixed		:= TRUE;
 END seqmod_massbal;
 
 METHOD seqmod_fullthermo;
@@ -820,8 +822,8 @@ END seqmod_fullthermo;
 
 METHOD seqmod_fixed_Q;
 	RUN fullthermo_seqmod;
-	FREE q;
-	FIX Qin;
+	q.fixed := FALSE;
+	Qin.fixed := TRUE;
 END seqmod_fixed_Q;
 
 METHOD seqmod_adiabatic;
@@ -841,8 +843,8 @@ END reset_to_fullthermo;
 
 METHOD reset_to_adiabatic;
 	RUN reset_to_fullthermo;
-	FREE q;
-	FIX Qin;
+	q.fixed := FALSE;
+	Qin.fixed := TRUE;
 	Qin := 0{W};
 END reset_to_adiabatic;
 
@@ -850,8 +852,8 @@ METHOD specify;
 	RUN seqmod;
 	RUN feed.specify;
 	IF (feed.equilibrated AND (feed.pd.phase_indicator == 'VL')) THEN
-		FREE feed.Details.state.phase[pd.reference_phase].T;
-		FIX feed.Details.state.phase_fraction[pd.other_phases];
+		feed.Details.state.phase[pd.reference_phase].T.fixed := FALSE;
+		feed.Details.state.phase_fraction[pd.other_phases].fixed := TRUE;
 	END IF;
 	RUN vapin.specify;
 	RUN liqin.specify;
@@ -995,7 +997,7 @@ END scale_all;
 METHOD seqmod;
 	RUN liqout.seqmod;
 	RUN distillate.seqmod;
-	FIX reflux_ratio;
+	reflux_ratio.fixed := TRUE;
 END seqmod;
 
 METHOD specify;
@@ -1166,11 +1168,11 @@ END scale_all;
 
 METHOD seqmod;
 	RUN state.specify;
-	FREE state.y[cd.components];
-	FREE state.phase_fraction['vapor'];
-	FIX reboil_ratio;
+	state.y[cd.components].fixed := FALSE;
+	state.phase_fraction['vapor'].fixed := FALSE;
+	reboil_ratio.fixed := TRUE;
 	IF (equilibrated) THEN
-		FREE state.T;
+		state.T.fixed := FALSE;
 	END IF;
 END seqmod;
 
@@ -1287,9 +1289,9 @@ END reset_T;
 
 METHOD specify_T;
 	RUN specify;
-	FREE fl1.state.phase_fraction['vapor'];
+	fl1.state.phase_fraction['vapor'].fixed := FALSE;
 	fl1.T := 340{K};
-	FIX fl1.T;
+	fl1.T.fixed := TRUE;
 END specify_T;
 
 METHOD values;
@@ -1400,9 +1402,9 @@ END reset_T;
 
 METHOD specify_T;
 	RUN specify;
-	FREE fl1.state.phase_fraction['vapor'];
+	fl1.state.phase_fraction['vapor'].fixed := FALSE;
 	fl1.T := 340{K};
-	FIX fl1.T;
+	fl1.T.fixed := TRUE;
 END specify_T;
 
 METHOD values;
@@ -1514,9 +1516,9 @@ END reset_T;
 
 METHOD specify_T;
 	RUN specify;
-	FREE fl1.state.phase_fraction['vapor'];
+	fl1.state.phase_fraction['vapor'].fixed := FALSE;
 	fl1.T := 340{K};
-	FIX fl1.T;
+	fl1.T.fixed := TRUE;
 END specify_T;
 
 METHOD values;
@@ -1660,9 +1662,9 @@ END reset_T;
 
 METHOD specify_T;
 	RUN specify;
-	FREE fl1.state.phase_fraction['vapor'];
+	fl1.state.phase_fraction['vapor'].fixed := FALSE;
 	fl1.T := 310{K};
-	FIX fl1.T;
+	fl1.T.fixed := TRUE;
 END specify_T;
 
 METHOD values;

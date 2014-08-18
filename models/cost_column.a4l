@@ -26,7 +26,9 @@ PROVIDE "cost_column.a4l";
  *  See the GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check
+ *  the file named COPYING.
  *)
 
 (*
@@ -125,7 +127,7 @@ MODEL cost_calc(
 
 
 	FOR j IN [1..nsections] CREATE
-	    Area = 1{ft^2}*V[j]*1{h/lb_mole}
+	    Area = 1{ft^2}*V[j]*1{hr/lb_mole}
 		*sqrt(M_g*1{lb_mole^2/lbm/ft^3}
 		*V_bar[j])/Afrac/F[j]/3600;
 	END FOR;
@@ -151,7 +153,7 @@ MODEL cost_calc(
 
 	LMT = ln((Tc-Tin)/(Tc-Tout));
 	Ac = -QC*LMT/((Tout-Tin)*Uc);
-	Ar = QR/11250{BTU/h/ft^2};
+	Ar = QR/11250{BTU/hr/ft^2};
 	Tout IS_REFINED_TO temperature;
 	Tout = Tc - 5{K};
 
@@ -177,7 +179,7 @@ MODEL cost_calc(
 
 
 
-        c_tot1: cost*1.0{USD/yr} = column_cost + condenser_cost
+        c_tot1: cost*1.0{USdollar/yr} = column_cost + condenser_cost
             + reboiler_cost + water_cost + steam_cost;
 
 
@@ -194,15 +196,15 @@ METHOD default_self;
 	Fp2 := 0.0{};
 	Fm2 := 1.0{};
 
-	M_S := 900{USD};
+	M_S := 900{USdollar};
 
 	Tin := 459.67{R} + 70{R};
 	Tout := 459.67{R} + 90{R};
-	Uc := 100{BTU/h/ft^2/R};
+	Uc := 100{BTU/hr/ft^2/R};
 	CpW := 1{cal/mole/K};
 	Hs := 933{BTU/lbm};
-	Cw := 0.03{USD}/1000{gallon};
-	Cs := 2.5{USD}/1000{lbm};
+	Cw := 0.03{USdollar}/1000{gallon};
+	Cs := 2.5{USdollar}/1000{lbm};
 	Tray_height := 2.0{ft};
 
 
@@ -238,57 +240,57 @@ METHOD check_all;
 END check_all;
 
     METHOD clear;
-	FREE cost;
-	FREE column_cost;
-	FREE condenser_cost;
-	FREE reboiler_cost;
-	FREE water_cost;
-	FREE steam_cost;
-	FREE Area;
-	FREE V[1..nsections];
-	FREE V_bar[1..nsections];
-	FREE M_g;
-	FREE D;
-	FREE H;
-	FREE DT_C;
-	FREE QC;
-	FREE QR;
-	FREE F[1..nsections];
-	FREE Fmax;
-	FREE Fmin;
-	FREE Feedtot;
-	FREE Feedmin;
-	FREE Feedmax;
-	FREE Fc1;
-	FREE Fc2;
-	FREE Tc;
-	FREE stot;
-	FREE condenser_min;
-	FREE condenser_max;
-	FREE reboiler_min;
-	FREE reboiler_max;
-	FREE water_min;
-	FREE water_max;
-	FREE steam_min;
-	FREE steam_max;
-	FREE Acmin;
-	FREE Acmax;
-	FREE Armin;
-	FREE Armax;
+	cost.fixed		:= FALSE;
+	column_cost.fixed	:= FALSE;
+	condenser_cost.fixed	:= FALSE;
+	reboiler_cost.fixed	:= FALSE;
+	water_cost.fixed	:= FALSE;
+	steam_cost.fixed	:= FALSE;
+	Area.fixed		:= FALSE;
+	V[1..nsections].fixed			:= FALSE;
+	V_bar[1..nsections].fixed		:= FALSE;
+	M_g.fixed		:= FALSE;
+	D.fixed			:= FALSE;
+	H.fixed			:= FALSE;
+	DT_C.fixed		:= FALSE;
+	QC.fixed		:= FALSE;
+	QR.fixed		:= FALSE;
+	F[1..nsections].fixed	:= FALSE;
+	Fmax.fixed		:= FALSE;
+	Fmin.fixed		:= FALSE;
+	Feedtot.fixed		:= FALSE;
+	Feedmin.fixed		:= FALSE;
+	Feedmax.fixed		:= FALSE;
+	Fc1.fixed		:= FALSE;
+	Fc2.fixed		:= FALSE;
+	Tc.fixed		:= FALSE;
+	stot.fixed		:= FALSE;
+	condenser_min.fixed		:= FALSE;
+	condenser_max.fixed		:= FALSE;
+	reboiler_min.fixed		:= FALSE;
+	reboiler_max.fixed		:= FALSE;
+	water_min.fixed		:= FALSE;
+	water_max.fixed		:= FALSE;
+	steam_min.fixed		:= FALSE;
+	steam_max.fixed		:= FALSE;
+	Acmin.fixed		:= FALSE;
+	Acmax.fixed		:= FALSE;
+	Armin.fixed		:= FALSE;
+	Armax.fixed		:= FALSE;
      END clear;
      METHOD seqmod;
-	FIX F[1];
-	FIX Fmin;
-	FIX Fmax;
+	F[1].fixed	 	:= TRUE;
+	Fmin.fixed		:= TRUE;
+	Fmax.fixed 		:= TRUE;
      END seqmod;
      METHOD specify;
-	FIX Tc;
-	FIX M_g;
-	FIX QC;
-	FIX QR;
-	FIX V[1..nsections];
-	FIX V_bar[1..nsections];
-	FIX stot;
+	Tc.fixed := TRUE;
+	M_g.fixed := TRUE;
+	QC.fixed := TRUE;
+	QR.fixed := TRUE;
+	V[1..nsections].fixed := TRUE;
+	V_bar[1..nsections].fixed := TRUE;
+	stot.fixed := TRUE;
      END specify;
      METHOD reset;
 	RUN clear;
@@ -469,9 +471,9 @@ MODEL opt_column REFINES cost_column;
    METHODS
 
       METHOD free;
-	FREE col.condenser.reflux_ratio;
-	FREE col.condenser.totprod.Ftot;
-	FREE col.s_stack[1..2];
+	col.condenser.reflux_ratio.fixed := FALSE;
+	col.condenser.totprod.Ftot.fixed := FALSE;
+	col.s_stack[1..2].fixed := FALSE;
       END free;
 END opt_column;
 
@@ -503,8 +505,8 @@ MODEL standard_cost REFINES column_w_plot;
 	RUN plots.clear;
      END clear;
      METHOD seqmod;
-	FIX plots.z_space;
-	FIX plots.box_height;
+	plots.z_space.fixed := TRUE;
+	plots.box_height.fixed := TRUE;
 	RUN cc.seqmod;
      END seqmod;
      METHOD specify;
