@@ -271,8 +271,8 @@ MODEL simpleH2Process;
     (* U11 H2 Mix *)
     (* assume constant pressure and adiabatic *)
     QinU11 := 0 {kJ/s};
-    FIX QinU11;
-    FREE U11.delT;
+    QinU11.fixed := TRUE;
+    U11.delT.fixed := FALSE;
     
     (* U12 Feed Hx Cold Side *)
 
@@ -282,53 +282,53 @@ MODEL simpleH2Process;
     IsentropicComp: U21.feedMolarEntropy = U21.productMolarEntropy;
      (* Isentropic requirement *)
     U21.product.P := 150 {psia};
-    FIX U21.product.P;
-    FREE U21.delP;
-    FREE U21.delT;
+    U21.product.P.fixed := TRUE;
+    U21.delP.fixed := FALSE;
+    U21.delT.fixed := FALSE;
     
     (* U22 Comp *)
     EffU22 IS_A fraction;
     EffU22*QinU22 = QinU21;
     U22.product.P = U21.product.P;
-    FIX EffU22;
-    FREE U22.delP;
-    FREE U22.delT;
+    EffU22.fixed := TRUE;
+    U22.delP.fixed := FALSE;
+    U22.delT.fixed := FALSE;
     EffU22 := 0.95;
 
     (* U23 Expander Ideal *)
     IsentropicExpander: U23.feedMolarEntropy = U23.productMolarEntropy;
     (* Isentropic requirement *)
     U23.product.P := 100 {psia};
-    FIX U23.product.P;
-    FREE U23.delP;
-    FREE U23.delT;
+    U23.product.P.fixed := TRUE;
+    U23.delP.fixed := FALSE;
+    U23.delT.fixed := FALSE;
     
     (* U24 Expander *)
     EffU24 IS_A fraction;
     EffU24*QinU24 = QinU23;
     U24.product.P = U23.product.P;
-    FIX EffU24;
-    FREE U24.delP;
-    FREE U24.delT;
+    EffU24.fixed := TRUE;
+    U24.delP.fixed := FALSE;
+    U24.delT.fixed := FALSE;
     EffU24 := 0.95;
 
     (* U25 Add Steam *)
     (* adiabatic *)
     QinU25 := 0.0 {kJ/s};
-    FIX QinU25;
-    FREE U25.product.delT;
+    QinU25.fixed := TRUE;
+    U25.product.delT.fixed := FALSE;
 
     (* U31 React Hx Cold Side *)
     (* fix outlet temperature at 500 deg C *)
     U31.product.T := 773.16 {K};
-    FIX U31.product.T;
-    FREE U31.delT;
+    U31.product.T.fixed := TRUE;
+    U31.delT.fixed := FALSE;
 
     (* U32 React Hx Hot Side *)
     (* fix outlet temperature *)
     U32.product.T := 900 {K};
-    FIX U32.product.T;
-    FREE U32.delT;
+    U32.product.T.fixed := TRUE;
+    U32.delT.fixed := FALSE;
     
     (* U33 Crack: C2 + H2 = 2C1 *)
     U33.stoichCoef[C2] := -1;
@@ -336,12 +336,12 @@ MODEL simpleH2Process;
     U33.stoichCoef[C1] := 2;
     (* completely use up C2 *)
     U33.error_LostFlowOut := 0.0 {mol/s};
-    FIX U33.error_LostFlowOut;
-    FREE U33.turnover;
+    U33.error_LostFlowOut.fixed := TRUE;
+    U33.turnover.fixed := FALSE;
     (* adiabatic *)
     QinU33 := 0 {kJ/s};
-    FIX QinU33;
-    FREE U33.delT;
+    QinU33.fixed := TRUE;
+    U33.delT.fixed := FALSE;
 
     (* U34 Reform: C1 + Wa = CM + 3H2 *)
     U34.stoichCoef[C1] := -1;
@@ -351,13 +351,13 @@ MODEL simpleH2Process;
     (* convert specified fraction of C1 *)
     convU34C1 IS_A fraction;
     convU34C1 := 0.8;
-    FIX convU34C1;
+    convU34C1.fixed := TRUE;
     U34.product.f[C1] = (1.0-convU34C1)*U34.feed.f[C1];    
-    FREE U34.product.turnover;
+    U34.product.turnover.fixed := FALSE;
     (* adiabatic *)
     QinU34 := 0 {kJ/s};
-    FIX QinU34;
-    FREE U34.delT;
+    QinU34.fixed := TRUE;
+    U34.delT.fixed := FALSE;
 
     (* U35 WGS: CM + Wa = CD + H2 *)
     U35.stoichCoef[CM] := -1;
@@ -367,32 +367,32 @@ MODEL simpleH2Process;
     (* convert specified fraction of CM *)
     convU35CM IS_A fraction;
     convU35CM := 0.98;
-    FIX convU35CM;
+    convU35CM.fixed := TRUE;
     U35.product.f[CM] = (1.0-convU35CM)*U35.feed.f[CM];    
-    FREE U35.product.turnover;
+    U35.product.turnover.fixed := FALSE;
     (* adiabatic *)
     QinU35 := 0 {kJ/s};
-    FIX QinU35;
-    FREE U35.delT;
+    QinU35.fixed := TRUE;
+    U35.delT.fixed := FALSE;
 
     (* U36 Membrane *)
     U36.split[H2] := 0.8;
     (* adiabatic *)
     QinU36 := 0 {kJ/s};
-    FIX QinU36;
-    FREE U36.delT;
+    QinU36.fixed := TRUE;
+    U36.delT.fixed := FALSE;
 
     (* U41 Air Mix *)
     (* adiabatic *)
     QinU41 := 0 {kJ/s};
-    FIX QinU41;
-    FREE U41.delT;
+    QinU41.fixed := TRUE;
+    U41.delT.fixed := FALSE;
 
     (* U42 Methane Mix *)
     (* adiabatic *)
     QinU42 := 0 {kJ/s};
-    FIX QinU42;
-    FREE U42.delT;
+    QinU42.fixed := TRUE;
+    U42.delT.fixed := FALSE;
 
     (* U43 CM rxn *)
     U43.stoichCoef[CM] := -1;
@@ -400,12 +400,12 @@ MODEL simpleH2Process;
     U43.stoichCoef[CD] := 1;
    (* completely use up CM *)
     U43.error_LostFlowOut := 0.0 {mol/s};
-    FIX U43.error_LostFlowOut;
-    FREE U43.turnover;
+    U43.error_LostFlowOut.fixed := TRUE;
+    U43.turnover.fixed := FALSE;
     (* adiabatic *)
     QinU43 := 0 {kJ/s};
-    FIX QinU43;
-    FREE U43.delT;
+    QinU43.fixed := TRUE;
+    U43.delT.fixed := FALSE;
 
     (* U44 H2 rxn *)
     U44.stoichCoef[H2] := -1;
@@ -413,12 +413,12 @@ MODEL simpleH2Process;
     U44.stoichCoef[Wa] := 1;
    (* completely use up H2 *)
     U44.error_LostFlowOut := 0.0 {mol/s};
-    FIX U44.error_LostFlowOut;
-    FREE U44.turnover;
+    U44.error_LostFlowOut.fixed := TRUE;
+    U44.turnover.fixed := FALSE;
     (* adiabatic *)
     QinU44 := 0 {kJ/s};
-    FIX QinU44;
-    FREE U44.delT;
+    QinU44.fixed := TRUE;
+    U44.delT.fixed := FALSE;
 
     (* U45 C1 rxn *)
     U45.stoichCoef[C1] := -1;
@@ -427,18 +427,18 @@ MODEL simpleH2Process;
     U45.stoichCoef[Wa] := 1;
     (* completely use up C1 *)
     U45.error_LostFlowOut := 0.0 {mol/s};
-    FIX U45.error_LostFlowOut;
-    FREE U45.turnover;
+    U45.error_LostFlowOut.fixed := TRUE;
+    U45.turnover.fixed := FALSE;
     (* adiabatic *)
     QinU45 := 0 {kJ/s};
-    FIX QinU45;
-    FREE U45.delT;
+    QinU45.fixed := TRUE;
+    U45.delT.fixed := FALSE;
 
     (* U51 Water Mix *)
     (* adiabatic *)
     QinU51 := 0 {kJ/s};
-    FIX QinU51;
-    FREE U51.delT;
+    QinU51.fixed := TRUE;
+    U51.delT.fixed := FALSE;
 
     (* U52 Steam Hx Cold Side *)
 
@@ -453,11 +453,11 @@ MODEL simpleH2Process;
     (* U62 Flash *)
     (* Since water splits according to it vapor pressure,
       release the split factor for water in flash *)
-    FREE U62.split[Wa];
+    U62.split[Wa].fixed := FALSE;
     (* Equilibrium requires both outlet temperatures
       and pressures to be equal *)
-    FREE U62.product2.T;
-    FREE U62.product2.P;
+    U62.product2.T.fixed := FALSE;
+    U62.product2.P.fixed := FALSE;
     U62.product1.T := 459.6 {R} + 80 {R};
     U62.product1.P := 1.5 {atm};
 
@@ -474,7 +474,7 @@ MODEL simpleH2Process;
     QinU52 = -QinU53;
     (* U52/U53 Steam Hx *)
     (* allow water flow into system to vary *)
-    FREE S0051.flow;
+    S0051.flow.fixed := FALSE;
 
     (* U31/U32 React Hx *)
     QinU31 = -QinU32;

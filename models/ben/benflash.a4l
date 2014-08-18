@@ -23,8 +23,9 @@ useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License along with
+the program; if not, write to the Free Software Foundation, Inc., 675
+Mass Ave, Cambridge, MA 02139 USA.  Check the file named COPYING.
 
 \*********************************************************************)
 
@@ -91,12 +92,12 @@ METHOD clear;
 	RUN vapout.clear;
 	RUN liqout.clear;
 	RUN flash_state.clear;
-	FREE Qin;
+	Qin.fixed := FALSE;
 END clear;
 
 METHOD seqmod;
 	RUN flash_state.specify;
-	FREE flash_state.y[components];
+	flash_state.y[components].fixed := FALSE;
 END seqmod;
 
 METHOD reset_to_massbal;
@@ -178,22 +179,22 @@ METHOD clear;
 	RUN vapout.clear;
 	RUN liqout.clear;
 	RUN tray_state.clear;
-	FREE cmo_ratio;
-	FREE Qin;
+	cmo_ratio.fixed	:= FALSE;
+	Qin.fixed := FALSE;
 END clear;
 
 METHOD seqmod;
 	RUN tray_state.specify;
-	FREE tray_state.y[components];
-	FREE tray_state.phi['vapor'];
-	FIX cmo_ratio;
+	tray_state.y[components].fixed := FALSE;
+	tray_state.phi['vapor'].fixed := FALSE;
+	cmo_ratio.fixed	:= TRUE;
 END seqmod;
 
 METHOD seqmod_massbal;
 	tray_state.equilibrated := FALSE;
 	RUN seqmod;
-	FIX vapin.state.T;
-	FIX liqin.state.T;
+	vapin.state.T.fixed		:= TRUE;
+	liqin.state.T.fixed		:= TRUE;
 END seqmod_massbal;
 
 METHOD seqmod_fullthermo;
@@ -203,8 +204,8 @@ END seqmod_fullthermo;
 
 METHOD seqmod_fixed_Q;
 	RUN fullthermo_seqmod;
-	FREE cmo_ratio;
-	FIX Qin;
+	cmo_ratio.fixed := FALSE;
+	Qin.fixed := TRUE;
 END seqmod_fixed_Q;
 
 METHOD seqmod_adiabatic;
@@ -224,8 +225,8 @@ END reset_to_fullthermo;
 
 METHOD reset_to_adiabatic;
 	RUN reset_to_fullthermo;
-	FREE cmo_ratio;
-	FIX Qin;
+	cmo_ratio.fixed := FALSE;
+	Qin.fixed := TRUE;
 	Qin := 0{W};
 END reset_to_adiabatic;
 
@@ -252,12 +253,12 @@ METHOD scale;
 END scale;
 
 METHOD heat_balance;
-    FREE cmo_ratio;
-    FIX Qin;
+    cmo_ratio.fixed := FALSE;
+    Qin.fixed := TRUE;
 END heat_balance;
 METHOD CMO;
-    FIX cmo_ratio;
-    FREE Qin;
+    cmo_ratio.fixed := TRUE;
+    Qin.fixed := FALSE;
 END CMO;
 
 END tray;
@@ -327,22 +328,22 @@ METHOD clear;
 	RUN vapout.clear;
 	RUN liqout.clear;
 	RUN feed_tray_state.clear;
-	FREE q;
-	FREE Qin;
+	q.fixed	:= FALSE;
+	Qin.fixed := FALSE;
 END clear;
 
 METHOD seqmod;
 	RUN feed_tray_state.specify;
-	FREE feed_tray_state.y[components];
-	FREE feed_tray_state.phi['vapor'];
-	FIX q;
+	feed_tray_state.y[components].fixed := FALSE;
+	feed_tray_state.phi['vapor'].fixed := FALSE;
+	q.fixed	:= TRUE;
 END seqmod;
 
 METHOD seqmod_massbal;
 	feed_tray_state.equilibrated := FALSE;
 	RUN seqmod;
-	FIX vapin.state.T;
-	FIX liqin.state.T;
+	vapin.state.T.fixed		:= TRUE;
+	liqin.state.T.fixed		:= TRUE;
 END seqmod_massbal;
 
 METHOD seqmod_fullthermo;
@@ -352,8 +353,8 @@ END seqmod_fullthermo;
 
 METHOD seqmod_fixed_Q;
 	RUN fullthermo_seqmod;
-	FREE q;
-	FIX Qin;
+	q.fixed := FALSE;
+	Qin.fixed := TRUE;
 END seqmod_fixed_Q;
 
 METHOD seqmod_adiabatic;
@@ -373,8 +374,8 @@ END reset_to_fullthermo;
 
 METHOD reset_to_adiabatic;
 	RUN reset_to_fullthermo;
-	FREE q;
-	FIX Qin;
+	q.fixed := FALSE;
+	Qin.fixed := TRUE;
 	Qin := 0{W};
 END reset_to_adiabatic;
 
@@ -444,15 +445,15 @@ METHOD clear;
 	RUN distillate.clear;
 	RUN liqout.clear;
 	RUN condenser_state.clear;
-	FREE Qin;
-	FREE reflux_ratio;
+	Qin.fixed := FALSE;
+	reflux_ratio.fixed := FALSE;
 END clear;
 
 METHOD seqmod;
         RUN condenser_state.specify;
 	RUN distillate.seqmod;
-	FREE condenser_state.y[components];
-	FIX reflux_ratio;
+	condenser_state.y[components].fixed := FALSE;
+	reflux_ratio.fixed := TRUE;
 END seqmod;
 
 METHOD specify;
@@ -537,15 +538,15 @@ METHOD clear;
 	RUN bottoms.clear;
 	RUN vapout.clear;
 	RUN reboiler_state.clear;
-	FREE Qin;
-	FREE reboil_ratio;
+	Qin.fixed := FALSE;
+	reboil_ratio.fixed := FALSE;
 END clear;
 
 METHOD seqmod;
 	RUN reboiler_state.specify;
-	FREE reboiler_state.y[components];
-	FREE reboiler_state.phi['vapor'];
-	FIX reboil_ratio;
+	reboiler_state.y[components].fixed := FALSE;
+	reboiler_state.phi['vapor'].fixed := FALSE;
+	reboil_ratio.fixed := TRUE;
 END seqmod;
 
 METHOD reset_to_massbal;

@@ -212,12 +212,12 @@ MODEL area1(
     (* U1 H2 Mix *)
 
     (* U2 Feed Hx Cold Side *)
-    FREE QinU2;
-    FIX S1222.T;
+    QinU2.fixed := FALSE;
+    S1222.T.fixed := TRUE;
 
     (* U3 Feed Hx Hot Side *)
-    FREE QinU3;
-    FIX U3.product.T;
+    QinU3.fixed := FALSE;
+    U3.product.T.fixed := TRUE;
 	
     END specify;
 
@@ -321,30 +321,30 @@ MODEL area2(
 	RUN U1.specify;
 
 	(* U1 Comp Ideal *)
-	FIX U1.product.P;
-	FREE U1.delP;
+	U1.product.P.fixed := TRUE;
+	U1.delP.fixed := FALSE;
 	(* release heat input as unit is isentropic *)
-	FREE QinU1;
+	QinU1.fixed := FALSE;
 	
 	(* U2 Comp *)
-	FIX EffU2;
+	EffU2.fixed := TRUE;
 	(* pressure out same as for ideal unit *)
-	FREE U2.delP;
+	U2.delP.fixed := FALSE;
 	(* heat in related to ideal through an efficiency *)
-	FREE QinU2;
+	QinU2.fixed := FALSE;
 
 	(* U3 Expander Ideal *)
-	FIX U3.product.P;
-	FREE U3.delP;
+	U3.product.P.fixed := TRUE;
+	U3.delP.fixed := FALSE;
 	(* release heat input as unit is isentropic *)
-	FREE QinU3;
+	QinU3.fixed := FALSE;
 
 	(* U4 Expander *)
-	FIX EffU4;
+	EffU4.fixed := TRUE;
 	(* pressure out same as for ideal unit *)
-	FREE U4.delP;
+	U4.delP.fixed := FALSE;
 	(* heat in related to ideal through an efficiency *)
-	FREE QinU4;
+	QinU4.fixed := FALSE;
 	
 	(* U5 Add Steam *)
 	
@@ -453,12 +453,12 @@ MODEL area3(
     (* U1 Water Mix *)
 
     (* U2 Steam Hx Cold Side *)
-    FIX U2.product.T;
-    FREE U2.Qin;
+    U2.product.T.fixed := TRUE;
+    U2.Qin.fixed := FALSE;
 
     (* U3 Steam Hx Hot Side *)
-    FIX U3.product.T;
-    FREE U3.Qin;
+    U3.product.T.fixed := TRUE;
+    U3.Qin.fixed := FALSE;
 
     (* U4 Steam Split *)
 
@@ -601,24 +601,24 @@ MODEL area4(
 	RUN U1.specify;
 
 	(* U1 React Hx Cold Side *)
-	FIX U1.product.T;
-	FREE U1.Qin;
+	U1.product.T.fixed := TRUE;
+	U1.Qin.fixed := FALSE;
 	
 	(* U2 React Hx Hot Side *)
-	FIX U2.product.T;
-	FREE U2.Qin;
+	U2.product.T.fixed := TRUE;
+	U2.Qin.fixed := FALSE;
     
 	(* U3 Crack: C2 + H2 = 2C1 *)
-	FIX U3.product.f[C2];
-	FREE U3.turnover;
+	U3.product.f[C2].fixed := TRUE;
+	U3.turnover.fixed := FALSE;
 
 	(* U4 Reform: C1 + Wa = CM + 3H2 *)
-	FIX convU4C1;
-	FREE U4.turnover;
+	convU4C1.fixed := TRUE;
+	U4.turnover.fixed := FALSE;
     
 	(* U5 WGS: CM + Wa = CD + H2 *)
-	FIX convU5CM;
-	FREE U5.turnover;
+	convU5CM.fixed := TRUE;
+	U5.turnover.fixed := FALSE;
 	
 	(* U6 Membrane *)
 	
@@ -727,16 +727,16 @@ MODEL area5(
 	(* U2 Methane Mix *)
 
 	(* U3 CM rxn: CM + 0.5O2 = CD - furnace *)
-	FIX U3.product.f[CM];
-	FREE U3.turnover;
+	U3.product.f[CM].fixed := TRUE;
+	U3.turnover.fixed := FALSE;
 
 	(* U4 H2 rxn: H2 + 0.5O2 = Wa - furnace *)
-	FIX U4.product.f[H2];
-	FREE U4.turnover;
+	U4.product.f[H2].fixed := TRUE;
+	U4.turnover.fixed := FALSE;
 
 	(* U5 C1 rxn: C1 + 1.5O2 = CD + Wa - furnace *)
-	FIX U5.product.f[C1];
-	FREE U5.turnover;
+	U5.product.f[C1].fixed := TRUE;
+	U5.turnover.fixed := FALSE;
 	
     END specify;
 
@@ -809,9 +809,9 @@ MODEL area6(
 	(* U1 Steam Mix *)
 
 	(* U2 Flash *)
-	FIX U2.product1.T;
-	FREE U2.Qin;
-	FREE U2.split[Wa];
+	U2.product1.T.fixed := TRUE;
+	U2.Qin.fixed := FALSE;
+	U2.split[Wa].fixed := FALSE;
 
 	(* U3 H2 Split *)
 	
@@ -970,19 +970,19 @@ MODEL testSimpleH2Process;
 	
 	(* input nontraditional specs here *)
 	
-	FREE a0.S5542x.f[comps['furnace']];
-	FREE a0.S5542x.P;
-	FREE a0.S5542x.T;
+	a0.S5542x.f[comps['furnace']].fixed := FALSE;
+	a0.S5542x.P.fixed := FALSE;
+	a0.S5542x.T.fixed := FALSE;
 	
 
 	(* release cold side heat exchanger T spec for area 4 - to
 	 allow for equal heat duties for exchanger *)
-	FREE a4.U2.product.T;
+	a4.U2.product.T.fixed := FALSE;
 
 
 	(* set exit temperature for reactor to 500 deg C *)
-	FIX a4.U5.product.T;
-	FREE a4.U1.product.T;
+	a4.U5.product.T.fixed := TRUE;
+	a4.U1.product.T.fixed := FALSE;
 	
     END specify;
     

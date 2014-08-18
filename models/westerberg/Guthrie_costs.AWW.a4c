@@ -26,7 +26,9 @@ PROVIDE "Guthrie_costs.a4l";
  *  See the GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check
+ *  the file named COPYING.
  *)
 
 
@@ -76,8 +78,8 @@ MODEL cost_info_pressure_vessel(
     END values;
 
     METHOD specify;
-	FIX MandSindex;
-	FIX P;
+	MandSindex.fixed := TRUE;
+	P.fixed          := TRUE;
     END specify;
 
 END cost_info_pressure_vessel;
@@ -95,7 +97,7 @@ MODEL Guthrie_cost_pressure_vessel(
     Fc IS_A factor;
     ci IS_A cost_info_pressure_vessel(P, matl, cladSolid, Fc);
 
-    installed_cost = (ci.MandSindex/280)*101.9{USD}*(D/1{ft})^1.066
+    installed_cost = (ci.MandSindex/280)*101.9{dollar}*(D/1{ft})^1.066
     *(H/1{ft})^0.802*(2.18+ci.Fc);
     
     METHODS
@@ -144,10 +146,10 @@ MODEL simple_pressure_vessel_cost(
 
     METHOD specify;
 	RUN gc.specify;
-	FIX liq_holdup_time;
-	FIX vol_flow;
-	FIX P;
-	FIX H_to_D;
+	liq_holdup_time.fixed	:= TRUE;
+	vol_flow.fixed		:= TRUE;
+	P.fixed                 := TRUE;
+	H_to_D.fixed            := TRUE;
     END specify;
 
 END simple_pressure_vessel_cost;
@@ -205,9 +207,9 @@ MODEL test_Guthrie_cost_pressure_vessel;
 
     METHOD specify;
 	RUN gcpv.specify;
-	FIX P;
-	FIX D;
-	FIX H;
+	P.fixed := TRUE;
+	D.fixed := TRUE;
+	H.fixed := TRUE;
     END specify;
 
 END test_Guthrie_cost_pressure_vessel;
@@ -241,10 +243,10 @@ MODEL test_simple_pressure_vessel_cost;
 
     METHOD specify;
 	RUN spvc.specify;
-	FIX lht;
-	FIX vf;
-	FIX P;
-	FIX HD;
+	lht.fixed := TRUE;
+	vf.fixed  := TRUE;
+	P.fixed   := TRUE;
+	HD.fixed  := TRUE;
     END specify;
 
 END test_simple_pressure_vessel_cost;

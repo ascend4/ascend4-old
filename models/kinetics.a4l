@@ -26,7 +26,9 @@ PROVIDE "kinetics.a4l";
  *  See the GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with the program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check
+ *  the file named COPYING.
  *)
 
 
@@ -76,7 +78,7 @@ END NOTES;
     reactions[components]     	IS_A set OF symbol_constant;
     production[components]     	IS_A conc_rate;
     Ftot_scale			IS_A scaling_constant;
-    R				IS_A molar_gas_constant;
+    R				IS_A gas_constant;
 
     (* Define the production rate for a component *)
     FOR i IN components CREATE
@@ -122,8 +124,8 @@ END NOTES;
     END scale_all;
 
     METHOD seqmod;
-	FIX conc[components];
-	FIX reac_T;
+	conc[components].fixed		:=TRUE;
+	reac_T.fixed   			:=TRUE;
     END seqmod;
 
     METHOD specify;
@@ -187,8 +189,8 @@ MODEL element_kinetics(
     END scale_all;
 
     METHOD seqmod;
-	FIX conc[components];
-	FIX reac_T;
+	conc[components].fixed		:=TRUE;
+	reac_T.fixed			:=TRUE;
     END seqmod;
 
     METHOD specify;
@@ -228,8 +230,8 @@ MODEL specify_kinetics(
     END default_self;
 
     METHOD seqmod;
-	FIX conc[components];
-	FIX reac_T;
+	conc[components].fixed		:=TRUE;
+	reac_T.fixed			:=TRUE;
     END seqmod;
 
     METHOD specify;
