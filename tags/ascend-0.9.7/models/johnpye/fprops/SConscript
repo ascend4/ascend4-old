@@ -1,0 +1,25 @@
+Import('env')
+fprops_env = env.Clone()
+
+fprops_env.Append(LIBPATH=['#'])
+fprops_env.Append(LIBS=['ascend'])
+
+lib = fprops_env.SharedLibrary("mbwr"
+	,['mbwr.c','asc_mbwr.c']
+	,SHLIBSUFFIX = env['EXTLIB_SUFFIX']
+	,SHLIBPREFIX = env['EXTLIB_PREFIX']
+)
+
+env['fluids'] = ['ammonia','water','nitrogen','hydrogen','carbondioxide']
+
+lib = fprops_env.SharedLibrary("helmholtz"
+	,['ideal.c','helmholtz.c','asc_helmholtz.c']
+		+ ['%s.c' % f for f in env['fluids']]
+	,SHLIBSUFFIX = env['EXTLIB_SUFFIX']
+	,SHLIBPREFIX = env['EXTLIB_PREFIX']
+)
+
+env['extfns'] += [lib]
+
+# vim: set syntax=python:
+

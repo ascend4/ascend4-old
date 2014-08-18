@@ -1,0 +1,22 @@
+Import('env')
+
+pyenv = env.Clone()
+
+pyenv['LIBS'] = []
+pyenv['SHLIBSUFFIX'] = '.so'
+pyenv['SHLIBPREFIX'] = '_'
+
+import distutils.sysconfig, sys, platform
+
+if platform.system()=="Windows":
+	python_lib='python%d%d'
+else:
+	python_lib='python%d.%d'
+
+pyenv.SharedLibrary('fprops',['fprops.i'] + pyenv['shobjs']
+	,LIBPATH=['#']
+	,CPPPATH=['#',distutils.sysconfig.get_python_inc()]
+	,LIBS=[python_lib % (sys.version_info[0],sys.version_info[1]), 'gsl','gslcblas']
+	,SWIGFLAGS=['-python']
+)
+
