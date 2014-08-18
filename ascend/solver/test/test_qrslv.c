@@ -151,7 +151,7 @@ static void test_bug567(void){
 	package_load("qrslv",NULL);
 
 	/* load the file */
-	const char *path = "models/test/bug567/combinedcycle_fprops.a4c";
+	const char *path = "models/johnpye/fprops/brayton_split.a4c";
 	int status;
 	Asc_OpenModule(path,&status);
 	CU_ASSERT(status == 0);
@@ -164,7 +164,7 @@ static void test_bug567(void){
 	CU_ASSERT(0 == zz_parse());
 
 	/* find the model */
-	const char *simtype = "combinedcycle_toluene";
+	const char *simtype = "brayton_split_co2";
 	CU_ASSERT(FindType(AddSymbol(simtype))!=NULL);
 
 	/* instantiate it */
@@ -195,7 +195,7 @@ static void test_bug564(void){
 	package_load("qrslv",NULL);
 
 	/* load the file */
-	const char *path = "models/test/bug564/combinedcycle_fprops.a4c";
+	const char *path = "models/johnpye/fprops/brayton_split_salt.a4c";
 	{
 		int status;
 		Asc_OpenModule(path,&status);
@@ -210,7 +210,7 @@ static void test_bug564(void){
 	CU_ASSERT(0 == zz_parse());
 
 	/* find the model */
-	const char *simtype = "combinedcycle_water";
+	const char *simtype = "brayton_split_salt_co2";
 	CU_ASSERT(FindType(AddSymbol(simtype))!=NULL);
 
 	/* instantiate it */

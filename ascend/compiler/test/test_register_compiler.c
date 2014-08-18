@@ -18,6 +18,8 @@
 #include <ascend/general/platform.h>
 #include "test_register_compiler.h"
 
+#define SUITE compiler
+
 #define TESTS(T) \
 	T(basics) \
 	T(autodiff) \

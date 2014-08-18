@@ -74,8 +74,6 @@
 #include "setinstval.h"
 #include "mergeinst.h"
 
-//#define MERGE_DEBUG
-
 /* forward declarations */
 static
 struct Instance *RecursiveMergeInstance(struct Instance *, struct Instance *);
@@ -765,15 +763,14 @@ void MergeModelChildren(struct ModelInstance *i1, struct ModelInstance *i2)
 
 static
 struct Instance *MergeModels(struct ModelInstance *i1,
-			     struct ModelInstance *i2
-){
-#if 0
+			     struct ModelInstance *i2)
+{
   char *n1 = WriteInstanceNameString(i1,NULL);
   char *n2 = WriteInstanceNameString(i2,NULL);
-  CONSOLE_DEBUG("Merging models '%s' and '%s'",n1,n2);
+  CONSOLE_DEBUG("Merging models '%s' and '%s'",n2,n2);
   ASC_FREE(n1);
   ASC_FREE(n2);
-#endif
+
 
   switch(KeepWhichInstance(i1->desc,i2->desc,INST(i1),INST(i2))){
   case 1:
@@ -816,13 +813,11 @@ static
 struct Instance *MergeRelations(struct RelationInstance *i1,
 				struct RelationInstance *i2)
 {
-#ifdef MERGE_DEBUG
   char *n1 = WriteInstanceNameString(i1,NULL);
   char *n2 = WriteInstanceNameString(i2,NULL);
   CONSOLE_DEBUG("Merging relations '%s' and '%s'",n2,n2);
   ASC_FREE(n1);
   ASC_FREE(n2);
-#endif
 
   if(i1->desc==i2->desc){
     switch(KeepWhichInstance(i1->desc,i2->desc,INST(i1),INST(i2))){
@@ -1095,7 +1090,7 @@ struct Instance *RecursiveMergeInstance(struct Instance *i1,
 #if 0
   char *n1 = WriteInstanceNameString(i1,NULL);
   char *n2 = WriteInstanceNameString(i2,NULL);
-  CONSOLE_DEBUG("Merging '%s' and '%s'",n1,n2);
+  CONSOLE_DEBUG("Merging '%s' and '%s'",n2,n2);
   ASC_FREE(n1);
   ASC_FREE(n2);
 #endif

@@ -18,6 +18,8 @@
 #include <ascend/general/platform.h>
 #include "test_register_integrator.h"
 
+#define SUITE integrator
+
 #define TESTS(T) \
 	T(ida) \
 	T(lsode)

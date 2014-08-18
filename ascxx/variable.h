@@ -23,7 +23,7 @@
 #include "simulation.h"
 #include "instance.h"
 
-class Relation;
+struct Relation;
 
 #include "config.h"
 extern "C"{

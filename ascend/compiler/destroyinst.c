@@ -160,34 +160,35 @@ static int RemoveParentReferences(
 ){
   register unsigned long c,pos,length;
   AssertMemory(inst);
-  if(parent!=NULL){
+  if (parent!=NULL) {
     AssertMemory(parent);
     /* destroy link from inst to parent */
     pos = SearchForParent(inst,parent);
-    if(pos != 0 || inst->t == DUMMY_INST){
-      /* Because the dummy always 'adds' a parent, it must always delete it to 
-      keep the ref_count happy. Dummy knows of no parents, but knows exactly 
-      how many it doesn't have. */
+    if (pos != 0 || inst->t == DUMMY_INST) {
+      /* Because the dummy always 'adds' a parent,
+       * it must always delete it to keep the ref_count happy.
+       * Dummy knows of no parents, but knows
+       * exactly how many it doesn't have.
+       */
       DeleteParent(inst,pos);
     }
     /* destroy link(s) from parent to inst */
-    while(0 != (pos = ChildIndex(parent,inst))){
+    while (0 != (pos = ChildIndex(parent,inst))) {
       StoreChildPtr(parent,pos,NULL);
     }
     return (NumberParents(inst) == 0);
-  }else{
+  } else {
     length = NumberParents(inst);
-    if(inst->t == DUMMY_INST){
+    if (inst->t == DUMMY_INST) {
       FPRINTF(ASCERR,
-        "The global dummy instance cannot be destroyed w/out parental consent\n"
-      );
+ "The global dummy instance cannot be destroyed w/out parental consent\n");
       FPRINTF(ASCERR, "You should not be seeing this message.\n");
       return 0;
     }
     for(c=1;c<=length;c++) {
       parent = InstanceParent(inst,c);
-      while(0 != (pos = ChildIndex(parent,inst))){
-        StoreChildPtr(parent,pos,NULL);
+      while (0 != (pos = ChildIndex(parent,inst))) {
+	StoreChildPtr(parent,pos,NULL);
       }
     }
     return  1;
@@ -251,18 +252,14 @@ static void DeleteArrayChild(struct ArrayChild *acp, struct Instance *parent){
 	After this, a real ATOM can be safely deleted if there are no models
 	refering to it.
 */
-static void RemoveRelationLinks(struct Instance *i){
-  struct gl_list_t *list = RA_INST(i)->relations;
-  if(NULL==list)return;
+static void RemoveRelationLinks(struct Instance *i, struct gl_list_t *list){
   register unsigned long c,length;
   assert(list!=NULL);
   length = gl_length(list);
-  for(c=1;c<=length;c++){
-	//CONSOLE_DEBUG("Var %p: referenced in relation %p",i, INST(gl_fetch(list,c)));
+  for(c=1;c<=length;c++) {
     ChangeRelationPointers(INST(gl_fetch(list,c)),i,INST(NULL));
   }
   gl_destroy(list);
-  RA_INST(i)->relations = NULL;
 }
 
 
@@ -306,7 +303,7 @@ static void DestroyAtomChildren(
     AssertMemory(*i);
     if ((*i)->t==SET_INST) {
       if (S_INST(*i)->list!=NULL) {
-        DestroySet(S_INST(*i)->list);
+	DestroySet(S_INST(*i)->list);
       }
     }
     i++;			/* position pointer for next child */
@@ -407,17 +404,20 @@ static void DestroyInstanceParts(struct Instance *i){
     ascfree((char *)i);
     return;
   case REAL_ATOM_INST:
-    //CONSOLE_DEBUG("REMOVE PARTS OF VAR %p =========",i);
     /* deallocate dynamic memory used by children */
-    DestroyAtomChildren(RA_CHILD(i,0),ChildListLen(GetChildList(RA_INST(i)->desc)));
+    DestroyAtomChildren(RA_CHILD(i,0),
+			ChildListLen(GetChildList(RA_INST(i)->desc)));
     /* continue delete the atom */
     gl_destroy(RA_INST(i)->parents);
     RA_INST(i)->parents = NULL;
     DeleteTypeDesc(RA_INST(i)->desc);
     RA_INST(i)->desc = NULL;
     RA_INST(i)->alike_ptr = NULL;
-    RemoveRelationLinks(i);
-    /* children are automatically deleted by the following  ----  EH??? how does that work? -JP */
+    if (RA_INST(i)->relations!=NULL) {
+      RemoveRelationLinks(i,RA_INST(i)->relations);
+      RA_INST(i)->relations=NULL;
+    }
+    /* children are automatically deleted by the following */
     i->t = ERROR_INST;
     ascfree((char *)i);
     return;
@@ -493,10 +493,9 @@ static void DestroyInstanceParts(struct Instance *i){
     ascfree((char *)i);
     return;
   case REL_INST:
-    //CONSOLE_DEBUG("REMOVE PARTS OF REL %p ===================",i);
     /* deallocate dynamic memory used by children */
     DestroyAtomChildren(REL_CHILD(i,0),
-    ChildListLen(GetChildList(RELN_INST(i)->desc)));
+			ChildListLen(GetChildList(RELN_INST(i)->desc)));
     /* continue deleting the relation */
     DeleteTypeDesc(RELN_INST(i)->desc);
     RELN_INST(i)->desc = NULL;
@@ -511,8 +510,8 @@ static void DestroyInstanceParts(struct Instance *i){
       RELN_INST(i)->whens=NULL;
     }
     /* delete references of reals to this expression */
-    if(RELN_INST(i)->ptr != NULL){
-      //CONSOLE_DEBUG("Destroying links to relation %p",i);
+    if (RELN_INST(i)->ptr != NULL){
+      /*CONSOLE_DEBUG("Destroying relation at %p",RELN_INST(i)->ptr);*/
       DestroyRelation(RELN_INST(i)->ptr,i);
       RELN_INST(i)->ptr = NULL;
     }
@@ -613,35 +612,39 @@ static void DestroyInstanceParts(struct Instance *i){
   }
 }
 
-void DestroyInstance(struct Instance *inst, struct Instance *parent){
+void DestroyInstance(struct Instance *inst, struct Instance *parent)
+{
   struct TypeDescription *desc;
   int delete;
-  if(inst==NULL) return;
+  if (inst==NULL) return;
 
-  if(InterfacePtrDelete!=NULL){
+  /*char *temp = WriteInstanceNameString(parent,NULL);
+  CONSOLE_DEBUG("parent name = %s",temp);
+  ASC_FREE(temp);*/
+
+  if (InterfacePtrDelete!=NULL) {
     DeleteIPtr(inst);
   }
   delete = RemoveParentReferences(inst,parent);
-  if(delete){
-    if (inst->t != DUMMY_INST){
+  if (delete) {
+    if (inst->t != DUMMY_INST) {
       desc = InstanceTypeDesc(inst);
-      if(GetUniversalFlag(desc)){ /* universal is being deleted */
+      if (GetUniversalFlag(desc)){ /* universal is being deleted */
         RemoveUniversalInstance(GetUniversalTable(),inst);
       }
-      if(IsCompoundInstance(inst) &&
+      if (IsCompoundInstance(inst) &&
           InstanceKind(inst) != SIM_INST &&
           ((struct PendInstance *)(inst))->p != NULL
-      ){
-		// remove instance from the pending list, if such exists
+         ) {
         RemoveInstance(inst);
       }
       /* remove PENDING or maybe not pending instance in destroy process. */
       RemoveFromClique(inst);
       DestroyInstanceParts(inst);
-    }else{
-      if(D_INST(inst)->ref_count<2){
+    } else {
+      if (D_INST(inst)->ref_count<2) {
         desc = InstanceTypeDesc(inst);
-        if(GetUniversalFlag(desc)){ /* universal is being deleted */
+        if (GetUniversalFlag(desc)){ /* universal is being deleted */
           RemoveUniversalInstance(GetUniversalTable(),inst);
         }
         /* dummy is never in cliques or pending */

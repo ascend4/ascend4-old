@@ -18,13 +18,14 @@
 #include <ascend/general/platform.h>
 #include "test_register_solver.h"
 
+#define SUITE solver
+
 #define TESTS(T) \
 	T(slv_common) \
 	T(slvreq) \
 	T(ipopt) \
 	T(conopt) \
 	T(qrslv) \
-	T(fprops) \
 	T(lrslv)
 
 #define PROTO_SOLVER(NAME) PROTO(solver,NAME)

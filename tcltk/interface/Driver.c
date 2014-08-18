@@ -77,7 +77,7 @@
 #include "SolverProc.h"
 #include "UnitsProc.h"
 
-//#define ASCTK_DEBUG
+#define ASCTK_DEBUG
 
 /*
  *  EXPORTED VARIABLES
@@ -316,7 +316,7 @@ int AscDriver(int argc, CONST char **argv)
    *  initialized, print our startup banner.
    */
 
-  color_on(stderr,ASC_FG_BRIGHTBLUE );
+  color_on(stderr,"34;1");
   ASC_FPRINTF(stderr,"\nASCEND modelling environment\n");
   ASC_FPRINTF(stderr,"Copyright(C) 1997, 2006-2007 Carnegie Mellon University\n");
   ASC_FPRINTF(stderr,"Copyright(C) 1993-1996 Kirk Andre Abbott, Ben Allan\n");
@@ -492,9 +492,7 @@ static void printenv(){
 	int n;
 	const char **l;
 	l = Asc_EnvNames(&n);
-#ifdef ASCTK_DEBUG
 	CONSOLE_DEBUG("VARS = %d",n);
-#endif
 	ascfree(l);
 }
 
@@ -552,9 +550,7 @@ static void AscCheckEnvironVars(Tcl_Interp *interp,const char *progname){
 
 	/* import these into the environment */
 	err = env_import(ASC_ENV_DIST,getenv,PUTENV);
-#ifdef ASCTK_DEBUG
 	if(err)CONSOLE_DEBUG("No %s var imported (error %d)",ASC_ENV_DIST,err);
-#endif
 	env_import(ASC_ENV_TK,getenv,PUTENV);
 	env_import(ASC_ENV_BITMAPS,getenv,PUTENV);
 	env_import(ASC_ENV_LIBRARY,getenv,PUTENV);
@@ -576,9 +572,7 @@ static void AscCheckEnvironVars(Tcl_Interp *interp,const char *progname){
 	/* Create an ASCENDDIST value if it's missing */
 
 	if(distdir == NULL){
-#ifdef ASCTK_DEBUG
 		CONSOLE_DEBUG("Note: No '" ASC_ENV_DIST "' var defined");
-#endif
 
 #if ASC_ABSOLUTE_PATHS
 #ifdef ASCTK_DEBUG
@@ -591,9 +585,7 @@ static void AscCheckEnvironVars(Tcl_Interp *interp,const char *progname){
         fp = ospath_new(progname);
 
         ospath_strncpy(fp,s1,PATH_MAX);
-#ifdef ASCTK_DEBUG
-        CONSOLE_DEBUG("PROGNAME = %s",s1);
-#endif
+        /* CONSOLE_DEBUG("PROGNAME = %s",s1); */
 
 		/* get the directory name from the exe path*/
         fp1 = ospath_getdir(fp);
@@ -1066,7 +1058,7 @@ Asc_Prompt(Tcl_Interp *interp, int partial)
   Tcl_Channel outChannel, errChannel;
   CONST84 char *subPrompt;
 
-  color_on(stdout,ASC_FG_GREEN);
+  color_on(stdout,"0;32");
 
   errChannel = Tcl_GetChannel(interp, "stderr", NULL);
 
