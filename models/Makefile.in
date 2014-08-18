@@ -75,10 +75,10 @@ TAGSFILE = TAGS
 INSTALL_TARGET_DIR = $(MODELS_DIR)
 
 INSTALL_SUBDIR_LIST = \
-	ben johnpye
+	ben
 
 INSTALL_FILE_LIST = \
-	guthriecosts.a4l \
+	Guthrie_costs.a4l \
 	KenPendings.a4l \
 	README \
 	README.html \
@@ -171,7 +171,6 @@ INSTALL_FILE_LIST = \
 	z-indirect.a4c \
 	z-isawhere.a4c \
 	z-relname.a4c \
-	z-exttest.a4c \
 	z-suite.a4s
 
 

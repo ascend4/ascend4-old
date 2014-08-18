@@ -27,7 +27,7 @@
 
 SHELL = /bin/sh
 @SET_MAKE@
-QUIET_INSTALL=@QUIET_INSTALL@
+
 
 
 #  dummy targets so make won't complain
@@ -41,15 +41,9 @@ install-subtree: Makefile
 	fi
 	@for i in $(INSTALL_FILE_LIST) /dev/null ; do \
 	  if $(CMP) -s $(srcdir)/$$i $(INSTALL_TARGET_DIR)/$$i ; then \
-	    if test "x$(QUIET_INSTALL)" = "x0" ; then \
-	      echo "Skipping $$i (up to date)" ; \
-	    fi ; \
+	    echo "Skipping $$i (up to date)" ; \
 	  elif [ $$i != "/dev/null" ]; then \
-	    if test -f $(INSTALL_TARGET_DIR)/$$i ; then \
-	      echo "Updating $$i --> $(INSTALL_TARGET_DIR)" ; \
-	    else \
-	      echo "Installing $$i --> $(INSTALL_TARGET_DIR)" ; \
-	    fi; \
+	    echo "Installing $$i --> $(INSTALL_TARGET_DIR)" ; \
 	    $(INSTALL_DATA) $(srcdir)/$$i $(INSTALL_TARGET_DIR) ; \
 	  fi ; \
 	done

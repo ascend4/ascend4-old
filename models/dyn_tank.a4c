@@ -1,27 +1,14 @@
-REQUIRE "ivpsystem.a4l"; (* provides a modified version of system.a4l for IVP problems *)
+REQUIRE "ivpsystem.a4l";
+(* => modified version of system.a4l, basemodel.a4l *)
 REQUIRE "atoms.a4l";
+(* => atoms.a4l, measures.a4l, system.a4l, basemodel.a4l *)
+PROVIDE "dyn_tank.a4c";
+(*
+ * This file is part of the ASCEND Modeling Library and is released
+ * under the GNU Public License as described at the end of this file.
+ *)
 
-(*  ASCEND modelling environment
-	Copyright (C) 1998, 2006  Carnegie Mellon University
-
-	The ASCEND Modeling Library is free software; you can redistribute
-	it and/or modify it under the terms of the GNU General Public
-	License as published by the Free Software Foundation; either
-	version 2 of the License, or (at your option) any later version.
-
-	The ASCEND Modeling Library is distributed in hope that it will
-	be useful, but WITHOUT ANY WARRANTY; without even the implied
-	warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-	See the GNU General Public License for more details.
-	
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*)(*
-	by Duncan Coffey
-	This model gives a pretty trivial example of integration using LSODE.
-*)
-
-MODEL dyn_tank;
+MODEL tank;
     (* List of Variables *)
     dM_dt IS_A molar_rate;
     M IS_A mole;
@@ -39,17 +26,17 @@ MODEL dyn_tank;
     (* Assignment of values to Constants *)
     density :==10 {mol/m^3};
 
-METHODS
-METHOD check_self;
+    METHODS
+    METHOD check_self;
 	IF (input < 1e-4 {mole/s}) THEN
 	    STOP {Input dried up in tank};
 	END IF;
 	IF (output < 1e-4 {mole/s}) THEN
 	    STOP {Output dried up in tank};
 	END IF;
-END check_self;
+    END check_self;
 
-METHOD check_all;
+    METHOD check_all;
 	RUN check_self;
     END check_all;
 
@@ -58,48 +45,46 @@ METHOD check_all;
 	t :=0 {sec};
 	dM_dt :=0 {mol/sec};
 	dM_dt.lower_bound := -1e49 {mol/sec};
-	input := 1 {mol/sec};
-	output := 1 {mol/sec};
-END default_self;
+    END default_self;
 
-METHOD default_all;
+    METHOD default_all;
 	RUN default_self;
-END default_all;
+    END default_all;
 
-METHOD bound_self;
-END bound_self;
+    METHOD bound_self;
+    END bound_self;
 
-METHOD bound_all;
-	RUN bound_self;
-END bound_all;
+    METHOD bound_all;
+	     RUN bound_self;
+    END bound_all;
 
-METHOD scale_self;
-END scale_self;
+    METHOD scale_self;
+    END scale_self;
 
-METHOD scale_all;
+    METHOD scale_all;
 	RUN scale_self;
-END scale_all;
+    END scale_all;
 
-METHOD seqmod;
-	FIX dM_dt;
-	FREE M;
-	FIX Volume;
-	FIX input;
-	FREE output;
+    METHOD seqmod;
+	dM_dt.fixed :=TRUE;
+	M.fixed :=FALSE;
+	Volume.fixed :=TRUE;
+	input.fixed :=TRUE;
+	output.fixed :=FALSE;
 	IF dynamic THEN
-	    FREE dM_dt;
-	    FIX M;
-	    FREE Volume;
-	    FIX output;
+	    dM_dt.fixed :=FALSE;
+	    M.fixed :=TRUE;
+	    Volume.fixed :=FALSE;
+	    output.fixed :=TRUE;
 	END IF;
-END seqmod;
+    END seqmod;
 
-METHOD specify;
-	FIX input;
+    METHOD specify;
+	input.fixed :=TRUE;
 	RUN seqmod;
-END specify;
+    END specify;
 
-METHOD set_ode;
+    METHOD set_ode;
 	(* set ODE_TYPE -1=independent variable,
  	   0=algebraic variable, 1=state variable,
 	   2=derivative *)
@@ -109,9 +94,9 @@ METHOD set_ode;
 	(* Set ODE_ID *)
 	dM_dt.ode_id :=1;
 	M.ode_id :=1;
-END set_ode;
+    END set_ode;
 
-METHOD set_obs;
+    METHOD set_obs;
 	(* Set OBS_ID to any integer value greater
 	   than 0, the variable will be recorded
 	   (i.e., observed) *)
@@ -119,20 +104,40 @@ METHOD set_obs;
 	Volume.obs_id :=2;
 	input.obs_id :=3;
 	output.obs_id :=4;
-END set_obs;
+    END set_obs;
 
-METHOD values;
+    METHOD values;
 	Volume :=5 {m^3};
 	input :=100 {mole/s};
-END values;
+    END values;
+END tank;
 
-METHOD on_load;
-	RUN default_self;
-	dynamic := TRUE;
-	RUN reset;
-	RUN specify;
-	RUN set_obs;
-	RUN set_ode;
-END on_load;
 
-END dyn_tank;
+(*
+ *  dyn_tank.a4c
+ *  by Duncan Coffey
+ *  Part of the ASCEND Library
+ *  $Date: 1998/06/17 19:05:02 $
+ *  $Revision: 1.2 $
+ *  $Author: mthomas $
+ *  $Source: /afs/cs.cmu.edu/project/ascend/Repository/models/dyn_tank.a4c,v $
+ *
+ *  This file is part of the ASCEND Modeling Library.
+ *
+ *  Copyright (C) 1998  Carnegie Mellon University
+ *
+ *  The ASCEND Modeling Library is free software; you can redistribute
+ *  it and/or modify it under the terms of the GNU General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
+ *
+ *  The ASCEND Modeling Library is distributed in hope that it will
+ *  be useful, but WITHOUT ANY WARRANTY; without even the implied
+ *  warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with the program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139 USA.  Check the
+ *  file named COPYING.
+ *)

@@ -1,6 +1,0 @@
-
-DELETE TYPES;
-READ FILE "testNotes.a4c";
-COMPILE tn OF testNotes;
-BROWSE {tn};
-
