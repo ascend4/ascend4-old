@@ -363,12 +363,12 @@ void linsolqr_destroy(linsolqr_system_t sys){
      ERROR_REPORTER_HERE(ASC_PROG_ERR,"Bad linsolqr_system_t found. Not destroyed.");
      return;
    }
-   if( NOTNULL(sys->coef) ) {
-     CONSOLE_DEBUG("linsolqr contains coef mtx which will NOT be destroyed");
+   if(NOTNULL(sys->coef)) {
+     //CONSOLE_DEBUG("linsolqr contains coef mtx which will NOT be destroyed");
    }
-   if( NOTNULL(sys->inverse) )
+   if(NOTNULL(sys->inverse))
       mtx_destroy(sys->inverse);
-   if( NOTNULL(sys->factors) )
+   if(NOTNULL(sys->factors))
       mtx_destroy(sys->factors);
    destroy_rhs_list(sys->rl);
    destroy_qrdata(sys->qrdata);
@@ -391,7 +391,10 @@ void linsolqr_set_region(linsolqr_system_t sys,mtx_region_t region){
      ERROR_REPORTER_HERE(ASC_PROG_ERR,"Bad linsolqr_system_t found. coef mtx not set.");
      return;
    }
-   CONSOLE_DEBUG("Region rows=[%d,%d], cols=[%d,%d]",region.row.low,region.row.high,region.col.low,region.col.high);
+#if LINSOL_DEBUG
+   CONSOLE_DEBUG("Region rows=[%d,%d], cols=[%d,%d]",region.row.low
+       ,region.row.high,region.col.low,region.col.high);
+#endif
    sys->reg = region;
 }
 

@@ -55,6 +55,10 @@
 #include "anonmerg.h"
 #include "anontype.h"
 
+#ifndef lint
+static CONST char AnonTypeModuleID[] = "$Id: anontype.c,v 1.9 2000/01/25 02:25:55 ballan Exp $";
+#endif
+
 /*
  * Yo! Pinhead! Don't optimize anything until it has proved slow!
  */
@@ -1378,6 +1382,7 @@ struct AnonType *NearestAnonType(struct Instance *i,
   case SYMBOL_ATOM_INST:        /* FALL THROUGH */
   case BOOLEAN_ATOM_INST:       /* FALL THROUGH */
   case WHEN_INST:               /* FALL THROUGH */
+  case EVENT_INST:              /* FALL THROUGH */
   case DUMMY_INST:
     *exact = (b->anonlist != NULL);
     return b->anonlist;		/* done */
@@ -1506,7 +1511,7 @@ struct gl_list_t *Asc_DeriveAnonList(struct Instance *i)
   struct AnonVisitInfo info;
   VOIDPTR vp;
 #if (TIMECOMPILER && AMSTAT)
-  double start,classt;
+  clock_t start,classt;
 #endif
 
 #if AWAL
@@ -1540,13 +1545,13 @@ struct gl_list_t *Asc_DeriveAnonList(struct Instance *i)
    * will all be classified before the parent is classified.
    */
 #if (TIMECOMPILER && AMSTAT)
-    start = tm_cpu_time();
+    start = clock();
 #endif
   vp = Asc_AnonMergeMarkIPs(i);
 #if (TIMECOMPILER && AMSTAT)
-    classt = tm_cpu_time();
+    classt = clock();
     FPRINTF(ASCERR,
-            "Mergedetect\t\t%0.3f s\n",(classt-start));
+            "Mergedetect\t\t%lu\n",(unsigned long)(classt-start));
 #endif
   SilentVisitInstanceTreeTwo(i,(VisitTwoProc)DeriveAnonType,1,0,(void *)&info);
 
@@ -1556,7 +1561,7 @@ struct gl_list_t *Asc_DeriveAnonList(struct Instance *i)
     FILE *fp;
 
 #if TIMECOMPILER
-    FPRINTF(ASCERR, "start atmlist: %lld\n",(unsigned long)uclock());
+    FPRINTF(ASCERR, "start atmlist: %lu\n",(unsigned long)clock());
 #endif
 
 #ifdef __WIN32__
@@ -1580,7 +1585,7 @@ struct gl_list_t *Asc_DeriveAnonList(struct Instance *i)
     }
 
 #if TIMECOMPILER
-    FPRINTF(ASCERR, "done atmlist: %lld\n",(unsigned long)uclock());
+    FPRINTF(ASCERR, "done atmlist: %lu\n",(unsigned long)clock());
 #endif
 
   }
@@ -1632,6 +1637,7 @@ void WriteAnonEpilog(FILE *fp)
   FPRINTF(fp,"AT: name %d %s\n",REL_INST,"REL_INST");
   FPRINTF(fp,"AT: name %d %s\n",LREL_INST,"LREL_INST");
   FPRINTF(fp,"AT: name %d %s\n",WHEN_INST,"WHEN_INST");
+  FPRINTF(fp,"AT: name %d %s\n",EVENT_INST,"EVENT_INST");
   FPRINTF(fp,"AT: name %d %s\n",ARRAY_INT_INST,"ARRAY_INT_INST");
   FPRINTF(fp,"AT: name %d %s\n",ARRAY_ENUM_INST,"ARRAY_ENUM_INST");
   FPRINTF(fp,"AT: name %d %s\n",REAL_ATOM_INST,"REAL_ATOM_INST");

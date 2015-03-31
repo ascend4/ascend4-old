@@ -39,6 +39,7 @@
 #include <ascend/general/dstring.h>
 
 #if TIMECOMPILER
+#include <time.h>
 #include <ascend/general/tm_time.h>
 #endif
 
@@ -64,6 +65,10 @@
 #include "numlist.h"
 #if AMSTAT
 #undef NUMLISTEXPORTIO
+#endif
+
+#ifndef lint
+static CONST char AnonMergeModuleID[] = "$Id: anonmerg.c,v 1.9 2000/01/25 02:25:52 ballan Exp $";
 #endif
 
 /* if want to compile unused functions, set to 1.
@@ -279,7 +284,7 @@ int IsIgnorableInstance(struct Instance *ch)
     ASC_PANIC("Called with bad instance");
     return 0; /* not reached */
   }
-  if (InstanceKind(ch) & (IFUND | ICONS | IDUMB | IWHEN | IRELN | ILRELN)) {
+  if (InstanceKind(ch) & (IFUND | ICONS | IDUMB | IWHEN | IEVENT | IRELN | ILRELN)) {
     return 1;
   }
   if (IsArrayInstance(ch) ) {
@@ -1684,19 +1689,19 @@ VOIDPTR Asc_AnonMergeMarkIPs(struct Instance *root)
    * for detecting anonymously universal instances.
    */
 #if (AMSTAT || AMBKDN)
-  FPRINTF(ASCERR,"@%0.6fs init amvi done\n",tm_cpu_time());
+  FPRINTF(ASCERR,"%ld init amvi done\n",clock());
 #endif
   SilentVisitInstanceTreeTwo(root,(VisitTwoProc)AnonMergeCountTree,1,0,&amvi);
 
 #if (AMSTAT || AMBKDN)
-  FPRINTF(ASCERR,"@%0.6f counttree done\n",tm_cpu_time());
+  FPRINTF(ASCERR,"%ld counttree done\n",clock());
 #endif
   /* mark the instances which have only one instance as 'locally' universal
    * in anonflags and set tmpnum to 0 for same.
    */
   AnonMergeMarkUniversals(&amvi);
 #if (AMSTAT || AMBKDN)
-  CONSOLE_DEBUG("@%0.6f mark universals done\n",tm_cpu_time());
+  FPRINTF(ASCERR,"%ld mark universals done\n",clock());
 #endif
 
   /* Set the tmpnum of anything with a 1 tmpnum(1 parent) to 0 tmpnum.
@@ -1713,7 +1718,7 @@ VOIDPTR Asc_AnonMergeMarkIPs(struct Instance *root)
    * next one quite carefully.
    */
 #if (AMSTAT || AMBKDN)
-  CONSOLE_DEBUG("@%0.6f label nodes done\n",tm_cpu_time());
+  FPRINTF(ASCERR,"%ld label nodes done\n",clock());
 #endif
 
 #if (AMSTAT)
@@ -1727,7 +1732,7 @@ VOIDPTR Asc_AnonMergeMarkIPs(struct Instance *root)
   }
 
 #if (AMSTAT || AMBKDN)
-  CONSOLE_DEBUG("@%0.6f amipdinit done\n",tm_cpu_time());
+  FPRINTF(ASCERR,"%ld amipdinit done\n",clock());
 #endif
 
 #if (CHECKN)
@@ -1740,7 +1745,7 @@ VOIDPTR Asc_AnonMergeMarkIPs(struct Instance *root)
   SilentVisitInstanceTreeTwo(root,(VisitTwoProc)AnonMergeDetect,1,0,amipd);
 
 #if (AMSTAT || AMBKDN)
-  CONSOLE_DEBUG("@%0.6f mergedetect done\n\n",tm_cpu_time());
+  FPRINTF(ASCERR,"%ld mergedetect done\n\n",clock());
 #endif
 #if AMBKDN
   FPRINTF(ASCERR,"Instances with merges  %d\n",amipd->num_iwithmerge);
