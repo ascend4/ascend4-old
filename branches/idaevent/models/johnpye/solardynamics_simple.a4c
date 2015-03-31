@@ -1,0 +1,100 @@
+REQUIRE "ivpsystem.a4l";
+REQUIRE "atoms.a4l";
+REQUIRE "johnpye/thermo_types.a4c";
+
+(* stripped-back version of 'solardynamics' with just enough detail to 
+provide the same switching behaviour, hopefully.
+
+	For 'sun' above 800 W, we charge the storage.
+	For 'sun' below 500 W, we ignore it.
+
+	For tank temperature above 200 K, we discharge the storage
+	For tank temperature below 150, we don't discharge.
+
+ *)
+MODEL solardynamics_simple;
+	t IS_A time;
+	INDEPENDENT t;
+
+	E "stored energy" IS_A energy;
+	Qdot_in,Qdot_out IS_A energy_rate;
+	C "concentration ratio" IS_A factor;
+
+	(* sinusoidal 'sunlight' gives us up to 1000 W *)
+	qin_eq: Qdot_in = 1000 {W} * 0.5*(1 - cos(t * 2{PI}/1{d}));
+
+	cp IS_A specific_heat_capacity;
+	T, T_0 IS_A temperature;
+	m IS_A mass;
+	en_eq: E = m * cp * (T - T_0);
+
+	DERIVATIVE OF E;
+	dyn_eq: der(E) = C*Qdot_in - Qdot_out;
+
+	c1: C = 1;
+	c0: C = 0;
+	p1: Qdot_out = 2000 {W};
+	p0: Qdot_out = 0 {MW};
+	CONDITIONAL
+		c_c1: Qdot_in > 500 {W};
+		c_c0: Qdot_in < 300 {W};
+		c_p1: T > 200 {K};
+		c_p0: T < 150 {K};
+	END CONDITIONAL;
+	b_c1, b_c0, b_p1, b_p0 IS_A boolean_var;
+	b_c1 == SATISFIED(c_c1);b_c0 == SATISFIED(c_c0);
+	b_p1 == SATISFIED(c_p1);b_p0 == SATISFIED(c_p0);
+	e_c1:EVENT(b_c1) CASE TRUE: USE c1; END EVENT;
+	e_c0:EVENT(b_c0) CASE TRUE: USE c0; END EVENT;
+	e_p1:EVENT(b_p1) CASE TRUE: USE p1; END EVENT;
+	e_p0:EVENT(b_p0) CASE TRUE: USE p0; END EVENT;
+METHODS
+	METHOD on_load;
+		FIX T_0 := 180 {K};
+		T := 200 {K};
+		E := 40 {MJ};
+		FIX C := 0;
+		FIX Qdot_out := 0 {W};
+		t := 0 {d};
+		FIX cp := 4 {kJ/kg/K};
+		FIX m := 100 {kg};
+		Qdot_in.obs_id := 1;
+		T.obs_id := 2;
+		C.obs_id := 3;
+		Qdot_out.obs_id := 4;
+		E.obs_id := 5;
+		b_c1.obs_id := 6;
+		b_c0.obs_id := 7;
+		b_p1.obs_id := 8;
+		b_p0.obs_id := 9;
+	END on_load;
+	METHOD e_c1;     RUN freeze_c;        END e_c1;
+	METHOD e_c1_end; RUN thaw_c;          END e_c1_end;
+	METHOD e_c0;     RUN freeze_c;        END e_c0;
+	METHOD e_c0_end; RUN thaw_c;          END e_c0_end;
+	METHOD e_p1;     RUN freeze_p;        END e_p1;
+	METHOD e_p1_end; RUN thaw_p;          END e_p1_end;
+	METHOD e_p0;     RUN freeze_p;        END e_p0;
+	METHOD e_p0_end; RUN thaw_p;          END e_p0_end;
+	METHOD freeze_c; 
+		FREE C;
+		FIX T, E, der(E), Qdot_out, Qdot_in, t;
+		qin_eq.included := FALSE; en_eq.included := FALSE; dyn_eq.included := FALSE;
+	END freeze_c;
+	METHOD thaw_c;
+		FIX C;
+		FREE T, E, der(E), Qdot_out, Qdot_in, t;
+		qin_eq.included := TRUE; en_eq.included := TRUE; dyn_eq.included := TRUE;
+	END thaw_c;
+	METHOD freeze_p; 
+		FREE Qdot_out;
+		FIX T, E, der(E), Qdot_out, Qdot_in, t;
+		qin_eq.included := FALSE; en_eq.included := FALSE; dyn_eq.included := FALSE;
+	END freeze_p;
+	METHOD thaw_p; 
+		FIX Qdot_out;
+		FREE T, E, der(E), Qdot_out, Qdot_in, t;
+		qin_eq.included := TRUE; en_eq.included := TRUE; dyn_eq.included := TRUE;
+	END thaw_p;
+END solardynamics_simple;
+
