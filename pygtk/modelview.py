@@ -1,5 +1,5 @@
-import gtk
-import pango
+from gi.repository import Gtk, GdkPixbuf, Gdk
+from gi.repository import Pango
 import ascpy
 
 from varentry import *
@@ -24,16 +24,16 @@ class ModelView:
 		self.modelview = builder.get_object("browserview")
 		
 		# name, type, value, foreground, weight, editable, status-icon
-		columns = [str,str,str,str,int,bool,gtk.gdk.Pixbuf]
+		columns = [str,str,str,str,int,bool,GdkPixbuf.Pixbuf]
 
 		self.otank = {}
 
 		# name, type, value, foreground, weight, editable, status-icon
-		columns = [str,str,str,str,int,bool,gtk.gdk.Pixbuf]
-		self.modelstore = gtk.TreeStore(*columns)
+		columns = [str,str,str,str,int,bool,GdkPixbuf.Pixbuf]
+		self.modelstore = Gtk.TreeStore(*columns)
 		titles = ["Name","Type","Value"];
 		self.modelview.set_model(self.modelstore)
-		self.tvcolumns = [ gtk.TreeViewColumn() for _type in columns[:len(titles)] ]
+		self.tvcolumns = [ Gtk.TreeViewColumn() for _type in columns[:len(titles)] ]
 		
 		self.modelview.connect("row-expanded", self.row_expanded )
 		self.modelview.connect("button-press-event", self.on_treeview_event )
@@ -48,11 +48,11 @@ class ModelView:
 
 			if(i==2):
 				# add status icon
-				renderer1 = gtk.CellRendererPixbuf()
+				renderer1 = Gtk.CellRendererPixbuf()
 				tvcolumn.pack_start(renderer1, False)
 				tvcolumn.add_attribute(renderer1, 'pixbuf', 6)
 
-			renderer = gtk.CellRendererText()
+			renderer = Gtk.CellRendererText()
 			tvcolumn.pack_start(renderer, True)
 			tvcolumn.add_attribute(renderer, 'text', i)
 			tvcolumn.add_attribute(renderer, 'foreground', 3)
@@ -113,17 +113,17 @@ class ModelView:
 		_type = str(instance.getType())
 		_name = str(instance.getName())
 		_fgcolor = BROWSER_INCLUDED_COLOR
-		_fontweight = pango.WEIGHT_NORMAL
+		_fontweight = Pango.Weight.NORMAL
 		_editable = False
 		_statusicon = None
 		if instance.getType().isRefinedSolverVar():
 			_editable = True
-			_fontweight = pango.WEIGHT_BOLD
+			_fontweight = Pango.Weight.BOLD
 			if instance.isFixed():
 				_fgcolor = BROWSER_FIXED_COLOR
 			else:
 				_fgcolor = BROWSER_FREE_COLOR
-				_fontweight = pango.WEIGHT_BOLD
+				_fontweight = Pango.Weight.BOLD
 			_status = instance.getStatus();
 			_statusicon = self.browser.statusicons[_status]
 		elif instance.isRelation():
@@ -135,11 +135,11 @@ class ModelView:
 			# TODO can't edit constants that have already been refined
 			_editable = True
 			_fgcolor = BROWSER_SETTING_COLOR
-			_fontweight = pango.WEIGHT_BOLD
+			_fontweight = Pango.Weight.BOLD
 		elif instance.isSymbol() and not instance.isConst():
 			_editable = True
 			_fgcolor = BROWSER_SETTING_COLOR
-			_fontweight = pango.WEIGHT_BOLD
+			_fontweight = Pango.Weight.BOLD
 			
 		#if(len(_value) > 80):
 		#	_value = _value[:80] + "..."
@@ -156,15 +156,17 @@ class ModelView:
 		for _path in self.otank: # { path : (name,value) }
 			_iter = self.modelstore.get_iter(_path)
 			_name, _instance = self.otank[_path]
-			self.modelstore.set_value(_iter, 2, _instance.getValue())
+			self.modelstore.set_value(_iter, 2, str(_instance.getValue()))
 			if _instance.getType().isRefinedSolverVar():
 				if _instance.isFixed() and self.modelstore.get_value(_iter,3)==BROWSER_FREE_COLOR:
 					self.modelstore.set_value(_iter,3,BROWSER_FIXED_COLOR)
 				elif not _instance.isFixed() and self.modelstore.get_value(_iter,3)==BROWSER_FIXED_COLOR:
 					self.modelstore.set_value(_iter,3,BROWSER_FREE_COLOR)
-				self.modelstore.set_value(_iter, 6, self.browser.statusicons[_instance.getStatus()])
+				if self.browser.statusicons[_instance.getStatus()] != None:
+					self.modelstore.set_value(_iter, 6, self.browser.statusicons[_instance.getStatus()])
 			elif _instance.isRelation():
-				self.modelstore.set_value(_iter, 6, self.browser.statusicons[_instance.getStatus()])
+				if self.browser.statusicons[_instance.getStatus()] != None:
+					self.modelstore.set_value(_iter, 6, self.browser.statusicons[_instance.getStatus()])
 				if _instance.isIncluded():
 					self.modelstore.set_value(_iter,3,BROWSER_INCLUDED_COLOR)
 				else:
@@ -178,12 +180,12 @@ class ModelView:
 		if iter is None:
 			return None
 		path = model.get_path(iter)
-		name,instance = self.otank[path]
+		name,instance = self.otank[path.to_string()]
 		return instance
 	
 	def cell_edited_callback(self, renderer, path, newtext, **kwargs):
 		# get back the Instance object we just edited (having to use this seems like a bug)
-		path = tuple( map(int,path.split(":")) )
+#path = tuple( map(int,path.split(":")) )
 
 		if not self.otank.has_key(path):
 			raise RuntimeError("cell_edited_callback: invalid path '%s'" % path)
@@ -255,21 +257,24 @@ class ModelView:
 				try:
 					_name = child.getName();
 					_piter = self.make_row(piter,_name,child)
+					if child.isCompound() and len(child.getChildren())>0:
+					    self.make_children(child,_piter)
 					_path = self.modelstore.get_path(_piter)
-					self.otank[_path]=(_name,child)
+					self.otank[_path.to_string()]=(_name,child)
 					#self.browser.reporter.reportError("2 Added %s at path %s" % (_name,repr(_path)))
 				except Exception,e:
 					self.browser.reporter.reportError("%s: %s" % (_name,e))
 	
+                    
 	def make(self, name=None, value=None, path=None, depth=1):
 		if path is None:
 			# make root node
 			piter = self.make_row( None, name, value )
 			path = self.modelstore.get_path( piter )
-			self.otank[ path ] = (name, value)
+			self.otank[ path.to_string() ] = (name, value)
 			#self.browser.reporter.reportError("4 Added %s at path %s" % (name, path))
 		else:
-			name, value = self.otank[ path ]
+			name, value = self.otank[ path.to_string() ]
 
 		assert(value)
 
@@ -280,9 +285,11 @@ class ModelView:
 
 		if depth:
 		    for i in range( self.modelstore.iter_n_children( piter ) ):
-		        self.make( path = path+(i,), depth = depth - 1 )
+		        path.append_index(i)
+		        if path.to_string() in self.otank.keys():
+		           self.make( path = path, depth = depth - 1 )
 		else:
-			self.modelview.expand_row("0",False)
+			self.modelview.expand_row(self.modelstore.get_path(self.modelstore.get_iter_first()),False) # Edit here only.
 
 	def row_expanded( self, modelview, piter, path ):
 		self.make( path = path )
@@ -294,8 +301,8 @@ class ModelView:
 	def on_treeview_event(self,widget,event):
 		_path = None
 		_contextmenu = False
-		if event.type==gtk.gdk.KEY_RELEASE:
-			_keyval = gtk.gdk.keyval_name(event.keyval)
+		if event.type==Gdk.EventType.KEY_RELEASE:
+			_keyval = Gdk.keyval_name(event.keyval)
 			_path, _col = self.modelview.get_cursor()
 			if _keyval=='Menu':
 				_contextmenu = True
@@ -305,7 +312,7 @@ class ModelView:
 				self.modelview.set_cursor(_path,self.tvcolumns[2],1)
 												
 				return
-		elif event.type==gtk.gdk.BUTTON_PRESS:
+		elif event.type==Gdk.EventType.BUTTON_PRESS:
 			_x = int(event.x)
 			_y = int(event.y)
 			_button = event.button
@@ -316,7 +323,7 @@ class ModelView:
 					_contextmenu = True
 
 		if _path:
-			_name,_instance = self.otank[_path]
+			_name,_instance = self.otank[_path.to_string()]
 			# set the statusbar
 			nn = self.notes.getNotes(self.sim.getModel().getType(),ascpy.SymChar("inline"),_name)
 			for n in nn:
@@ -337,7 +344,7 @@ class ModelView:
 				self.builder.get_object("propsmenuitem").set_sensitive(True)
 
 		if not _contextmenu:
-			#print "NOT DOING ANYTHING ABOUT %s" % gtk.gdk.keyval_name(event.keyval)
+			#print "NOT DOING ANYTHING ABOUT %s" % Gdk.keyval_name(event.keyval)
 			return 
 
 		_canpop = False;
@@ -374,7 +381,7 @@ class ModelView:
 			self.modelview.grab_focus()
 			self.modelview.set_cursor(_path,_col,0)
 			print "RUNNING POPUP MENU"
-			_menu.popup(None,None,None,_button,event.time)
+			_menu.popup(None,None,lambda _menu,data: (event.get_root_coords()[0],event.get_root_coords()[1], True),None,_button,event.time)
 			return
 
 		if not _canpop:
@@ -382,40 +389,40 @@ class ModelView:
 
 		self.modelview.grab_focus()
 		self.modelview.set_cursor( _path, _col, 0)
-		self.treecontext.popup( None, None, None, _button, event.time)
+		self.treecontext.popup( None, None, None,None, _button, event.time)
 		return 1
 
 	def get_model_context_menu(self,instance):
-		menu = gtk.Menu()
+		menu = Gtk.Menu()
 		
 		if instance.isPlottable():
 			print "PLOTTABLE"
-			mi = gtk.ImageMenuItem("P_lot",True);
-			img = gtk.Image()
+			mi = Gtk.ImageMenuItem("P_lot",True);
+			img = Gtk.Image()
 			img.set_from_file(self.browser.options.assets_dir+'/plot.png')
 			mi.set_image(img)
 			mi.show()
 			mi.connect("activate",self.plot_activate)
 			menu.append(mi);
-			sep = gtk.SeparatorMenuItem(); sep.show()
+			sep = Gtk.SeparatorMenuItem(); sep.show()
 			menu.append(sep)
 		
-		mi = gtk.ImageMenuItem("Run method...",False)
+		mi = Gtk.ImageMenuItem("Run method...")
 		mi.set_sensitive(False)
-		img = gtk.Image()
-		img.set_from_stock(gtk.STOCK_EXECUTE,gtk.ICON_SIZE_MENU)
+		img = Gtk.Image()
+		img.set_from_stock(Gtk.STOCK_EXECUTE,Gtk.IconSize.MENU)
 		mi.set_image(img)
 		mi.show()
 		menu.append(mi)
 
-		sep = gtk.SeparatorMenuItem(); sep.show()
+		sep = Gtk.SeparatorMenuItem(); sep.show()
 		menu.append(sep)
 
 		t = instance.getType()
 		ml = t.getMethods()
 		if len(ml):
 			for m in ml:
-				mi = gtk.MenuItem(m.getName(),False)
+				mi = Gtk.MenuItem(m.getName())
 				mi.show()
 				mi.connect("activate",self.run_activate,instance,m)
 				menu.append(mi)		
@@ -432,14 +439,14 @@ class ModelView:
 
 	def fix_activate(self,widget):
 		_path,_col = self.modelview.get_cursor()
-		_name, _instance = self.otank[_path]
+		_name, _instance = self.otank[_path.to_string()]
 		self.set_fixed(_instance,True);
 		_instance.setFixed(True)
 		return 1
 
 	def free_activate(self,widget):
 		_path,_col = self.modelview.get_cursor()
-		_instance = self.otank[_path][1]
+		_instance = self.otank[_path.to_string()][1]
 		self.set_fixed(_instance,False)
 		return 1
 
@@ -468,7 +475,7 @@ class ModelView:
 			self.browser.reporter.reportError("Can't show properties until a simulation has been created.");
 			return
 		_path,_col = self.modelview.get_cursor()
-		_instance = self.otank[_path][1]
+		_instance = self.otank[_path.to_string()][1]
 		if _instance.isRelation():
 			print "Relation '"+_instance.getName().toString()+"':", \
 				_instance.getRelationAsString(self.sim.getModel())
@@ -482,19 +489,19 @@ class ModelView:
 
 	def observe_activate(self,widget,*args):
 		_path,_col = self.modelview.get_cursor()
-		_instance = self.otank[_path][1]
+		_instance = self.otank[_path.to_string()][1]
 		if _instance.getType().isRefinedSolverVar():
 			print "OBSERVING",_instance.getName().toString()
 			self.browser.observe(_instance)
 
 	def on_fix_variable_activate(self,*args):
 		_path,_col = self.modelview.get_cursor()
-		_instance = self.otank[_path][1]
+		_instance = self.otank[_path.to_string()][1]
 		self.set_fixed(_instance,True)
 
 	def on_free_variable_activate(self,*args):
 		_path,_col = self.modelview.get_cursor()
-		_instance = self.otank[_path][1]
+		_instance = self.otank[_path.to_string()][1]
 		self.set_fixed(_instance,False)
 
 	def set_fixed(self,instance,val):
@@ -507,16 +514,16 @@ class ModelView:
 
 	def study_activate(self, *args):
 		_path,_col = self.modelview.get_cursor()
-		_instance = self.otank[_path][1]
+		_instance = self.otank[_path.to_string()][1]
 		self.browser.observe(_instance)
 		_dia = StudyWin(self.browser,_instance);
 		_dia.run()
 
 	def units_activate(self,*args):
 		T = self.get_selected_type()
-		try:
-			_un = UnitsDialog(self.browser,T)
-			_un.run()
-		except:
-			self.browser.reporter.reportError("Unable to display units dialog.")
+#try:
+		_un = UnitsDialog(self.browser,T)
+		_un.run()
+#		except:
+#			self.browser.reporter.reportError("Unable to display units dialog.")
 
