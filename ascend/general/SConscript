@@ -1,6 +1,5 @@
 #!/usr/bin/python invoke_using_scons
 Import('libascend_env')
-import platform
 
 csrcs = Split("""
 	ascMalloc.c color.c
@@ -16,10 +15,6 @@ configh = libascend_env.SubstInFile(source='config.h.in')
 objs =[]
 for c in csrcs:
 	objs += libascend_env.SharedObject(c)
-
-if platform.system()!="Windows":
-	#required for clock_gettime()
-	libascend_env.AppendUnique(LIBS=['rt'])
 
 #--------------------
 # INSTALL

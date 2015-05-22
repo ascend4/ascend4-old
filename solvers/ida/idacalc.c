@@ -56,7 +56,7 @@
 
 
 /* #define FEX_DEBUG  */
-#define JEX_DEBUG
+/* #define JEX_DEBUG  */
 /* #define DJEX_DEBUG */
 /* #define ROOT_DEBUG */
 
@@ -253,7 +253,13 @@ int integrator_ida_fex(realtype tt, N_Vector yy, N_Vector yp, N_Vector rr, void 
 	Dense Jacobian evaluation. Only suitable for small problems!
 	Has been seen working for problems up to around 2000 vars, FWIW.
 */
-#if SUNDIALS_VERSION_MAJOR==2 && SUNDIALS_VERSION_MINOR>=4
+#if SUNDIALS_VERSION_MAJOR==2 && SUNDIALS_VERSION_MINOR==5
+int integrator_ida_djex(long int Neq, realtype tt, realtype c_j
+		, N_Vector yy, N_Vector yp, N_Vector rr
+		, IDA_MTX_T Jac, void *jac_data
+		, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3
+){
+#elif SUNDIALS_VERSION_MAJOR==2 && SUNDIALS_VERSION_MINOR==4
 int integrator_ida_djex(int Neq, realtype tt, realtype c_j
 		, N_Vector yy, N_Vector yp, N_Vector rr
 		, IDA_MTX_T Jac, void *jac_data
@@ -324,7 +330,7 @@ int integrator_ida_djex(long int Neq, realtype tt
 	}
 
 	/* print step size */
-	CONSOLE_DEBUG("<c_j> = %g",c_j);
+	CONSOLE_DEBUG("step size <c_j> = %g",c_j);
 #endif
 
 	/* build up the dense jacobian matrix... */
@@ -369,18 +375,22 @@ int integrator_ida_djex(long int Neq, realtype tt
 			fprintf(stderr,"d(%s)/d(%s) = %g",relname,varname,derivatives[j]);
 			ASC_FREE(varname);
 #endif
-			if(!var_deriv(variables[j])){
+			if(!var_deriv(variables[j]) && !var_nonbasic(variables[j])){
 #ifdef DJEX_DEBUG
 				fprintf(stderr," --> J[%d,%d] += %g\n", i,j,derivatives[j]);
 				asc_assert(var_sindex(variables[j]) >= 0);
+
+				/* if the variable is 't' then it might have an index that's too high... */
 				ASC_ASSERT_LT(var_sindex(variables[j]) , Neq);
 #endif
 				DENSE_ELEM(Jac,i,var_sindex(variables[j])) += derivatives[j];
-			}else{
+			}else if(var_deriv(variables[j])){
 				DENSE_ELEM(Jac,i,integrator_ida_diffindex(integ,variables[j])) += derivatives[j] * c_j;
 #ifdef DJEX_DEBUG
 				fprintf(stderr," --> * c_j --> J[%d,%d] += %g\n", i,j,derivatives[j] * c_j);
 #endif
+			}else{
+				/* it's the independent variable... why are are looking at it? */
 			}
 		}
 	}

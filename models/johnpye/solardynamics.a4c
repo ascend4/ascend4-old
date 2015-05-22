@@ -1,0 +1,127 @@
+REQUIRE "ivpsystem.a4l";
+REQUIRE "atoms.a4l";
+REQUIRE "johnpye/thermo_types.a4c";
+REQUIRE "johnpye/datareader/testtmy3.a4c";
+REQUIRE "johnpye/moltensalt.a4c";
+
+(*
+	This is a proof-of-concept test of a model for solar power plant
+	dynamics in ASCEND. The system being modelled has a lossless solar thermal
+	collector, a perfectly mixed storage tank, and a turbine that produces 
+	electricity.
+
+	The boundaries defined are
+	(1) if solar GHI: > 300 W/m2, then the collector provides heat to the tank
+	                  < 200 W/m2, then the collector switches off.
+	(2) if the tank temperature: exceeds 550C, then turbine switches on
+	                             drops below 400C, then turbine switches off.
+
+	The data file mentioned below can be downloaded from 
+	http://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/723815TYA.CSV
+*)
+MODEL solardynamics;
+	t IS_A time;
+	INDEPENDENT t;
+
+	(* Weather data reader *)
+	dr IS_A tmy3;
+	dr.tmydata.filename :== 'johnpye/datareader/723815TYA.CSV';
+	dr.t, t ARE_THE_SAME;
+	T_amb ALIASES dr.T;
+	G ALIASES dr.GHI;
+
+	E "stored energy" IS_A energy;
+	Qdot_in,Wdot_out IS_A energy_rate;
+	C "concentration ratio" IS_A factor;
+	A IS_A area;
+
+	cp IS_A specific_heat_capacity;
+	T, T_0 IS_A temperature;
+	m IS_A mass;
+	en_eq: E = m * cp * (T - T_0);
+
+	eta IS_A factor;
+	eta = 1 - sqrt(T_amb / T);
+
+	DERIVATIVE OF E;
+	dyn_eq: der(E) = C*A*G - Wdot_out/eta;
+
+	c1: C = 1;
+	c0: C = 0;
+	p1: Wdot_out = 2 {kW};
+	p0: Wdot_out = 0 {W};
+	CONDITIONAL
+		c_c1: Qdot_in > 500 {W};
+		c_c0: Qdot_in < 300 {W};
+		c_p1: T > 200 {K};
+		c_p0: T < 150 {K};
+	END CONDITIONAL;
+	b_c1, b_c0, b_p1, b_p0 IS_A boolean_var;
+	b_c1 == SATISFIED(c_c1);b_c0 == SATISFIED(c_c0);
+	b_p1 == SATISFIED(c_p1);b_p0 == SATISFIED(c_p0);
+	e_c1:EVENT(b_c1) CASE TRUE: USE c1; OTHERWISE: USE tmy3; USE en_eq; USE dyn_eq; END EVENT;
+	e_c0:EVENT(b_c0) CASE TRUE: USE c0; OTHERWISE: USE tmy3; USE en_eq; USE dyn_eq; END EVENT;
+	e_p1:EVENT(b_p1) CASE TRUE: USE p1; OTHERWISE: USE tmy3; USE en_eq; USE dyn_eq; END EVENT;
+	e_p0:EVENT(b_p0) CASE TRUE: USE p0; OTHERWISE: USE tmy3; USE en_eq; USE dyn_eq; END EVENT;
+METHODS
+	METHOD obs_init;
+		G.obs_id := 1;
+		T_amb.obs_id := 2;
+		T.obs_id := 3;
+		Wdot_elec.obs_id := 4;
+	END obs_init;
+	METHOD specify;
+		FIX Qdot_elec_des := 1 {MW};
+		FIX Qdot_elec := Qdot_elec_des;
+		FIX C := 800;
+		FIX A := 2000 {m^2};
+		FIX TA.p := 1 {bar};
+		FIX m := 20 {t};
+		TA.mu.lower_bound := -1e10 {Pa*s};
+		dr.p.lower_bound := -1e10 {Pa};
+		t := 4 {h};
+		T := 250 {K} + 273.15 {K};
+		b_c1 := FALSE;
+		b_c0 := TRUE;
+		b_p1 := FALSE;
+		b_p0 := TRUE;
+	END specify;
+	METHOD nla_init;
+		FIX T;
+		FIX t := 20.5 {d};
+	END nla_init;
+	METHOD on_load;
+		RUN specify;
+		RUN obs_init;
+	END on_load;
+
+	(* these methods do the work of FIXing/FREEing variables before and after
+	the event calculation. TODO we would *really* like to find a way to avoid
+	having to explicitly write these methods! *)
+	METHOD e_c1;     RUN freeze_c;        END e_c1;
+	METHOD e_c1_end; RUN thaw_c;          END e_c1_end;
+	METHOD e_c0;     RUN freeze_c;        END e_c0;
+	METHOD e_c0_end; RUN thaw_c;          END e_c0_end;
+	METHOD e_p1;     RUN freeze_p;        END e_p1;
+	METHOD e_p1_end; RUN thaw_p;          END e_p1_end;
+	METHOD e_p0;     RUN freeze_p;        END e_p0;
+	METHOD e_p0_end; RUN thaw_p;          END e_p0_end;
+	METHOD freeze_c; 
+		FREE C;
+		FIX T, E, der(E), dr.p, dr.rh, G, dr.GHI, dr.v_wind, dr.d_wind, t;
+	END freeze_c;
+	METHOD thaw_c;
+		FIX C;
+		FREE T, E, der(E), dr.p, dr.rh, G, dr.GHI, dr.v_wind, dr.d_wind, t;
+	END thaw_c;
+	METHOD freeze_p; 
+		FREE Qdot_out;
+		FIX T, E, der(E), dr.p, dr.rh, G, dr.GHI, dr.v_wind, dr.d_wind, t;
+	END freeze_p;
+	METHOD thaw_p; 
+		FIX Qdot_out;
+		FREE T, E, der(E), dr.p, dr.rh, G, dr.GHI, dr.v_wind, dr.d_wind, t;
+	END thaw_p;
+END solardynamics;
+
+
