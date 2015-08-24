@@ -3,12 +3,13 @@
 #include "fprops.h"
 #include "helmholtz.h"
 #include "pengrob.h"
+#include "ttse.h"
 
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
 
-//#define FLUIDS_DEBUG
+#define FLUIDS_DEBUG //sid change
 #ifdef FLUIDS_DEBUG
 # include "color.h"
 # define MSG FPROPS_MSG
@@ -94,6 +95,9 @@ void fprops_fluid_destroy(PureFluid *P){
 		break;
 	case FPROPS_PENGROB:
 		pengrob_destroy(P);
+		break;
+	case FPROPS_TTSE:
+		ttse_destroy(P);
 		break;
 	case FPROPS_CUBIC:
 		assert(FPROPS_CUBIC != P->type);

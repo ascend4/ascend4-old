@@ -35,9 +35,10 @@
 #include "pengrob.h"
 #include "visc.h"
 #include "thcond.h"
+#include "ttse.h"
 //#include "mbwr.h"
 
-//#define FPR_DEBUG
+#define FPR_DEBUG //sid change
 #ifdef FPR_DEBUG
 # include "color.h"
 # define MSG FPROPS_MSG
@@ -89,6 +90,13 @@ int fprops_corr_avail(const EosData *E, const char *corrtype){
 		default:
 			return 0;
 		}
+	}else if(strcmp(corrtype,"ttse")==0){
+		switch(E->type){
+		case FPROPS_HELMHOLTZ:
+			return FPROPS_HELMHOLTZ;
+		default:
+			return 0;
+		}
 	}
 	return 0;
 }
@@ -102,6 +110,10 @@ PureFluid *fprops_prepare(const EosData *E,const char *corrtype){
 	switch(fprops_corr_avail(E,corrtype)){
 	case FPROPS_HELMHOLTZ:
 		P = helmholtz_prepare(E,NULL);
+        if(0==strcmp(corrtype,"ttse")){
+           ttse_prepare(P);
+           P->data->UseTable=1;
+        }
 		break;
 	case FPROPS_PENGROB:
 		P = pengrob_prepare(E,NULL);
@@ -190,7 +202,7 @@ FluidState fprops_set_Trho(double T, double rho, const PureFluid *fluid, FpropsE
 EVALFN(p); EVALFN(u); EVALFN(h); EVALFN(s); EVALFN(a); EVALFN(g);
 EVALFN_SATUNDEFINED(cp); EVALFN_SATUNDEFINED(cv);
 EVALFN_SATUNDEFINED(w);
-EVALFN(dpdrho_T);
+EVALFN(dpdrho_T); EVALFN(d2pdrho2_T);  EVALFN(dpdT_rho);  EVALFN(d2pdT2_rho); EVALFN(d2pdTdrho);
 
 EVALFN(alphap); EVALFN(betap);
 // EVALFN(dpdT_rho);
@@ -216,7 +228,7 @@ double fprops_mu(FluidState state, FpropsError *err){
 			return visc1_mu(state,err);
 		default:
 			break;
-		}	
+		}
 	}
 	*err = FPROPS_NOT_IMPLEMENTED;
 	return NAN;
@@ -230,7 +242,7 @@ double fprops_lam(FluidState state, FpropsError *err){
 			return thcond1_lam(state,err);
 		default:
 			break;
-		}	
+		}
 	}
 	*err = FPROPS_NOT_IMPLEMENTED;
 	return NAN;
@@ -254,7 +266,7 @@ double fprops_x(FluidState state, FpropsError *err){
 	*err = FPROPS_VALUE_UNDEFINED;
 	return 0;
 }
-
+/*
 double fprops_dpdT_rho(FluidState state, FpropsError *err){
 	*err = FPROPS_NOT_IMPLEMENTED;
 	return 0;
@@ -263,7 +275,7 @@ double fprops_dpdT_rho(FluidState state, FpropsError *err){
 double fprops_d2pdrho2_T(FluidState state, FpropsError *err){
 	*err = FPROPS_NOT_IMPLEMENTED;
 	return 0;
-}
+}*/
 
 double fprops_dhdT_rho(FluidState state, FpropsError *err){
 	*err = FPROPS_NOT_IMPLEMENTED;
@@ -314,6 +326,8 @@ char *fprops_corr_type(EosType type){
 		return "helmholtz";
 	case FPROPS_MBWR:
 		return "mbwr";
+	case FPROPS_TTSE:
+		return "ttse";
 	}
 	return NULL;
 }

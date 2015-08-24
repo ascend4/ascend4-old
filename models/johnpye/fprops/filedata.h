@@ -304,6 +304,9 @@ typedef struct HelmholtzData_struct{
 	const HelmholtzGausTerm *gt; /* critical terms of the first kind */
 	unsigned nc; /* number of critical terms of the second kind */
 	const HelmholtzCritTerm *ct; /* critical terms of the second kind */
+
+	double rhomax,rhomin,tmax,tmin;
+	double hmax,hmin,pmax,pmin;
 } HelmholtzData;
 
 /*___________________________CUBIC_________________________________*/
@@ -466,7 +469,8 @@ typedef enum EosType_enum{
 	,FPROPS_REDKW = 3
 	,FPROPS_SOAVE = 4
 	,FPROPS_HELMHOLTZ = 5
-	,FPROPS_MBWR = 6//etc.
+	,FPROPS_MBWR = 6
+	,FPROPS_TTSE = 8//etc.
 } EosType;
 
 /** Union of all possible EOS data structures */

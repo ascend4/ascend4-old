@@ -229,6 +229,9 @@ double fprops_rhog_T_chouaieb(double T, const FluidData *data){
 }
 
 void fprops_sat_T(double T, double *psat, double *rhof, double *rhog, const PureFluid *d, FpropsError *err){
+
+
+
 	*psat = d->sat_fn(T,rhof,rhog,d->data,err);
 }
 
@@ -289,7 +292,7 @@ static double sat_p_resid(double rT, void *user_data){
 
 
 /**
-	Solve saturation conditions as a function of pressure. 
+	Solve saturation conditions as a function of pressure.
 
 	Currently this is just a Brent solver. We've tried to improve it slightly
 	by solving for the residual of log(p)-log(p1) as a function of 1/T, which
@@ -299,7 +302,7 @@ static double sat_p_resid(double rT, void *user_data){
 	the Clapeyron equation?
 
 	dp/dT = h_fg/(T*v_fg)
-	
+
 	where
 
 	h_fg = h(T, rhog) - h(T, rhof)
@@ -307,7 +310,7 @@ static double sat_p_resid(double rT, void *user_data){
 	rhof, rhog are evaluated at T.
 
 	We guess T, calculate saturation conditions at T, then evaluate dp/dT,
-	use Newton solver to converge, while checking that we remain within 
+	use Newton solver to converge, while checking that we remain within
 	Tt < T < Tc. It may be faster to iterate using 1/T as the free variable,
 	and log(p) as the residual variable.
 

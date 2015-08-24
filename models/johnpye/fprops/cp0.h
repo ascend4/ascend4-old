@@ -54,5 +54,6 @@ double ideal_phi_tau(double tau, double delta, const Phi0RunData *data);
 */
 double ideal_phi_tautau(double tau, const Phi0RunData *data);
 
+double ideal_phi_tautautau(double tau, const Phi0RunData *data);
 #endif
 

@@ -24,6 +24,7 @@ Data declarations as provided in input files are given in filedata.h
 #ifndef FPROPS_RUNDATA_H
 #define FPROPS_RUNDATA_H
 
+#include <stdio.h>
 #include "common.h"
 
 /* TODO remove this dependency eventually (some helmholtz data objects are not yet being copied into new structures*/
@@ -84,7 +85,7 @@ typedef union CorrelationUnion_union{
 	/* maybe more later */
 } CorrelationUnion;
 
-/** All runtime 'core' data for all possible correlations, with exception of 
+/** All runtime 'core' data for all possible correlations, with exception of
 correlation-type-ID, function pointers and metadata (URLs, publications etc)
 
 TODO FluidData (or PureFluid?) could/should be extended to include the following
@@ -94,16 +95,43 @@ frequently-calculated items:
 	- accurate saturation curve data (interpolation/spline/something like that)
 	- solutions of iterative solver results, eg (p,h) pairs.
 
-This data would be held at this level unless it is correlation-specific in 
+This data would be held at this level unless it is correlation-specific in
 nature, in which case it would belong in lower-level rundata structures.
 
 For fluids without phase change (incompressible, ideal), we
 	- set T_c to zero,
 	- use a value of 1 K for Tstar
 	- provide a _sat SatEvalFn that always returns an error.
-...but maybe there's a better way. It's up to the particular PropEvalFn to 
-make use of Tstar or T_c as desired, but this data is stored here 
+...but maybe there's a better way. It's up to the particular PropEvalFn to
+make use of Tstar or T_c as desired, but this data is stored here
 */
+
+
+/*structure for tables*/
+#define NTP 200
+#define NRHOP 200
+#define NSAT 500
+typedef double (*TtseMatrix) [NRHOP];
+typedef double * TtseLine;
+
+typedef struct ttse_struct{
+
+    int doesdbexist;
+    int usettse;
+
+    double tmin,tmax,rhomin,rhomax;
+
+    TtseMatrix s, dsdt, d2sdt2, dsdrho, d2sdrho2, d2sdtdrho;
+    TtseMatrix p, dpdt, d2pdt2, dpdrho, d2pdrho2, d2pdtdrho;
+    TtseMatrix u, dudt, d2udt2, dudrho, d2udrho2, d2udtdrho;
+    TtseMatrix g, dgdt, d2gdt2, dgdrho, d2gdrho2, d2gdtdrho;
+    TtseMatrix h, dhdt, d2hdt2, dhdrho, d2hdrho2, d2hdtdrho;
+
+    TtseLine satFRho,satFdRhodt,satFd2RhodT2;
+    TtseLine satGRho,satGdRhodt,satGd2RhodT2;
+}Ttse;
+
+
 typedef struct FluidData_struct{
 	/* common data across all correlations */
 	double R;     /**< specific gas constant */
@@ -119,6 +147,12 @@ typedef struct FluidData_struct{
 	ReferenceState ref0;
 	/* correlation-specific stuff here */
 	CorrelationUnion corr;
+
+//Table related stuffs
+	int UseTable;
+    int IsTableBuilt;
+    char* path;
+	Ttse * table;
 } FluidData;
 
 
@@ -127,6 +161,9 @@ typedef double PropEvalFn(double T,double rho,const FluidData *data, FpropsError
 
 /** @return psat */
 typedef double SatEvalFn(double T,double *rhof, double *rhog, const FluidData *data, FpropsError *err);
+
+
+
 
 /**
 	Structure containing all the necessary data and metadata for run-time
@@ -149,11 +186,16 @@ typedef struct PureFluid_struct{
 	PropEvalFn *g_fn;
 	PropEvalFn *alphap_fn;
 	PropEvalFn *betap_fn;
-	PropEvalFn *dpdrho_T_fn; // this derivative is required for saturation properties by Akasaka method
+	PropEvalFn *dpdrho_T_fn, *d2pdrho2_T_fn, *dpdT_rho_fn, *d2pdT2_rho_fn, *d2pdTdrho_fn;// dpdrho_T_fn this derivative is required for saturation properties by Akasaka method
+	PropEvalFn *dhdrho_T_fn, *d2hdrho2_T_fn, *dhdT_rho_fn, *d2hdT2_rho_fn, *d2hdTdrho_fn;
+	PropEvalFn *dsdrho_T_fn, *d2sdrho2_T_fn, *dsdT_rho_fn, *d2sdT2_rho_fn, *d2sdTdrho_fn;
+	PropEvalFn *dudrho_T_fn, *d2udrho2_T_fn, *dudT_rho_fn, *d2udT2_rho_fn, *d2udTdrho_fn;
+	PropEvalFn *dgdrho_T_fn, *d2gdrho2_T_fn, *dgdT_rho_fn, *d2gdT2_rho_fn, *d2gdTdrho_fn;
 	SatEvalFn *sat_fn; // function to return {psat,rhof,rhog}(T) for this pure fluid
 
 	const ViscosityData *visc; // TODO should it be here? or inside FluidData?? probably yes, but needs review.
 	const ThermalConductivityData *thcond; // TODO should it be here? probably yes, but needs review.
+
 } PureFluid;
 
 #endif

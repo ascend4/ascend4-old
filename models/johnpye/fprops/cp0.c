@@ -350,3 +350,17 @@ double ideal_phi_tautau(double tau, const Phi0RunData *data){
 #endif
 	return -sum/SQ(tau);
 }
+
+/**
+	Third partial derivative of ideal component (phi0) of normalised helmholtz
+	residual function (phi), with respect to tau.
+	It's not a function of delta.
+
+*/
+
+
+double ideal_phi_tautautau(double tau, const Phi0RunData *data){
+	double dtau = 0.0000000001;
+	return (ideal_phi_tautau(tau+dtau,data) - ideal_phi_tautau(tau,data))/dtau;
+}
+
