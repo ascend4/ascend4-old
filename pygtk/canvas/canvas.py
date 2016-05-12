@@ -2,8 +2,12 @@
 ''' This is the main application for the Canvas modeller, it handles the ASCEND solver and the GUI'''
 
 from __future__ import with_statement
-import os, sys
-import gtk
+import os
+import sys
+import platform
+
+from gi.repository import Gtk
+
 
 os.chdir(os.path.abspath(os.path.dirname(sys.argv[0])))
 
@@ -24,29 +28,19 @@ os.environ['ASCENDSOLVERS'] = os.path.join('..','..','solvers','qrslv')
 sys.path.append("..")
 sys.path.append("../../ascxx")
 
-if sys.platform.startswith("win"):
-    # Fetchs gtk2 path from registry
-	import _winreg
-	import msvcrt
-	try:
-		k = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, "Software\\GTK\\2.0")
-	except EnvironmentError:
-		# use TkInter to report the error :-)
-		from TkInter import *
-		root = Tk()
-		w = Label(root,"You must install the Gtk+ 2.2 Runtime Environment to run this program")
-		w.pack()
-		root.mainloop()
-		sys.exit(1)
-	else:
-		gtkdir = _winreg.QueryValueEx(k, "Path")
-        import os
-        # we must make sure the gtk2 path is the first thing in the path
-        # otherwise, we can get errors if the system finds other libs with
-        # the same name in the path...
-        os.environ['PATH'] = "%s/lib;%s/bin;" % (gtkdir[0], gtkdir[0]) + os.environ['PATH']
+if platform.system() == "Windows":
+	import _winreg as wreg
+
+	k = wreg.OpenKey(wreg.HKEY_LOCAL_MACHINE, "SOFTWARE\ASCEND")
+	INSTALL_LIB,t = wreg.QueryValueEx(k,"INSTALL_LIB")
+	INSTALL_SOLVERS,t = wreg.QueryValueEx(k,"INSTALL_SOLVERS")
+	INSTALL_MODELS,t = wreg.QueryValueEx(k,"INSTALL_MODELS")
+	os.environ['PATH'] = os.environ['PATH'] + INSTALL_LIB
+	os.environ['ASCENDLIBRARY'] = INSTALL_MODELS
+	os.environ['ASCENDSOLVERS'] = INSTALL_SOLVERS
+	DEFAULT_CANVAS_MODEL_LIBRARY = os.path.join(INSTALL_MODELS,'test','canvas')
 	
-class Application(object):
+class Application():
 	
 	def __init__(self,options):
 		from asclibrary import ascPy
@@ -63,7 +57,7 @@ class Application(object):
 			self.window.load_canvas_file(options.file)
 			
 	def run(self):
-		gtk.main()
+		Gtk.main()
 
 if __name__ == '__main__':
 	from optparse import OptionParser

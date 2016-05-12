@@ -1,6 +1,6 @@
 import ascpy
 import time
-import gtk
+from gi.repository import Gtk
 from diagnose import *
 
 class PythonSolverReporter(ascpy.SolverReporter):
@@ -47,7 +47,6 @@ class PopupSolverReporter(PythonSolverReporter):
 	def __init__(self,browser,sim):
 		PythonSolverReporter.__init__(self,browser)
 
-
 		self.browser.builder.add_objects_from_file(self.browser.glade_file, ["solverstatusdialog"])
 		self.window = self.browser.builder.get_object("solverstatusdialog")
 		self.browser.builder.connect_signals(self)
@@ -85,14 +84,11 @@ class PopupSolverReporter(PythonSolverReporter):
 
 		self.nv = self.sim.getNumVars()
 
-		while gtk.events_pending():
-			gtk.main_iteration()
-
 	def on_diagnose_button_click(self,*args):
 		try:
 			_bl = self.sim.getActiveBlock()
 			_db = DiagnoseWindow(self.browser,_bl)
-			_db.run();
+			_db.run()
 		except RuntimeError, e:
 			self.reporter.reportError(str(e))
 			return
@@ -129,19 +125,14 @@ class PopupSolverReporter(PythonSolverReporter):
 			self.lasttime = _time;
 			self.elapsed = _time - self.starttime
 			self.blocktime = _time - self.blockstart
-			#print "UPDATING!"
 			self.fill_values(status)
-
-		while gtk.events_pending():
-			gtk.main_iteration()		
 
 		self.guitime = self.guitime + (time.clock() - _time)
 
-		if status.isConverged() or status.isDiverged() or status.isInterrupted():
-			return 1
 		if self.guiinterrupt:
-			return 2
-		return 0
+			return True
+
+		return False
 
 	def finalise(self,status):
 		try:
@@ -153,14 +144,14 @@ class PopupSolverReporter(PythonSolverReporter):
 			if status.isConverged() and _close_on_converged:
 				self.report_to_browser(status)
 				print "CLOSING ON CONVERGED"
-				self.window.response(gtk.RESPONSE_CLOSE)
+				self.window.response(Gtk.ResponseType.CLOSE)
 				return
 			
 			if not status.isConverged() and _close_on_nonconverged:
 				print "CLOSING, NOT CONVERGED"
 				self.report_to_browser(status)
 				if self.window:
-					self.window.response(gtk.RESPONSE_CLOSE)
+					self.window.response(Gtk.ResponseType.CLOSE)
 				return
 
 			self.fill_values(status)
@@ -202,9 +193,7 @@ class SimpleSolverReporter(PythonSolverReporter):
 			_msg = "Solved %d vars in %d iterations" % (status.getNumConverged(),status.getIterationNum())
 			self.browser.statusbar.push(self.statusbarcontext, _msg )
 
-		while gtk.events_pending():
-			gtk.main_iteration()
-		return 0
+		return False
 
 	def finalise(self,status):
 		self.report_to_browser(status)

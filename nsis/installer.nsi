@@ -60,21 +60,23 @@ Var DEFAULTPATH
 Var HAVE_PYTHON
 Var PYPATH
 Var HAVE_GTK
-Var GTKPATH
-Var HAVE_PYGTK
-Var HAVE_PYGOBJECT
-Var HAVE_PYCAIRO
+Var HAVE_GTKSOURCEVIEW
+Var HAVE_GAPHAS
+Var HAVE_SIMPLEGENERIC
+Var HAVE_DECORATOR
 Var PYINSTALLED
 
 Var PDFINSTALLED
 
 Var PATH
+Var GTK_GUI
 
 Var NEED_PYTHON
 Var NEED_GTK
-Var NEED_PYGTK
-Var NEED_PYCAIRO
-Var NEED_PYGOBJECT
+Var NEED_GTKSOURCEVIEW
+Var NEED_GAPHAS
+Var NEED_SIMPLEGENERIC
+Var NEED_DECORATOR
 
 Var ASCENDINIFOUND
 Var ASCENDENVVARFOUND
@@ -94,44 +96,38 @@ Var PYTHONTARGETDIR
 !define PYTHON_CMD "msiexec /i $DAI_TMPFILE /passive ALLUSERS=1 TARGETDIR=$PYTHONTARGETDIR"
 
 !define THIRDPARTY_DIR "http://downloads.sourceforge.net/project/ascend-sim/thirdparty/"
-!define GTK_VER "2.22"
+!define TMP_DROPBOX_DIR "https://dl.dropboxusercontent.com/u/79623370/ascend/"
 
 !ifdef INST64
 !define WINXX "win64"
 !define AMDXX ".win-amd64"
 !define NNBIT "64-bit"
 !define X64I386 "x64"
-!define GTK_PATCH ".1-20101229"
 !else
 !define WINXX "win32"
 !define AMDXX ".win32"
 !define X64I386 "i386"
 !define NNBIT "32-bit"
-!define GTK_PATCH ".1-20101227"
 !endif
 
-; Host our own GTK bundles, repackaged as installers.
-; User should still be able to use the ftp.gnome.org zip files, we just can't easily install them from here.
-; Also, but having GTK installer, we can store the installation location in the registry (and have both 64 and 32 bit versions)
-!define GTK_FN "gtk+-${GTK_VER}${GTK_PATCH}-${X64I386}-a4.exe"
-!define GTK_URL "${THIRDPARTY_DIR}${GTK_FN}"
-!define GTK_MFT "gtk+-bundle_${GTK_VER}${GTK_PATCH}_${WINXX}.mft"
-!define GTK_CMD "$DAI_TMPFILE /S"
+!define PYGI_VER "3.14.0"
+!define PYGI_REV "rev18"
+!define PYGI_FN "pygi-aio-${PYGI_VER}_${PYGI_REV}-min-setup.exe"
+!define PYGI_URL "${TMP_DROPBOX_DIR}${PYGI_FN}"
+!define PYGI_CMD "$DAI_TMPFILE"
 
-; We will host the PyGTK, PyGObject and PyCairo dependencies on SF.net ourselves... for the moment.
-; Note that PyGTK version should match GTK+ version.
-!define PYGTK_PATCH ".0"
-!define PYCAIRO_VER "1.10.0"
-!define PYGOBJECT_VER "2.28.6"
-!define PYGTK_FN "pygtk-${GTK_VER}${PYGTK_PATCH}${AMDXX}-py${PYVERSION}.exe"
-!define PYCAIRO_FN "py2cairo-${PYCAIRO_VER}${AMDXX}-py${PYVERSION}.exe"
-!define PYGOBJECT_FN "pygobject-${PYGOBJECT_VER}${AMDXX}-py${PYVERSION}.exe"
-!define PYGTK_URL "${THIRDPARTY_DIR}${PYGTK_FN}"
-!define PYCAIRO_URL "${THIRDPARTY_DIR}${PYCAIRO_FN}"
-!define PYGOBJECT_URL "${THIRDPARTY_DIR}${PYGOBJECT_FN}"
-!define PYGTK_CMD "$DAI_TMPFILE"
-!define PYCAIRO_CMD "$DAI_TMPFILE"
-!define PYGOBJECT_CMD "$DAI_TMPFILE"
+!define SG_VER "0.8.1"
+!define GAP_VER "0.8.0"
+!define DEC_VER "3.4.2"
+!define SG_FN "simplegeneric-${SG_VER}${AMDXX}-py${PYVERSION}.exe"
+!define DEC_FN "decorator-${DEC_VER}${AMDXX}-py${PYVERSION}.exe"
+!define GAP_FN "gaphas-${GAP_VER}${AMDXX}-py${PYVERSION}.exe"
+!define SG_URL "${TMP_DROPBOX_DIR}${SG_FN}"
+!define DEC_URL "${TMP_DROPBOX_DIR}${DEC_FN}"
+!define GAP_URL "${TMP_DROPBOX_DIR}${GAP_FN}"
+!define SG_CMD "$DAI_TMPFILE"
+!define DEC_CMD "$DAI_TMPFILE"
+!define GAP_CMD "$DAI_TMPFILE"
 
 !include "download.nsi"
 
@@ -146,50 +142,54 @@ Section "-python"
         ${EndIf}
 SectionEnd
 
-Section "-gtk"
-	DetailPrint "--- DOWNLOAD GTK ---"
-	${If} $NEED_GTK == '1'
-		!insertmacro downloadAndInstall "GTK" "${GTK_URL}" "${GTK_FN}" "${GTK_CMD}"
+Section "-pygi"
+	DetailPrint "--- DOWNLOAD PYGI ---"
+        ${If} $NEED_GTK == '1'
+		${OrIf} $NEED_GTKSOURCEVIEW == '1'
+		!insertmacro downloadAndInstall "PyGI" "${PYGI_URL}" "${PYGI_FN}" "${PYGI_CMD}"
 		Call DetectGTK
+		Call DetectGTKSourceView
 		${If} $HAVE_GTK == 'NOK'
 			MessageBox MB_OK "GTK installation appears to have failed. You may need to retry manually."
 		${EndIf}
-        ${EndIf}
-SectionEnd
-
-Section "-pygtk"
-	DetailPrint "--- DOWNLOAD PYGTK ---"
-	${If} $NEED_PYGTK == '1'
-		!insertmacro downloadAndInstall "PyGTK" "${PYGTK_URL}" "${PYGTK_FN}" "${PYGTK_CMD}"
-		Call DetectPyGTK
-		${If} $HAVE_PYGTK == 'NOK'
-			MessageBox MB_OK "PyGTK installation appears to have failed. You may need to retry manually"
+		${If} $HAVE_GTKSOURCEVIEW == 'NOK'
+			MessageBox MB_OK "GTKSourceView installation appears to have failed. You may need to retry manually."
 		${EndIf}
         ${EndIf}
 SectionEnd
 
-Section "-pycairo"
-	DetailPrint "--- DOWNLOAD PYCAIRO ---"
-	${If} $NEED_PYCAIRO == '1'
-		!insertmacro downloadAndInstall "PyCAIRO" "${PYCAIRO_URL}" "${PYCAIRO_FN}" "${PYCAIRO_CMD}"
-		Call DetectPyCairo
-		${If} $HAVE_PYCAIRO == 'NOK'
-			MessageBox MB_OK "PyCairo installation appears to have failed. You may need to retry manually."
+Section "-simplegeneric"
+	DetailPrint "--- DOWNLOAD SIMPLEGENERIC ---"
+        ${If} $NEED_SIMPLEGENERIC == '1'
+		!insertmacro downloadAndInstall "SimpleGeneric" "${SG_URL}" "${SG_FN}" "${SG_CMD}"
+		Call DetectSimpleGeneric
+		${If} $HAVE_SIMPLEGENERIC == 'NOK'
+			MessageBox MB_OK "SimpleGeneric installation appears to have failed. You may need to retry manually."
 		${EndIf}
         ${EndIf}
 SectionEnd
 
-Section "-pygobject"
-	DetailPrint "--- DOWNLOAD PYGOBJECT ---"
-	${If} $NEED_PYGOBJECT == '1'
-		!insertmacro downloadAndInstall "PyGObject" "${PYGOBJECT_URL}" "${PYGOBJECT_FN}" "${PYGOBJECT_CMD}"
-		Call DetectPyGObject
-		${If} $HAVE_PYGOBJECT == 'NOK'
-			MessageBox MB_OK "PyGObject installation appears to have failed. You may need to retry manually."
+Section "-decorator"
+	DetailPrint "--- DOWNLOAD DECORATOR ---"
+        ${If} $NEED_DECORATOR == '1'
+		!insertmacro downloadAndInstall "Decorator" "${DEC_URL}" "${DEC_FN}" "${DEC_CMD}"
+		Call DetectDecorator
+		${If} $HAVE_DECORATOR == 'NOK'
+			MessageBox MB_OK "Decorator installation appears to have failed. You may need to retry manually."
 		${EndIf}
         ${EndIf}
 SectionEnd
 
+Section "-gaphas"
+	DetailPrint "--- DOWNLOAD GAPHAS ---"
+        ${If} $NEED_GAPHAS == '1'
+		!insertmacro downloadAndInstall "Gaphas" "${GAP_URL}" "${GAP_FN}" "${GAP_CMD}"
+		Call DetectGaphas
+		${If} $HAVE_GAPHAS == 'NOK'
+			MessageBox MB_OK "Gaphas installation appears to have failed. You may need to retry manually."
+		${EndIf}
+        ${EndIf}
+SectionEnd
 ;------------------------------------------------------------------------
 ; INSTALL CORE STUFF including model library
 
@@ -247,7 +247,7 @@ Section "ASCEND (required)"
 	${IfNot} $ASCENDLIBRARY == "%ASCENDLIBRARY%"
 		StrCpy $ASCENDENVVARFOUND "1"
 	${EndIf}
-
+	
 	; Write the installation path into the registry
 	WriteRegStr HKLM SOFTWARE\ASCEND "Install_Dir" "$INSTDIR"
 
@@ -265,7 +265,6 @@ Section "ASCEND (required)"
 	WriteRegStr HKLM SOFTWARE\ASCEND "INSTALL_ASCDATA" "$INSTDIR"
 	WriteRegStr HKLM SOFTWARE\ASCEND "INSTALL_MODELS" "$INSTDIR\models"
 	WriteRegStr HKLM SOFTWARE\ASCEND "INSTALL_SOLVERS" "$INSTDIR\solvers"
-	WriteRegStr HKLM SOFTWARE\ASCEND "GTKLIBS" "$GTKPATH"
 	
 	; Write default values of ASCENDLIBRARY and ASCENDSOLVERS (user can override with env vars)
 	WriteRegStr HKLM SOFTWARE\ASCEND "ASCENDLIBRARY" "$INSTDIR\models"
@@ -275,22 +274,18 @@ Section "ASCEND (required)"
 SectionEnd
 
 ;--------------------------------
-
-Section "PyGTK GUI" sect_pygtk
+Section "GTK GUI" sect_pygtk
 !ifdef INST64
 	SetRegView 64
 !endif
-	; Check the dependencies of the PyGTK GUI before proceding...
+	StrCpy $GTK_GUI "YES"
+	; Check the dependencies of the GTK GUI before proceding...
 	${If} $HAVE_PYTHON == 'NOK'
-		MessageBox MB_OK "PyGTK GUI can not be installed, because Python was not found on this system.$\nIf you do want to use the PyGTK GUI, please check the installation instructions$\n$\n(PYPATH=$PYPATH)"
+		MessageBox MB_OK "GTK GUI can not be installed, because Python was not found on this system.$\nIf you do want to use the GTK GUI, please check the installation instructions$\n$\n(PYPATH=$PYPATH)"
 	${ElseIf} $HAVE_GTK == 'NOK'
-		MessageBox MB_OK "PyGTK GUI cannot be installed, because GTK+ 2.x was not found on this system.$\nIf you do want to use the PyGTK GUI, please check the installation instructions$\n$\n(GTKPATH=$GTKPATH)"
-	${ElseIf} $HAVE_PYGTK == "NOK"
-		MessageBox MB_OK "PyGTK GUI cannot be installed, because PyGTK was not found on this system.$\nPlease check the installation instructions.$\n$\n(PYPATH=$PYPATH)"
-	${ElseIf} $HAVE_PYCAIRO == "NOK"
-		MessageBox MB_OK "PyGTK GUI cannot be installed, because PyCairo was not found on this system.$\nPlease check the installation instructions.$\n$\n(PYPATH=$PYPATH)"
-	${ElseIf} $HAVE_PYGOBJECT == "NOK"
-		MessageBox MB_OK "PyGTK GUI cannot be installed, because PyGObject was not found on this system.$\nPlease check the installation instructions.$\n$\n(PYPATH=$PYPATH)"
+		MessageBox MB_OK "GTK GUI cannot be installed, because GTK+ 3.x was not found on this system.$\nIf you do want to use the GTK GUI, please install GTK3 from PyGObject for Windows$\n"
+	${ElseIf} $HAVE_GTKSOURCEVIEW == 'NOK'
+		MessageBox MB_OK "GTK GUI cannot be installed, because GTKSourceView was not found on this system.$\nIf you do want to use the GTK GUI, please install GTKSourceView from PyGObject for Windows$\n"
 	${Else}
 		;MessageBox MB_OK "Python: $PYPATH, GTK: $GTKPATH"
 
@@ -304,7 +299,7 @@ Section "PyGTK GUI" sect_pygtk
 		; Python interface
 		SetOutPath $INSTDIR\python
 		File "..\ascxx\_ascpy.pyd"
-		File "..\ascxx\ascpy.py"
+		File "..\ascxx\*.py"
 		File "..\pygtk\*.py"
 		
 		; FPROPS: python bindings
@@ -384,6 +379,39 @@ a4cskip:
 
 		System::Call 'Shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
 
+	${EndIf}
+	Return
+
+SectionEnd
+
+Section "Canvas GUI" sect_canvas
+!ifdef INST64
+	SetRegView 64
+!endif
+	; Check the dependencies of the Canvas GUI before proceding...
+	${If} $GTK_GUI == 'NO'
+		MessageBox MB_OK "Canvas cannot be installed, because GTK GUI was not installed on this system.$\nIf you do want to use the Canvas, please firstly install GTK GUI$\n"
+	${ElseIf} $HAVE_PYTHON == 'NOK'
+		MessageBox MB_OK "Canvas cannot be installed, because Python was not found on this system.$\nIf you do want to use the Canvas, please check the installation instructions$\n$\n(PYPATH=$PYPATH)"
+	${ElseIf} $HAVE_GTK == 'NOK'
+		MessageBox MB_OK "Canvas cannot be installed, because GTK+ 3.x was not found on this system.$\nIf you do want to use the Canvas, please install GTK3 from PyGObject for Windows$\n"
+	${ElseIf} $HAVE_GTKSOURCEVIEW == 'NOK'
+		MessageBox MB_OK "Canvas cannot be installed, because GTKSourceView was not found on this system.$\nIf you do want to use the Canvas, please install GTKSourceView from PyGObject for Windows$\n"
+	${ElseIf} $HAVE_SIMPLEGENERIC == 'NOK'
+		MessageBox MB_OK "Canvas cannot be installed, because SimpleGeneric was not found on this system.$\nIf you do want to use the Canvas, please install SimpleGeneric python package$\n"
+	${ElseIf} $HAVE_DECORATOR == 'NOK'
+		MessageBox MB_OK "Canvas cannot be installed, because Decorator was not found on this system.$\nIf you do want to use the Canvas, please install Decorator python package$\n"
+	${ElseIf} $HAVE_GAPHAS == 'NOK'
+		MessageBox MB_OK "Canvas cannot be installed, because Gaphas was not found on this system.$\nIf you do want to use the Canvas, please install Gaphas python package$\n"
+	${Else}
+		;MessageBox MB_OK "Python: $PYPATH, GTK: $GTKPATH"
+
+		DetailPrint "--- Canvas ---"
+		; Python interface
+		SetOutPath $INSTDIR\python
+		File "..\pygtk\canvas\*.py"
+
+		WriteRegDWORD HKLM "SOFTWARE\ASCEND" "Canvas" 1	
 	${EndIf}
 	Return
 
@@ -642,7 +670,7 @@ Function .onInit
 	${EndIf}
 	; FIXME we should check whether that directory already exists before going ahead...
 !endif
-
+	StrCpy $GTK_GUI "NO"
 	StrCpy $PYINSTALLED ""
 	StrCpy $ASCENDINIFOUND ""
 	StrCpy $PDFINSTALLED ""
@@ -652,12 +680,13 @@ Function .onInit
 
 	Call DetectPython
 	Call DetectGTK
-	Call DetectPyGTK
-	Call DetectPyGObject
-	Call DetectPyCairo
+	Call DetectGTKSourceView
+	Call DetectDecorator
+	Call DetectSimpleGeneric
+	Call DetectGaphas
 	
 	;MessageBox MB_OK "GTK path is $GTKPATH"
-	StrCpy $PATH "$GTKPATH;$DEFAULTPATH;$PYPATH"
+	StrCpy $PATH "$DEFAULTPATH;$PYPATH"
 
 	ReadRegStr $0 HKLM "SOFTWARE\ASCEND" "Install_Dir"
 	${If} $0 != ""	
@@ -673,6 +702,18 @@ Function .onInit
 			SectionGetFlags "${sect_pygtk}" $1
 			IntOp $1 $1 ^ ${SF_RO}
 			SectionSetFlags "${sect_pygtk}" $1		
+		${EndIf}
+		
+		ReadRegDWORD $0 HKLM "SOFTWARE\ASCEND" "Canvas"
+		${If} $0 = 0
+			;MessageBox MB_OK "Python was previously deselected"
+			SectionGetFlags "${sect_canvas}" $1
+			IntOp $1 $1 ^ ${SF_SELECTED}
+			SectionSetFlags "${sect_canvas}" $1
+		${Else}
+			SectionGetFlags "${sect_canvas}" $1
+			IntOp $1 $1 ^ ${SF_RO}
+			SectionSetFlags "${sect_canvas}" $1		
 		${EndIf}
 
 		ReadRegDWORD $0 HKLM "SOFTWARE\ASCEND" "PDF"

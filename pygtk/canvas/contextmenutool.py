@@ -1,17 +1,12 @@
-import gaphas
 from gaphas.tool import Tool
-import pygtk
-import math
+import gi
 
-pygtk.require('2.0')
-import gtk
-import blockinstance
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, Gdk
 import blockproperties
 import canvasproperties
 import undo
-from blockitem import CustomBlockItem_turbine
 
-import ascpy
 
 class ContextMenuTool(Tool):
 	"""
@@ -26,80 +21,82 @@ class ContextMenuTool(Tool):
 
 	def on_button_press(self, event):
 		context = self.view.tool
-		if event.button != 3:
+		if event.button.button != 3:
 			context.ungrab(self.view.tool)
 			return False
 
-		menu = gtk.Menu()
-		menu.connect("deactivate",self.deactivate,context)
+		self.menu = Gtk.Menu()
+		self.menu.connect("deactivate",self.deactivate,context)
 		'''
-		menublockstreams = gtk.MenuItem("_Streams")
+		menublockstreams = Gtk.MenuItem("_Streams")
 		menublockstreams.connect("activate",self.setstream, window, context, context.view.hovered_item)
 		menu.add(menublockstreams)
 		'''
-		menurename = gtk.MenuItem("Re_name",True)
-		window = context.view.parent.parent.parent.parent.parent
+		window = context.view.get_parent().get_parent().get_parent().get_parent().get_parent()
+		menurename = Gtk.MenuItem("Re_name")
+		menurename.set_use_underline(True)
 		menurename.connect("activate",self.rename,context.view.hovered_item,window)
-		menu.add(menurename)
-		menudefault.set_sensitive(False)
+		self.menu.add(menurename)
 		'''menublockstreams.set_sensitive(False)'''
 
-		menudelete = gtk.MenuItem("_Delete",True)
+		menudelete = Gtk.MenuItem("_Delete")
 		menudelete.connect("activate",self.delete,context.view.hovered_item,context.view)
-		menu.add(menudelete)
+		menudelete.set_use_underline(True)
+		self.menu.add(menudelete)
 
-		menu.add(gtk.SeparatorMenuItem())
+		self.menu.add(Gtk.SeparatorMenuItem())
 
-		menurotate_clock = gtk.MenuItem("_Rotate_clockwise",True)
-		window = context.view.parent.parent.parent.parent.parent
+		menurotate_clock = Gtk.MenuItem("Rotate clockwise")
 		menurotate_clock.connect("activate",self.blockrotate_clock,context.view.hovered_item,window)
-		menu.add(menurotate_clock)
+		self.menu.add(menurotate_clock)
 
-		menurotate_anti = gtk.MenuItem("_Rotate_anti_clockwise",True)
-		window = context.view.parent.parent.parent.parent.parent
+		menurotate_anti = Gtk.MenuItem("Rotate counterclockwise")
 		menurotate_anti.connect("activate",self.blockrotate_anti,context.view.hovered_item,window)
-		menu.add(menurotate_anti)
+		self.menu.add(menurotate_anti)
 
-		menuflip = gtk.MenuItem("Flip",True)
-		window = context.view.parent.parent.parent.parent.parent
+		menuflip = Gtk.MenuItem("Flip")
 		menuflip.connect("activate",self.blockflip,context.view.hovered_item,window)
-		menu.add(menuflip)
+		self.menu.add(menuflip)
 
-		menu.add(gtk.SeparatorMenuItem())
+		self.menu.add(Gtk.SeparatorMenuItem())
 
-		menublockproperties = gtk.MenuItem("_Properties")
+		menublockproperties = Gtk.MenuItem("_Properties")
+		menublockproperties.set_use_underline(True)
 		menublockproperties.connect("activate",self.blockproperties, window, context, context.view.hovered_item, 0)
-		menu.add(menublockproperties)
+		self.menu.add(menublockproperties)
 
-		menublockparams = gtk.MenuItem("_Parameters")
+		menublockparams = Gtk.MenuItem("Parameters")
 		menublockparams.connect("activate",self.blockproperties, window, context, context.view.hovered_item, 1)
-		menu.add(menublockparams)
+		self.menu.add(menublockparams)
 
-		menudefault = gtk.MenuItem("_Set Default Values")
+		menudefault = Gtk.MenuItem("_Set Default Values")
+		menudefault.set_use_underline(True)
 		menudefault.connect("activate",self.defaultvalues,window ,context,context.view.hovered_item)
-		menu.add(menudefault)
+		self.menu.add(menudefault)
 
-		#menublockmethod = gtk.MenuItem("_Custom Method(s)")
+		#menublockmethod = Gtk.MenuItem("_Custom Method(s)")
 		#menublockmethod.connect("activate",self.blockproperties, window, context, context.view.hovered_item, 2)
 		#menu.add(menublockmethod)
 
-		menublockinstance = gtk.MenuItem("_Instance")
-		menublockinstance.connect("activate",self.blockproperties, window, context, context.view.hovered_item, 3)
-		menu.add(menublockinstance)
+		menublockinstance = Gtk.MenuItem("_Instance")
+		menublockinstance.set_use_underline(True)
+		menublockinstance.connect("activate",self.blockproperties, window, context, context.view.hovered_item, 2)
+		self.menu.add(menublockinstance)
 		'''
-		menublockstreams = gtk.MenuItem("_Streams")
+		menublockstreams = Gtk.MenuItem("_Streams")
 		menublockstreams.connect("activate",self.setstream, window, context, context.view.hovered_item)
 		menu.add(menublockstreams)
 			'''
-		#menuinfo = gtk.MenuItem("_Info",True)
+		#menuinfo = Gtk.MenuItem("_Info",True)
 		#menuinfo.connect("activate",self.info,window,context,context.view.hovered_item)
 		#menu.add(menuinfo)
 
-		menu.add(gtk.SeparatorMenuItem())
+		self.menu.add(Gtk.SeparatorMenuItem())
 
-		menucanvas = gtk.MenuItem("_Canvas Properties",True)
+		menucanvas = Gtk.MenuItem("_Canvas Properties")
+		menucanvas.set_use_underline(True)
 		menucanvas.connect("activate",self.canvasproperties,window ,context)
-		menu.add(menucanvas)
+		self.menu.add(menucanvas)
 
 		if not context.view.hovered_item:
 			menurename.set_sensitive(False)
@@ -124,8 +121,8 @@ class ContextMenuTool(Tool):
 			if not context.view.hovered_item.blockinstance.instance:
 				menublockinstance.set_sensitive(False)
 
-		menu.show_all()
-		menu.popup( None, None, None, event.button, event.time)
+		self.menu.show_all()
+		self.menu.popup(None, None, None, None, event.button.button, event.time)
 		#self.view.tool.ungrab(self.view.tool)
 		return False
 
@@ -136,11 +133,11 @@ class ContextMenuTool(Tool):
 
 	def on_double_click(self,event):
 		context = self.view.tool
-		if event.button != 1 or not context.view.hovered_item:
+		if event.button.button != 1 or not context.view.hovered_item:
 			context.ungrab(self.view.tool)
 			return False
 
-		window = context.view.parent.parent.parent.parent.parent
+		window = context.view.get_parent().get_parent().get_parent().get_parent().get_parent()
 		self.blockproperties(None , window, context, context.view.hovered_item)
 
 	def deactivate(self,widget,context):
@@ -150,21 +147,21 @@ class ContextMenuTool(Tool):
 	def rename(self,widget,item,window):
 		if hasattr(item,'blockinstance'):
 			bi = item.blockinstance
-			dia = gtk.Dialog("Rename %s '%s'" % (bi.blocktype.type.getName(),bi.name), window,gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,(gtk.STOCK_CANCEL, 0, gtk.STOCK_OK, gtk.RESPONSE_OK))
-			dia.set_default_response(gtk.RESPONSE_OK)
-			ent = gtk.Entry()
+			dia = Gtk.Dialog("Rename %s '%s'" % (bi.blocktype.type.getName(),bi.name), window,Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,(Gtk.STOCK_CANCEL, 0, Gtk.STOCK_OK, Gtk.ResponseType.OK))
+			dia.set_default_response(Gtk.ResponseType.OK)
+			ent = Gtk.Entry()
 			ent.set_text(bi.name)
 			def key_press(ent,event):
-				key = gtk.gdk.keyval_name(event.keyval)
+				key = Gdk.keyval_name(event.keyval)
 				if key == 'Return':
-					dia.response(gtk.RESPONSE_OK)
+					dia.response(Gtk.ResponseType.OK)
 					return True
 				return False
 			ent.connect("key-press-event",key_press)
 			dia.vbox.add(ent)
 			dia.show_all()
 			res = dia.run()
-			if res == gtk.RESPONSE_OK:
+			if res == Gtk.ResponseType.OK:
 				bi.name = ent.get_text()
 			dia.destroy()
 
