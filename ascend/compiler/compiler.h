@@ -45,7 +45,7 @@
 	ASC_NO_TRAPS -- compiler -D flag. Turn off traps/setjmp/longjump.
 */
 
-#define TIMECOMPILER 0
+/* #define TIMECOMPILER 1 */
 
 #ifndef TIMECOMPILER
 # define TIMECOMPILER 0
@@ -165,6 +165,7 @@ ASC_DLLSPEC int g_use_copyanon;
 #define BASE_REL_NAME           "relation"
 #define BASE_LOGREL_NAME        "logic_relation"
 #define BASE_WHEN_NAME          "when"
+#define BASE_EVENT_NAME         "event"
 #define BASE_EXT_NAME           "EXTERNAL_MODEL"
 #define BASE_UNSELECTED         "unSELECTed_part"
 /*

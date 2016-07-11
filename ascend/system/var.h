@@ -77,7 +77,7 @@
 #define VAR_BINARY    0x20
 /**< do we think this var a solver_binary?  */
 #define VAR_SEMICONT  0x40
-/**< do we think this var a solver_semi(continuous) ?  */
+/**< do we think this var a solver_semi(continuous) ? NEVER USED */
 
 /*
 	Added this one. Not sure if it belongs 'above the line' here or
@@ -91,6 +91,8 @@
 	system of equations. Can't have both alg&deriv flags set (unless higher
 	order derivatives have been implemented?)
 */
+#define VAR_PRE       0x200
+/**< var is a pre() var */
 
 /*
 	The remaining flagbit definitions are those flags to be
@@ -101,7 +103,7 @@
 */
 
 #define VAR_PARAM         0x1000
-/**< is this variable considered parametric currently? */
+/**< is this variable considered parametric currently? NEVER USED */
 #define VAR_FIXED         0x2000
 /**< is this variable considered fixed currently? */
 #define VAR_INBLOCK       0x4000
@@ -142,6 +144,7 @@
 struct var_variable {
   SlvBackendToken ratom;  /**< the associated ascend ATOM */
   struct rel_relation **incidence;  /**< array rels which contain var */
+  struct var_variable *prearg;      /**< the argument of a pre() variable */
   int32 n_incidences;     /**< length of incidence. */
   int32 sindex;           /**< index in the solver clients list (often column index) */
   int32 mindex;           /**< index in the slv_system_t master list */
@@ -399,6 +402,32 @@ ASC_DLLSPEC const struct rel_relation **var_incidence_list(struct var_variable *
 */
 
 #ifdef NDEBUG
+# define var_set_prearg(var,arg) (var)->prearg=(arg)
+#else
+# define var_set_prearg(var,arg) var_set_preargF((var),(arg))
+#endif
+/**<
+	Sets the pre() argument for a variable.
+	@param var   struct var_variable *, the variable to query.
+	@param ilist struct var_variable *, pre() argument.
+	@return No return value.
+	@see var_set_preargF().
+*/
+
+extern void var_set_preargF(struct var_variable *var,
+                            struct var_variable *arg);
+/**<
+	Implementation function for var_set_prearg().  Do not call this
+	function directly - use var_set_prearg() instead.
+*/
+
+ASC_DLLSPEC const struct var_variable *var_prearg(struct var_variable *var);
+/**<
+	Returns a pointer to a variable.
+	If the variable is not a pre(), NULL is returned.
+*/
+
+#ifdef NDEBUG
 # define var_flags(var) ((var)->flags)
 #else
 # define var_flags(var) var_flagsF(var)
@@ -511,6 +540,8 @@ extern void var_set_interface(struct var_variable *var, uint32 fixed);
   /**<  Returns the deriv flag of var as a uint32. */
 # define var_diff(var) ((var)->flags & VAR_DIFF)
   /**<  Returns the deriv flag of var as a uint32. */
+# define var_pre(var) ((var)->flags & VAR_PRE)
+  /**<  Returns the pre flag of var as a uint32. */
 # define var_active(var)   ((var)->flags & VAR_ACTIVE)
   /**<  Returns the active flag of var as a uint32. */
 # define var_nonbasic(var) ((var)->flags & VAR_NONBASIC)
@@ -535,6 +566,8 @@ extern void var_set_interface(struct var_variable *var, uint32 fixed);
   /**<  Returns the deriv flag of var as a uint32. */
 # define var_diff(var)         var_flagbit((var),VAR_DIFF)
   /**<  Returns the deriv flag of var as a uint32. */
+# define var_pre(var)           var_flagbit((var),VAR_PRE)
+  /**<  Returns the pre flag of var as a uint32. */
 # define var_active(var)        var_flagbit((var),VAR_ACTIVE)
   /**<  Returns the active flag of var as a uint32. */
 # define var_nonbasic(var)      var_flagbit((var),VAR_NONBASIC)
@@ -563,6 +596,9 @@ extern void var_set_interface(struct var_variable *var, uint32 fixed);
 #define var_set_diff(var,oneorzero)      \
         var_set_flagbit((var),VAR_DIFF,(oneorzero))
 /**<  Sets the algeb flag of var on (1) or off (0). */
+#define var_set_pre(var,oneorzero)      \
+        var_set_flagbit((var),VAR_PRE,(oneorzero))
+/**<  Sets the pre flag of var on (1) or off (0). */
 #define var_set_interface(var,oneorzero)     \
         var_set_flagbit((var),VAR_INTERFACE,(oneorzero))
 /**<  Sets the interface flag of var on (1) or off (0). */

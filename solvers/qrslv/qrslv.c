@@ -59,7 +59,6 @@
 /**< makes lots of extra spew */
 
 /* #define PIVOT_DEBUG */
-/* #define LISTS_DEBUG *//* show lists of vars and rels before solving */
 
 #define QRSLV(s) ((qrslv_system_t)(s))
 #define SERVER (sys->slv)
@@ -406,7 +405,7 @@ static void debug_write_array(FILE *fp,real64 *vec, int32 length){
 static char savlinfilename[]="SlvLinsol.dat.              \0";
 static char savlinfilebase[]="SlvLinsol.dat.\0";
 static int savlinnum=0;
-/**< The number to postfix to savlinfilebase. increases with file accesses. **/
+/** The number to postfix to savlinfilebase. increases with file accesses. **/
 
 /*------------------------------------------------------------------------------
   ARRAY/VECTOR OPERATIONS
@@ -3872,7 +3871,7 @@ static int qrslv_iterate(slv_system_t server, SlvClientToken asys){
       ERROR_REPORTER_START_NOLINE(ASC_PROG_ERROR);
       FPRINTF(ASCERR,"Direct solution of relation '");
       print_rel_name(ASCERR,sys,rel);
-      FPRINTF(ASCERR,"' gave a value of '");
+      FPRINTF(ASCERR,"' gave a\nvalue of '");
       print_var_name(ASCERR,sys,var);
       FPRINTF(ASCERR,"' outside its bounds.");
 	  error_reporter_end_flush();
@@ -4173,38 +4172,6 @@ static int qrslv_solve(slv_system_t server, SlvClientToken asys){
   sys = QRSLV(asys);
   if(server == NULL || sys==NULL) return 1;
   if(check_system(sys)) return 1;
-
-#ifdef LISTS_DEBUG
-  {
-	int i,j;
-	int nv = slv_get_num_solvers_vars(server);
-	struct var_variable **v = slv_get_solvers_var_list(server);
-	CONSOLE_DEBUG("Variable list");
-	for(i=0;i<nv;++i){
-		char *n = var_make_name(server,v[i]);
-		fprintf(stderr,"\t%d\t%-15p\t%s\n",i,v[i],n);
-		ASC_FREE(n);
-		var_set_value(v[i],var_value(v[i]));
-	}
-	int nr = slv_get_num_solvers_rels(server);
-	struct rel_relation **r = slv_get_solvers_rel_list(server);
-	CONSOLE_DEBUG("Relation list");
-	for(i=0;i<nr;++i){
-		char *n = rel_make_name(server,r[i]);
-		fprintf(stderr,"\t%d\t%-15p\t%-20s (",i,r[i],n);
-		nv = rel_n_incidences(r[i]);
-		const struct var_variable **v = rel_incidence_list(r[i]);
-		ASC_FREE(n);
-		for(j=0;j<nv;++j){
-			char *n = var_make_name(server,v[j]);
-			fprintf(stderr,"%s%d:%s",(j?", ":""),j,n);
-			ASC_FREE(n);
-		}
-		fprintf(stderr,")\n");
-	}
-  }
-#endif
-
   while(sys->s.ready_to_solve) err = err | qrslv_iterate(server,sys);
   if(err)ERROR_REPORTER_HERE(ASC_PROG_ERR,"Solver error %d",err);
   return err;
