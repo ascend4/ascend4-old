@@ -768,7 +768,7 @@ char *WriteLogRelToString(CONST struct Instance *lrelinst,
 
   lreln = GetInstanceLogRel(lrelinst);
   if (!lreln) {
-    result = ASC_NEW_ARRAY(char,15);
+    result = ASC_NEW_ARRAY(char,30);
     if (result == NULL) return result;
     sprintf(result,"NULL logical relation\n");
     return result;
@@ -974,5 +974,4 @@ void SaveLogRel(FILE *fp, CONST struct Instance *lrelinst)
 
   gl_destroy(constants);
 }
-
 

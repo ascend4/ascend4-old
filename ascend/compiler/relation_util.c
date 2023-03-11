@@ -79,7 +79,7 @@ static struct relation *glob_rel;
 	These should probably be located at the top of this
 	file alonge with glob_rel. [OK, let it be so then. -- JP]
 */
-static unsigned long glob_varnum;
+static int glob_varnum;
 static int glob_done;
 
 /* some data structurs...*/
@@ -115,8 +115,8 @@ static int IsZero(struct dimnode *node);
 
 /* bunch of support functions for RelationFindRoots */
 static double RootFind(struct relation *rel, double *lower_bound, double *upper_bound,
-	double *nominal,double *tolerance,unsigned long varnum,int *status);
-static int CalcResidGivenValue(int *mode, int *m, unsigned long *varnum,double *val, double *u, double *f, double *g);
+	double *nominal,double *tolerance,int varnum,int *status);
+static int CalcResidGivenValue(int *mode, int *m, int *varnum,double *val, double *u, double *f, double *g);
 int RelationInvertTokenTop(struct ds_soln_list *soln_list);
 int RelationInvertToken(struct relation_term **term,struct ds_soln_list *soln_list,enum safe_err *not_safe);
 static void SetUpInvertTokenTop(struct relation_term **invert_side,double *value);
@@ -3073,7 +3073,7 @@ double *RelationFindRoots(struct Instance *i,
 		double lower_bound, double upper_bound,
 		double nominal,
 		double tolerance,
-		unsigned long *varnum,
+		int *varnum,
 		int *able,
 		int *nsolns
 ){
@@ -3207,6 +3207,7 @@ double *RelationFindRoots(struct Instance *i,
       return soln_list.soln;
     }
     /* CALL ITERATIVE SOLVER */
+    //CONSOLE_DEBUG("Solving iteratively...");
     *soln_list.soln = RootFind(glob_rel,&(lower_bound),
         		       &(upper_bound),&(nominal),
         		       &(tolerance),
@@ -4021,7 +4022,7 @@ int RelationInvertTokenTop(struct ds_soln_list *soln_list){
 	look like an ExtEvalFunc to our root-finder.
 */
 static
-int CalcResidGivenValue(int *mode, int *m, unsigned long *varnum,
+int CalcResidGivenValue(int *mode, int *m, int *varnum,
 		double *val, double *u, double *f, double *g
 ){
   double res;
@@ -4072,7 +4073,7 @@ double RootFind(struct relation *rel,
 		double *lower_bound, double *upper_bound,
 		double *nominal,
 		double *tolerance,
-		unsigned long varnum,
+		int varnum,
 		int *status
 ){
   double *f = NULL;	/* vector of residuals, borrowed from tmpalloc */
@@ -4217,7 +4218,7 @@ void PrintDirectResult(struct Instance *i){
   enum Expr_enum reltype;
   int num,status,n,nsoln;
   double *soln_list,tolerance = 1e-7;
-  unsigned long varnum;
+  int varnum;
   CONST struct gl_list_t *list;
 
   if (InstanceKind(i) == REL_INST) {

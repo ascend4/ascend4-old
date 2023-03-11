@@ -1,4 +1,3 @@
-
 Syntax highlighting for ASCEND files in VIM
 -------------------------------------------
 
@@ -13,6 +12,11 @@ need to register the syntax file with a change to your ~/.vimrc file.
 If you use MinGW/MSYS then you can use the example .vimrc file (vimrc-mingw.txt)
 which will enable colour syntax highlighting. It seems to work for both the 'mintty'
 terminal as well as for the 'cygwin' (regular MSYS command-line) terminal. Enjoy!
+
+UPDATE (Jul 2016): The correct location for syntax files in Ubuntu 16.04 is 
+/usr/share/vim/vim74/syntax/
+Also, the file 'vimrc-mingw.txt' works fine for Linux, too:
+cat vimrc-mingw.txt >> ~/.vimrc
 
 -- 
 John Pye
